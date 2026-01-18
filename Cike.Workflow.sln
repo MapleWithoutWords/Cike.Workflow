@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4F61803F-BB96-4AF5-8E7D-5EEFB7C4F283}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{61AF4C0E-9B11-4930-BDA8-4BAB37FF4949}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Service.Open", "src\Cike.Workflow.Service.Open\Cike.Workflow.Service.Open.csproj", "{63D66F20-7410-441C-9604-485D22182413}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Core", "src\Cike.Workflow.Core\Cike.Workflow.Core.csproj", "{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,12 +21,17 @@ Global
 		{63D66F20-7410-441C-9604-485D22182413}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63D66F20-7410-441C-9604-485D22182413}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63D66F20-7410-441C-9604-485D22182413}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{63D66F20-7410-441C-9604-485D22182413} = {4F61803F-BB96-4AF5-8E7D-5EEFB7C4F283}
+		{0617115D-5D8E-4E1F-BEE1-8AA7EF9B6DD7} = {4F61803F-BB96-4AF5-8E7D-5EEFB7C4F283}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8F262CD5-77FB-41F1-93E2-3B312A730554}
