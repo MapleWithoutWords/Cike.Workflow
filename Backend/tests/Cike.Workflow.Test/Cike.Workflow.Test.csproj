@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Cike.Service.Open\Cike.Workflow.Service.Open.csproj" />
+    <ProjectReference Include="..\..\src\Cike.Workflow.Service.Open\Cike.Workflow.Service.Open.csproj" />
   </ItemGroup>
 
   <ItemGroup>
