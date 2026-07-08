@@ -1,0 +1,87 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11527.330
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5C497DA0-0547-49CE-8DBD-286C6A99A1F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B635D266-25F5-4F25-81AA-F2AEF9D5FB78}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_solution items", "_solution items", "{11E8450F-30E9-4011-AFEE-C138E1F87B6E}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Domain", "src\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj", "{F1FAE98C-634A-4130-A205-E09B3EE0DB43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Domain.Shared", "src\Cike.Workflow.Domain.Shared\Cike.Workflow.Domain.Shared.csproj", "{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.EntityFrameworkCore", "src\Cike.Workflow.EntityFrameworkCore\Cike.Workflow.EntityFrameworkCore.csproj", "{C3182169-AB4F-4A2B-A7AD-5AC417686A86}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Application", "src\Cike.Workflow.Application\Cike.Workflow.Application.csproj", "{815343D9-A34B-4742-9306-D29F915A7F04}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Service.Open", "src\Cike.Workflow.Service.Open\Cike.Workflow.Service.Open.csproj", "{4E14879A-E448-4C1D-9F20-DBAD443D5D6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Application.Contracts", "src\Cike.Workflow.Application.Contracts\Cike.Workflow.Application.Contracts.csproj", "{8492FF6B-365D-4B73-A500-A92A4FCA5BCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Test", "tests\Cike.Workflow.Test\Cike.Workflow.Test.csproj", "{559D083C-0EDC-46EC-BA27-A7B6EA560362}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Core", "src\Cike.Workflow.Core\Cike.Workflow.Core.csproj", "{CABEB50D-CD66-437E-A8AD-2351A490CB6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1FAE98C-634A-4130-A205-E09B3EE0DB43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1FAE98C-634A-4130-A205-E09B3EE0DB43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1FAE98C-634A-4130-A205-E09B3EE0DB43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1FAE98C-634A-4130-A205-E09B3EE0DB43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3182169-AB4F-4A2B-A7AD-5AC417686A86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3182169-AB4F-4A2B-A7AD-5AC417686A86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3182169-AB4F-4A2B-A7AD-5AC417686A86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3182169-AB4F-4A2B-A7AD-5AC417686A86}.Release|Any CPU.Build.0 = Release|Any CPU
+		{815343D9-A34B-4742-9306-D29F915A7F04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{815343D9-A34B-4742-9306-D29F915A7F04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{815343D9-A34B-4742-9306-D29F915A7F04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{815343D9-A34B-4742-9306-D29F915A7F04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E14879A-E448-4C1D-9F20-DBAD443D5D6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E14879A-E448-4C1D-9F20-DBAD443D5D6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E14879A-E448-4C1D-9F20-DBAD443D5D6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E14879A-E448-4C1D-9F20-DBAD443D5D6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{559D083C-0EDC-46EC-BA27-A7B6EA560362}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{559D083C-0EDC-46EC-BA27-A7B6EA560362}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{559D083C-0EDC-46EC-BA27-A7B6EA560362}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{559D083C-0EDC-46EC-BA27-A7B6EA560362}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F1FAE98C-634A-4130-A205-E09B3EE0DB43} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{CE041E8E-E3F9-4A80-AA5A-9C36D6B0A033} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{C3182169-AB4F-4A2B-A7AD-5AC417686A86} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{815343D9-A34B-4742-9306-D29F915A7F04} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{4E14879A-E448-4C1D-9F20-DBAD443D5D6E} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{559D083C-0EDC-46EC-BA27-A7B6EA560362} = {B635D266-25F5-4F25-81AA-F2AEF9D5FB78}
+		{CABEB50D-CD66-437E-A8AD-2351A490CB6B} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {05E25C7C-A0AF-4725-8C39-05F6A67D7A32}
+	EndGlobalSection
+EndGlobal

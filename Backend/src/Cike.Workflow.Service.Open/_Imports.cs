@@ -1,0 +1,16 @@
+global using Cike.AspNetCore.MinimalAPIs;
+global using Cike.Core.Modularity;
+global using Cike.Application;
+global using Cike.EntityFrameworkCore;
+global using Cike.AspNetCore.MinimalAPIs.Extensions;
+global using Cike.Core.Extensions;
+global using Cike.Service.Open;
+global using Serilog;
+global using Serilog.Events;
+global using Microsoft.OpenApi.Models;
+global using Swashbuckle.AspNetCore.SwaggerGen;
+global using System.Reflection;
+global using System.Text.Json.Serialization;
+global using Cike.AspNetCore.Swagger;
+global using FluentValidation;
+global using Cike.Service.Open;
