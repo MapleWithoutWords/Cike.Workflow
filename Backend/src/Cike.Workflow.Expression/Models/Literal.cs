@@ -1,0 +1,41 @@
+namespace Cike.Workflow.Expressions.Models;
+
+public class Literal : MemoryBlockReference
+{
+    /// <inheritdoc />
+    public Literal()
+    {
+    }
+
+    /// <inheritdoc />
+    public Literal(object? value, string? id = null) : base(id!)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the value of the literal.
+    /// </summary>
+    public object? Value { get; }
+
+    /// <summary>
+    /// Creates a literal expression from a value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>A literal expression.</returns>
+    public static Literal From<T>(T value) => new Literal<T>(value);
+}
+
+public class Literal<T> : Literal
+{
+    /// <inheritdoc />
+    public Literal()
+    {
+    }
+
+    /// <inheritdoc />
+    public Literal(T value, string? id = null) : base(value!, id)
+    {
+    }
+}

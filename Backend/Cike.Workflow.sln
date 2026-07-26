@@ -29,6 +29,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Test", "tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Core", "src\Cike.Workflow.Core\Cike.Workflow.Core.csproj", "{CABEB50D-CD66-437E-A8AD-2351A490CB6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Expressions", "src\Cike.Workflow.Expression\Cike.Workflow.Expressions.csproj", "{5D53BB8E-F642-4561-804B-AFFFE5564DF8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "expressions", "expressions", "{4625C476-D8A3-464A-B823-61799D357D30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +71,10 @@ Global
 		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CABEB50D-CD66-437E-A8AD-2351A490CB6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D53BB8E-F642-4561-804B-AFFFE5564DF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D53BB8E-F642-4561-804B-AFFFE5564DF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D53BB8E-F642-4561-804B-AFFFE5564DF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D53BB8E-F642-4561-804B-AFFFE5564DF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,6 +88,8 @@ Global
 		{8492FF6B-365D-4B73-A500-A92A4FCA5BCC} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
 		{559D083C-0EDC-46EC-BA27-A7B6EA560362} = {B635D266-25F5-4F25-81AA-F2AEF9D5FB78}
 		{CABEB50D-CD66-437E-A8AD-2351A490CB6B} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
+		{5D53BB8E-F642-4561-804B-AFFFE5564DF8} = {4625C476-D8A3-464A-B823-61799D357D30}
+		{4625C476-D8A3-464A-B823-61799D357D30} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {05E25C7C-A0AF-4725-8C39-05F6A67D7A32}
