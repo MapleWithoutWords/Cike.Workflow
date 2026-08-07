@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Cike.Workflow.Expression\Cike.Workflow.Expressions.csproj" />
     <ProjectReference Include="..\..\src\Cike.Workflow.Service.Open\Cike.Workflow.Service.Open.csproj" />
   </ItemGroup>
 

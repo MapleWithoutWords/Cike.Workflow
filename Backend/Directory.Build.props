@@ -6,7 +6,7 @@
     <Version>1.0.0</Version>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <AbpProjectType>app</AbpProjectType>
-    <CikeVersion>1.0.60011</CikeVersion>
+    <CikeVersion>1.0.60017</CikeVersion>
     <MicrosoftPackageVersion>8.0.0</MicrosoftPackageVersion>
   </PropertyGroup>
 </Project>

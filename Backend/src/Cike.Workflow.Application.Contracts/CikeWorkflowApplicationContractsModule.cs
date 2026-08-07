@@ -1,4 +1,4 @@
-namespace Cike.Application.Contracts;
+namespace Cike.Workflow.Application.Contracts;
 
 [DependsOn(
     typeof(CikeWorkflowDomainSharedModule),

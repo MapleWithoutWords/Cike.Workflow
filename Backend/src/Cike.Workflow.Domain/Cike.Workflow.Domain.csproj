@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Cike.Workflow.Core\Cike.Workflow.Core.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Domain.Shared\Cike.Workflow.Domain.Shared.csproj" />
   </ItemGroup>
 </Project>
