@@ -6,4 +6,4 @@ using System.Threading.Tasks;
 
 namespace Cike.Workflow.Core.Activities.Signals;
 
-public record CompleteCompositeSignal(object? Value = default);
+public record CompleteCompositeSignal(Outcomes? Value = default);

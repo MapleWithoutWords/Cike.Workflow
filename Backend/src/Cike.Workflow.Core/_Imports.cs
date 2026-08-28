@@ -14,3 +14,5 @@ global using System.Collections.ObjectModel;
 global using System.ComponentModel;
 global using System.Text.Json.Serialization;
 global using Cike.Workflow.Core.StorageDrivers.Models;
+global using Cike.Core.DependencyInjection;
+global using System.Collections.Concurrent;

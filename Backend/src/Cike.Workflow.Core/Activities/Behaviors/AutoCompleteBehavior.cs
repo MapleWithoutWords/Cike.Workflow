@@ -1,11 +1,8 @@
-using JetBrains.Annotations;
-
 namespace Cike.Workflow.Core.Activities.Behaviors;
 
 /// <summary>
 /// Automatically completes the currently executing activity.
 /// </summary>
-[UsedImplicitly]
 public class AutoCompleteBehavior : Behavior
 {
     /// <inheritdoc />
@@ -19,7 +16,7 @@ public class AutoCompleteBehavior : Behavior
         // If the activity created any bookmarks, do not complete. 
         if (context.NewBookmarks.Any(x => x.ActivityId == context.Activity.Id))
             return;
-        
+
         await context.CompleteActivityAsync();
     }
 }

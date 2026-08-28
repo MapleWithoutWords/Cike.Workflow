@@ -8,5 +8,5 @@ public class InputDefinition : ArgumentDefinition
     /// <summary>
     /// The type of the storage driver to use for this input.
     /// </summary>
-    public Type? StorageDriverType { get; set; }
+    public string? StorageDriverType { get; set; }
 }

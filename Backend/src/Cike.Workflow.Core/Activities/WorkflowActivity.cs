@@ -20,13 +20,9 @@ public class WorkflowActivity : CompositeActivity<object>, ICloneable
         bool isReadonly,
         bool isSystem)
     {
-        Identity = identity;
-        Publication = publication;
         Inputs = inputs;
         Outputs = outputs;
         Outcomes = outcomes;
-        WorkflowMetadata = workflowMetadata;
-        Options = options;
         Variables = variables;
         CustomProperties = customProperties;
         Root = root;
