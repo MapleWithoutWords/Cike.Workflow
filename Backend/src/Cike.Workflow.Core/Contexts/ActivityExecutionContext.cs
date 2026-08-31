@@ -8,6 +8,8 @@ public class ActivityExecutionContext : IExecutionContext
 
     public long Id { get; set; }
 
+    public ActivityStatus Status { get; set; }
+
     public IActivity Activity { get; set; } = null!;
 
     public IEnumerable<Variable> Variables

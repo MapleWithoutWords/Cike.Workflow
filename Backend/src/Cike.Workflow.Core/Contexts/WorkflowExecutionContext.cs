@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Cike.Workflow.Core.Contexts;
 
 public class WorkflowExecutionContext
@@ -11,6 +9,8 @@ public class WorkflowExecutionContext
     public IDictionary<string, object> Input { get; set; } = null!;
 
     public IDictionary<string, object> Output { get; set; } = new Dictionary<string, object>();
+
+    public WorkflowStatus Status { get; set; }
 
     public MemoryRegister MemoryRegister { get; private set; } = null!;
 
