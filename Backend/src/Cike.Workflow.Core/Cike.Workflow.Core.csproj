@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
     <PackageReference Include="Humanizer" Version="3.0.10" />
   </ItemGroup>
 

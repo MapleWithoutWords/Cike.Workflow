@@ -1,12 +1,6 @@
-using Cike.Core.Modularity;
-using Cike.Workflow.Core.StorageDrivers;
-using Cike.Workflow.Core.StorageDrivers.Internals;
-using Cike.Workflow.Expressions;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Cike.Workflow.Core;
 
-[DependsOn([typeof(CikeWorkflowExpressionModule)])]
+[DependsOn([typeof(CikeWorkflowExpressionModule), typeof(CikeAuthModule)])]
 public class CikeWorkflowCoreModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
