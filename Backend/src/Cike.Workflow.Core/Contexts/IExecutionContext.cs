@@ -11,4 +11,8 @@ public interface IExecutionContext
     IEnumerable<Variable> Variables { get; }
 
     public IDictionary<string, object> Properties { get; }
+
+    DateTime CreatedAt { get; }
+
+    DateTime? FinishedAt { get; }
 }
