@@ -1,4 +1,6 @@
-namespace Cike.Workflow.Core.ActivitySchedulers.Internals;
+using Cike.Workflow.Core.Schedulers;
+
+namespace Cike.Workflow.Core.Schedulers.Internals;
 
 internal class ActivitySchedulerFactory : IActivitySchedulerFactory, ISingletonDependency
 {

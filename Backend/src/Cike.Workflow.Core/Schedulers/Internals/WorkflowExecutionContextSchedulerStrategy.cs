@@ -1,4 +1,7 @@
-namespace Cike.Workflow.Core.ActivitySchedulers.Internals;
+using Cike.Workflow.Core.Schedulers;
+using Cike.Workflow.Core.Schedulers.Models;
+
+namespace Cike.Workflow.Core.Schedulers.Internals;
 
 /// <inheritdoc />
 public class WorkflowExecutionContextSchedulerStrategy : IWorkflowExecutionContextSchedulerStrategy, ISingletonDependency

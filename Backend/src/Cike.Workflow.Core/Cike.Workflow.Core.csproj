@@ -19,5 +19,6 @@
 
   <ItemGroup>
     <Folder Include="Applications\Commands\" />
+    <Folder Include="Runners\Internals\" />
   </ItemGroup>
 </Project>

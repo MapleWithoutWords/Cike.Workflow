@@ -1,6 +1,6 @@
-using Cike.Workflow.Core.ActivitySchedulers.Models;
+using Cike.Workflow.Core.Schedulers.Models;
 
-namespace Cike.Workflow.Core.ActivitySchedulers
+namespace Cike.Workflow.Core.Schedulers
 {
     public interface IWorkflowExecutionContextSchedulerStrategy
     {

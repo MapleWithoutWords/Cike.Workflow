@@ -1,11 +1,12 @@
-using Cike.Workflow.Core.ActivitySchedulers.Models;
+using Cike.Workflow.Core.Schedulers;
+using Cike.Workflow.Core.Schedulers.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cike.Workflow.Core.ActivitySchedulers.Internals;
+namespace Cike.Workflow.Core.Schedulers.Internals;
 
 internal class QueueBasedActivityScheduler : IActivityScheduler
 {

@@ -1,6 +1,6 @@
 using Cike.Workflow.Core.Variables;
 
-namespace Cike.Workflow.Core.ActivitySchedulers.Models;
+namespace Cike.Workflow.Core.Schedulers.Models;
 
 public class ScheduleWorkOptions
 {

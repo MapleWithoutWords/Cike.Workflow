@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cike.Workflow.Core.ActivitySchedulers.Models;
+namespace Cike.Workflow.Core.Schedulers.Models;
 
 public class ActivityWorkItem
 {

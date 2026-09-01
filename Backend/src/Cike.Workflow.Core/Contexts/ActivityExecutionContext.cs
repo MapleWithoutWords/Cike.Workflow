@@ -1,8 +1,9 @@
 using Cike.Core.Extensions.System;
 using Cike.Core.Hashers;
-using Cike.Workflow.Core.ActivitySchedulers;
 using Cike.Workflow.Core.Contexts.Models;
 using Cike.Workflow.Core.Helpers;
+using Cike.Workflow.Core.Schedulers;
+using Cike.Workflow.Core.Schedulers.Models;
 using Cike.Workflow.Core.Variables;
 using System.Text.Json;
 

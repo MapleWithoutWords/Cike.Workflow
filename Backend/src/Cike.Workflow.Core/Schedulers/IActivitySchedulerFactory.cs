@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cike.Workflow.Core.ActivitySchedulers;
+namespace Cike.Workflow.Core.Schedulers;
 
 public interface IActivitySchedulerFactory
 {
