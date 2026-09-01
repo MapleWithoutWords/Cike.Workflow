@@ -1,3 +1,4 @@
+using Cike.Workflow.Core.Variables;
 using System.Runtime.CompilerServices;
 
 namespace Cike.Workflow.Core.Activities.Abstracts;

@@ -15,17 +15,17 @@ public class ActivityHandle
         ActivityNodeId = activityNodeId
     };
 
-    public static ActivityHandle FromActivityInstanceId(string activityInstanceId) => new()
+    public static ActivityHandle FromActivityInstanceId(long activityInstanceId) => new()
     {
         ActivityInstanceId = activityInstanceId
     };
 
     public string? ActivityId { get; init; }
     public string? ActivityNodeId { get; init; }
-    public string? ActivityInstanceId { get; init; }
+    public long? ActivityInstanceId { get; init; }
 
     public override string ToString()
     {
-        return ActivityId ?? (ActivityNodeId ?? (ActivityInstanceId ?? ""));
+        return ActivityId ?? (ActivityNodeId ?? (ActivityInstanceId.HasValue ? ActivityInstanceId.ToString() : "") ?? "");
     }
 }

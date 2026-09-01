@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.Variables;
+
 namespace Cike.Workflow.Core.Models;
 
 /// <summary>

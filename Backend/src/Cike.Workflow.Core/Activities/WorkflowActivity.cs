@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.Variables;
+
 namespace Cike.Workflow.Core.Activities;
 
 /// <summary>
@@ -18,7 +20,8 @@ public class WorkflowActivity : CompositeActivity<object>, ICloneable
         ICollection<string> outcomes,
         IDictionary<string, object> customProperties,
         bool isReadonly,
-        bool isSystem)
+        bool isSystem,
+        WorkflowDefinitionInfo workflowDefinitionInfo)
     {
         Inputs = inputs;
         Outputs = outputs;
@@ -28,6 +31,7 @@ public class WorkflowActivity : CompositeActivity<object>, ICloneable
         Root = root;
         IsReadonly = isReadonly;
         IsSystem = isSystem;
+        DefinitionInfo = workflowDefinitionInfo;
     }
 
     /// <summary>
@@ -59,6 +63,8 @@ public class WorkflowActivity : CompositeActivity<object>, ICloneable
     /// Gets or sets possible outcomes for this workflow.
     /// </summary>
     public ICollection<string> Outcomes { get; set; } = new List<string>();
+
+    public WorkflowDefinitionInfo DefinitionInfo { get; set; } = WorkflowDefinitionInfo.Default;
 
     /// <summary>
     /// Make workflow definition readonly.
@@ -98,4 +104,39 @@ public class WorkflowActivity : CompositeActivity<object>, ICloneable
     public WorkflowActivity Clone() => (WorkflowActivity)((ICloneable)this).Clone();
 
     object ICloneable.Clone() => MemberwiseClone();
+}
+
+public class WorkflowDefinitionInfo
+{
+    public static WorkflowDefinitionInfo Default = new WorkflowDefinitionInfo()
+    {
+        Id = 1,
+        DefinitionId = "1",
+        Version = 1,
+        TenantId = Guid.Empty,
+        IsLatest = true,
+        IsPublished = true,
+        Name = "",
+    };
+    public long Id { get; set; }
+
+    public string DefinitionId { get; set; } = null!;
+
+    public int Version { get; set; }
+
+    public Guid? TenantId { get; set; }
+
+    public bool IsLatest { get; set; }
+
+    public bool IsPublished { get; set; }
+
+    public string Name { get; set; } = "";
+
+    public string Description { get; set; } = "";
+
+    public bool? UsableAsActivity { get; set; }
+
+    public bool IsReadonly { get; set; }
+
+    public bool IsSystem { get; }
 }

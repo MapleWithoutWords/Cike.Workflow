@@ -9,10 +9,15 @@
   <ItemGroup>
     <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.UniversalId" Version="$(CikeVersion)" />
     <PackageReference Include="Humanizer" Version="3.0.10" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Cike.Workflow.Expression\Cike.Workflow.Expressions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Applications\Commands\" />
   </ItemGroup>
 </Project>

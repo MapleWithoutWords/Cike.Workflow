@@ -1,0 +1,47 @@
+namespace Cike.Workflow.Core.ActivitySchedulers.Internals;
+
+/// <inheritdoc />
+public class WorkflowExecutionContextSchedulerStrategy : IWorkflowExecutionContextSchedulerStrategy, ISingletonDependency
+{
+    /// <inheritdoc />
+    public ActivityWorkItem Schedule(WorkflowExecutionContext context, ActivityNode activityNode, ActivityExecutionContext owner, ScheduleWorkOptions? options = null)
+    {
+        // Validate that the specified activity is part of the workflow.
+        if (!context.WorkflowGraph.NodeActivityLookup.ContainsKey(activityNode.Activity))
+            throw new InvalidOperationException("The specified activity is not part of the workflow.");
+
+        var scheduler = context.Scheduler;
+
+        if (options?.PreventDuplicateScheduling == true)
+        {
+            // Check if the activity is already scheduled for the specified owner.
+            var existingWorkItem = scheduler.Find(x => x.Activity.NodeId == activityNode.NodeId && x.Owner == owner);
+
+            if (existingWorkItem != null)
+                return existingWorkItem;
+        }
+
+        var activity = activityNode.Activity;
+
+        // Use explicit SchedulingActivityExecutionId from options, or fall back to owner context.
+        var schedulingActivityExecutionId = options?.SchedulingActivityExecutionId ?? owner.Id;
+
+        // Use explicit SchedulingWorkflowInstanceId from options, if any.
+        var schedulingWorkflowInstanceId = options?.SchedulingWorkflowInstanceId;
+
+        var workItem = new ActivityWorkItem(
+            activity,
+            owner,
+            options?.Variables,
+            options?.ExistingActivityExecutionContext,
+            options?.Input,
+            schedulingActivityExecutionId,
+            schedulingWorkflowInstanceId);
+        var completionCallback = options?.CompletionCallback;
+
+        context.AddCompletionCallback(owner, activityNode, completionCallback);
+        scheduler.Schedule(workItem);
+
+        return workItem;
+    }
+}

@@ -1,6 +1,6 @@
 namespace Cike.Workflow.Core;
 
-[DependsOn([typeof(CikeWorkflowExpressionModule), typeof(CikeAuthModule)])]
+[DependsOn([typeof(CikeWorkflowExpressionModule), typeof(CikeAuthModule), typeof(CikeUniversalIdModule)])]
 public class CikeWorkflowCoreModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)

@@ -18,7 +18,7 @@ public abstract class Activity : IActivity, ISignalHandler
 
     public string Id { get; set; } = null!;
 
-    public string IdPath { get; set; } = null!;
+    public string NodeId { get; set; } = null!;
 
     public string Code { get; set; } = null!;
 

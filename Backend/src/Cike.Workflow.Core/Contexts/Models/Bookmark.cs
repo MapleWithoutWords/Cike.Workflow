@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Cike.Workflow.Core.Models;
+namespace Cike.Workflow.Core.Contexts.Models;
 
 /// <summary>
 /// A bookmark represents a location in a workflow where the workflow can be resumed at a later time.
@@ -25,7 +25,7 @@ public class Bookmark(
     string activityId,
     string activityNodeId,
     long? activityInstanceId,
-    DateTimeOffset createdAt,
+    DateTime createdAt,
     bool autoBurn = true,
     string? callbackMethodName = null,
     bool autoComplete = true,
@@ -51,7 +51,7 @@ public class Bookmark(
 
     public long? ActivityInstanceId { get; set; } = activityInstanceId;
 
-    public DateTimeOffset CreatedAt { get; set; } = createdAt;
+    public DateTime CreatedAt { get; set; } = createdAt;
 
     public bool AutoBurn { get; set; } = autoBurn;
 

@@ -7,7 +7,7 @@ public interface IActivity
     /// <summary>
     /// 节点Path
     /// </summary>
-    string IdPath { get; set; }
+    string NodeId { get; set; }
 
     public string Code { get; set; }
 

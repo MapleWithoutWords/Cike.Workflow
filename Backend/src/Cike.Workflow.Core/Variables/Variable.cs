@@ -1,10 +1,22 @@
-namespace Cike.Workflow.Core.Models;
+namespace Cike.Workflow.Core.Variables;
 
 /// <summary>
 /// Represents a variable that references a memory block.
 /// </summary>
 public class Variable : MemoryBlockReference
 {
+    private static JsonSerializerOptions? _serializerOptions;
+    private static JsonSerializerOptions SerializerOptions =>
+        _serializerOptions ??= new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            ReferenceHandler = ReferenceHandler.Preserve,
+            PropertyNameCaseInsensitive = true,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+        }.WithConverters(
+            new JsonStringEnumConverter(),
+            new ExpandoObjectConverterFactory());
+
     /// <inheritdoc />
     public Variable()
     {
@@ -57,6 +69,38 @@ public class Variable : MemoryBlockReference
     public override MemoryBlock Declare() => new(Value, new VariableBlockMetadata(this, StorageDriverType, false));
 
     private string GetIdFromName(string? name) => $"{name?.Camelize() ?? "Unnamed"}{nameof(Variable)}";
+
+    /// <summary>
+    /// Converts the specified value into a type that is compatible with the variable.
+    /// </summary>
+    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
+    public bool TryParseValue(object? value, out object? parsedValue)
+    {
+        try
+        {
+            parsedValue = this.ParseValue(value);
+            return true;
+        }
+        catch
+        {
+            parsedValue = null;
+            return false;
+        }
+    }
+
+    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
+    public object? ParseValue(object? value)
+    {
+        var genericType = this.GetType();
+        return ParseValue(genericType, value);
+    }
+
+    public static object? ParseValue(Type type, object? value)
+    {
+        var genericType = type.GenericTypeArguments.FirstOrDefault();
+        var converterOptions = new ObjectConverterOptions(SerializerOptions);
+        return genericType == null ? value : value?.ConvertTo(genericType, converterOptions);
+    }
 }
 
 /// <summary>
@@ -94,7 +138,7 @@ public class Variable<T> : Variable
     /// </summary>
     public Variable<T> WithStorageDriver<TDriver>() where TDriver : IStorageDriver
     {
-        StorageDriverType = typeof(TDriver);
+        StorageDriverType = typeof(TDriver).Name;
         return this;
     }
 

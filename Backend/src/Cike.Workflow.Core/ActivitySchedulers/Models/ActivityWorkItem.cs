@@ -1,3 +1,4 @@
+using Cike.Workflow.Core.Variables;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,8 @@ public class ActivityWorkItem
         IEnumerable<Variable>? variables = null,
         ActivityExecutionContext? existingActivityExecutionContext = null,
         IDictionary<string, object>? input = null,
-        string? schedulingActivityExecutionId = null,
-        string? schedulingWorkflowInstanceId = null,
+        long? schedulingActivityExecutionId = null,
+        long? schedulingWorkflowInstanceId = null,
         int? schedulingCallStackDepth = null)
     {
         Activity = activity;
@@ -38,9 +39,9 @@ public class ActivityWorkItem
 
     public IDictionary<string, object> Input { get; set; }
 
-    public string? SchedulingActivityExecutionId { get; set; }
+    public long? SchedulingActivityExecutionId { get; set; }
 
-    public string? SchedulingWorkflowInstanceId { get; set; }
+    public long? SchedulingWorkflowInstanceId { get; set; }
 
     public int? SchedulingCallStackDepth { get; set; }
 }
