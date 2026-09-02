@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Cike.Workflow.Core.StorageDrivers.Internals;
 
-internal class ExecutionContextStorageDriver(ILogger<ExecutionContextStorageDriver> logger) : IStorageDriver, ITransientDependency
+internal class WorkflowInstanceStorageDriver(ILogger<WorkflowInstanceStorageDriver> logger) : IStorageDriver, ITransientDependency
 {
     public const string VARIABLES_DICTIONARY_STATE_KEY = "Variables";
 

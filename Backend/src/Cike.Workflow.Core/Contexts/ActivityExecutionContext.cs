@@ -1,11 +1,14 @@
 using Cike.Core.Extensions.System;
 using Cike.Core.Hashers;
+using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.Contexts.Models;
 using Cike.Workflow.Core.Helpers;
 using Cike.Workflow.Core.Schedulers;
 using Cike.Workflow.Core.Schedulers.Models;
 using Cike.Workflow.Core.Variables;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace Cike.Workflow.Core.Contexts;
 
@@ -28,8 +31,8 @@ public class ActivityExecutionContext : IExecutionContext
         ActivityInput = new ChangeTrackingDictionary<string, object>(Taint);
         WorkflowExecutionContext = workflowExecutionContext;
         ParentActivityExecutionContext = parentActivityExecutionContext;
-        var expressionExecutionContextProps = ExpressionExecutionContextHelper.CreateActivityExecutionContextPropertiesFrom(workflowExecutionContext, workflowExecutionContext.Input);
-        expressionExecutionContextProps[ExpressionExecutionContextHelper.ActivityKey] = activity;
+        var expressionExecutionContextProps = ExpressionExecutionContextExtensions.CreateActivityExecutionContextPropertiesFrom(workflowExecutionContext, workflowExecutionContext.Input);
+        expressionExecutionContextProps[ExpressionExecutionContextExtensions.ActivityKey] = activity;
         ExpressionExecutionContext = new(workflowExecutionContext.ServiceProvider, new(), parentActivityExecutionContext?.ExpressionExecutionContext ?? workflowExecutionContext.ExpressionExecutionContext, expressionExecutionContextProps, Taint, cancellationToken);
         Activity = activity;
         ActivityDescriptor = activityDescriptor;
@@ -82,6 +85,8 @@ public class ActivityExecutionContext : IExecutionContext
 
     public bool IsDirty { get; private set; }
 
+    public bool IsExecuting { get; set; }
+
     public IDictionary<object, object> TransientProperties { get; private set; } = new Dictionary<object, object>();
 
     public ExpressionExecutionContext ExpressionExecutionContext { get; } = null!;
@@ -91,6 +96,18 @@ public class ActivityExecutionContext : IExecutionContext
     public CancellationToken CancellationToken { get; }
 
     public WorkflowExecutionContext WorkflowExecutionContext { get; } = null!;
+
+    public ActivityNode ActivityNode => WorkflowExecutionContext.FindNodeByActivity(Activity)!;
+
+    public string NodeId => ActivityNode.NodeId;
+
+    public long? SchedulingActivityExecutionId { get; set; }
+
+    public string? SchedulingActivityId { get; set; }
+
+    public long? SchedulingWorkflowInstanceId { get; set; }
+
+    public int CallStackDepth { get; set; }
 
     public ActivityExecutionContext? ParentActivityExecutionContext
     {
@@ -105,8 +122,6 @@ public class ActivityExecutionContext : IExecutionContext
     public ISet<ActivityExecutionContext> Children { get; } = new HashSet<ActivityExecutionContext>();
 
     public IEnumerable<Bookmark> NewBookmarks => _newBookmarks.AsReadOnly();
-
-    public ActivityNode ActivityNode => WorkflowExecutionContext.FindNodeByActivity(Activity)!;
 
     #region Properties
     public T? GetProperty<T>(string key) => Properties.TryGetValue<T?>(key, out var value) ? value : default;
@@ -135,7 +150,46 @@ public class ActivityExecutionContext : IExecutionContext
     public void RemoveProperty(string key) => Properties.Remove(key);
     #endregion
 
-    #region Parent/Children
+    #region Parent/Children/FindActivity
+    public async IAsyncEnumerable<(IActivity Activity, ActivityDescriptor ActivityDescriptor)> GetActivitiesWithOutputs()
+    {
+        // Get current container.
+        var currentContainerNode = FindParentWithVariableContainer()?.ActivityNode;
+
+        if (currentContainerNode == null)
+            yield break;
+
+        // Get all nodes in the current container
+        var workflowExecutionContext = WorkflowExecutionContext;
+        var containedNodes = workflowExecutionContext.WorkflowGraph.Nodes.Where(x => x.Parents.Contains(currentContainerNode)).Distinct().ToList();
+
+        // Select activities with outputs.
+        var activityRegistry = workflowExecutionContext.GetRequiredService<IActivityRegistryLookupService>();
+
+        foreach (var node in containedNodes)
+        {
+            var activity = node.Activity;
+            var activityDescriptor = await activityRegistry.FindAsync(activity.Type, activity.Version);
+            if (activityDescriptor != null && activityDescriptor.Outputs.Any())
+                yield return (activity, activityDescriptor);
+        }
+    }
+
+    public IActivity? FindActivityByIdOrName(string idOrName)
+    {
+        // Get current container.
+        var currentContainerNode = FindParentWithVariableContainer()?.ActivityNode;
+
+        if (currentContainerNode == null)
+            return null;
+
+        // Get all nodes in the current container
+        var workflowExecutionContext = WorkflowExecutionContext;
+        var containedNodes = workflowExecutionContext.WorkflowGraph.Nodes.Where(x => x.Parents.Contains(currentContainerNode)).Distinct().ToList();
+        var node = containedNodes.FirstOrDefault(x => x.Activity.Name == idOrName || x.Activity.Id == idOrName);
+        return node?.Activity;
+    }
+
     public ActivityExecutionContext? FindParentWithVariableContainer()
     {
         return FindParent(x => x.Activity is IVariableContainer);
@@ -347,6 +401,61 @@ public class ActivityExecutionContext : IExecutionContext
     }
     #endregion
 
+
+    public T? Get<T>(Input<T>? input) => input == null ? default : Get<T>(input.MemoryBlockReference());
+
+    public T? Get<T>(Output<T>? output) => output == null ? default : Get<T>(output.MemoryBlockReference());
+
+    public object? Get(Output? output) => output == null ? null : Get(output.MemoryBlockReference());
+
+    public object? Get(MemoryBlockReference blockReference)
+    {
+        return !TryGet(blockReference, out var value)
+            ? throw new InvalidOperationException($"The memory block '{blockReference}' does not exist.")
+            : value;
+    }
+
+    public T? Get<T>(MemoryBlockReference blockReference)
+    {
+        var value = Get(blockReference);
+        return value != null ? value.ConvertTo<T>() : default;
+    }
+
+    public bool TryGet(MemoryBlockReference blockReference, out object? value)
+    {
+        // First, try to get the value from the memory register
+        var memoryBlock = GetMemoryBlock(blockReference);
+
+        if (memoryBlock != null)
+        {
+            value = memoryBlock.Value;
+            return true;
+        }
+
+        // Handle Literal references as a fallback - they can hold their value directly
+        if (blockReference is Literal literal)
+        {
+            value = literal.Value;
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    public void Set(MemoryBlockReference blockReference, object? value, Action<MemoryBlock>? configure = null) => ExpressionExecutionContext.Set(blockReference, value, configure);
+
+    public void Set<T>(Output<T>? output, T? value, [CallerArgumentExpression("output")] string? outputName = null) => Set((Output?)output, value, outputName);
+
+    public void Set(Output? output, object? value, [CallerArgumentExpression("output")] string? outputName = null)
+    {
+        // Store the value in the expression execution memory block.
+        ExpressionExecutionContext.Set(output, value);
+
+        // Also store the value in the workflow execution transient activity output register.
+        WorkflowExecutionContext.RecordActivityOutput(this, outputName, value);
+    }
+
     public T GetRequiredService<T>() where T : notnull => WorkflowExecutionContext.GetRequiredService<T>();
 
     public object GetRequiredService(Type serviceType) => WorkflowExecutionContext.GetRequiredService(serviceType);
@@ -487,5 +596,11 @@ public class ActivityExecutionContext : IExecutionContext
         logger.Log(logLevel, $"Workflow Execution LOG:{eventName};message:{message}");
 
         return logEntry;
+    }
+
+
+    private MemoryBlock? GetMemoryBlock(MemoryBlockReference locationBlockReference)
+    {
+        return ExpressionExecutionContext.TryGetBlock(locationBlockReference, out var memoryBlock) ? memoryBlock : null;
     }
 }

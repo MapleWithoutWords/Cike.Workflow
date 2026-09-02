@@ -16,3 +16,8 @@ public interface IActivityRegistryLookupService
 
     IEnumerable<ActivityDescriptor> FindMany(Func<ActivityDescriptor, bool> predicate);
 }
+
+public static class IActivityRegistryLookupServiceExtensions
+{
+    public static Task<ActivityDescriptor?> FindAsync(this IActivityRegistryLookupService activityRegistry, IActivity activity) => activityRegistry.FindAsync(activity.Type, activity.Version);
+}

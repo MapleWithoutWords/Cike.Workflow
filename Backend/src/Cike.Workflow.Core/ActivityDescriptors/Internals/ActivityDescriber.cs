@@ -38,7 +38,7 @@ internal class ActivityDescriber : IActivityDescriber, ISingletonDependency
 
         // If the activity has a default output, set its IsSerializable property to the value of the OutputAttribute.IsSerializable property.
         var outputAttribute = activityType.GetCustomAttribute<OutputAttribute>();
-        var defaultOutputDescriptor = descriptor.Outputs.FirstOrDefault(x => x.Name == nameof(IActivityWithResult.Result);
+        var defaultOutputDescriptor = descriptor.Outputs.FirstOrDefault(x => x.Name == nameof(IActivityWithResult.Result));
 
         if (defaultOutputDescriptor != null)
         {
@@ -77,7 +77,7 @@ internal class ActivityDescriber : IActivityDescriber, ISingletonDependency
         var typeArgs = propertyInfo.PropertyType.GenericTypeArguments;
         var wrappedPropertyType = typeArgs.Any() ? typeArgs[0] : typeof(object);
 
-        return Task.FromResult(new OutputDescriptor((outputAttribute?.Name ?? propertyInfo.Name).Pascalize(), outputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title), wrappedPropertyType, propertyInfo.GetValue, propertyInfo.SetValue, outputAttribute?.IsSerializable));
+        return Task.FromResult(new OutputDescriptor((outputAttribute?.Name ?? propertyInfo.Name).Pascalize(), propertyInfo.Name, outputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title), wrappedPropertyType, propertyInfo.GetValue, propertyInfo.SetValue, outputAttribute?.IsSerializable));
     }
 
     private async Task<InputDescriptor> DescribeInputPropertyAsync(PropertyInfo propertyInfo, CancellationToken cancellationToken = default)
@@ -93,6 +93,7 @@ internal class ActivityDescriber : IActivityDescriber, ISingletonDependency
 
         return new(
             inputAttribute?.Name ?? propertyInfo.Name,
+            propertyInfo.Name,
             wrappedPropertyType,
             propertyInfo.GetValue,
             propertyInfo.SetValue,

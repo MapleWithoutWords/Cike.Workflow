@@ -6,6 +6,7 @@ namespace Cike.Workflow.Core.Variables;
 public class Variable : MemoryBlockReference
 {
     private static JsonSerializerOptions? _serializerOptions;
+
     private static JsonSerializerOptions SerializerOptions =>
         _serializerOptions ??= new JsonSerializerOptions
         {
@@ -70,28 +71,10 @@ public class Variable : MemoryBlockReference
 
     private string GetIdFromName(string? name) => $"{name?.Camelize() ?? "Unnamed"}{nameof(Variable)}";
 
-    /// <summary>
-    /// Converts the specified value into a type that is compatible with the variable.
-    /// </summary>
-    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
-    public bool TryParseValue(object? value, out object? parsedValue)
-    {
-        try
-        {
-            parsedValue = this.ParseValue(value);
-            return true;
-        }
-        catch
-        {
-            parsedValue = null;
-            return false;
-        }
-    }
-
     [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
     public object? ParseValue(object? value)
     {
-        var genericType = this.GetType();
+        var genericType = GetType();
         return ParseValue(genericType, value);
     }
 

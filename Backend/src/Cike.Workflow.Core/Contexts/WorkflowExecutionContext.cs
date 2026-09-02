@@ -2,6 +2,7 @@ using Cike.Core.Extensions.System;
 using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.ActivityDescriptors.Internals;
 using Cike.Workflow.Core.Contexts.Models;
+using Cike.Workflow.Core.Exceptions;
 using Cike.Workflow.Core.Helpers;
 using Cike.Workflow.Core.Schedulers;
 using Cike.Workflow.Core.Schedulers.Models;
@@ -60,6 +61,8 @@ public class WorkflowExecutionContext : IExecutionContext
 
     public long Id { get; set; }
 
+    public string? Name { get; set; }
+
     public long? ParentWorkflowInstanceId { get; set; }
 
     public string? TriggerActivityId { get; set; }
@@ -80,6 +83,8 @@ public class WorkflowExecutionContext : IExecutionContext
 
     public DateTime? FinishedAt { get; set; }
 
+    public bool IsExecuting { get; set; }
+
     public ICollection<Bookmark> OriginalBookmarks { get; set; }
 
     public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
@@ -91,6 +96,8 @@ public class WorkflowExecutionContext : IExecutionContext
     public ExpressionExecutionContext ExpressionExecutionContext { get; private set; } = null!;
 
     public MemoryRegister MemoryRegister { get; private set; } = null!;
+
+    public ActivityOutputRegister ActivityOutputRegister { get; private set; } = new ActivityOutputRegister();
 
     public WorkflowGraph WorkflowGraph { get; private set; } = null!;
 
@@ -109,6 +116,8 @@ public class WorkflowExecutionContext : IExecutionContext
     public IActivityRegistryLookupService ActivityRegistryLookup { get; }
 
     public IActivity Activity => WorkflowGraph.Workflow;
+
+    public WorkflowActivity Workflow => WorkflowGraph.Workflow;
 
     public IEnumerable<Variable> Variables => WorkflowGraph.Workflow.Variables;
 
@@ -270,5 +279,68 @@ public class WorkflowExecutionContext : IExecutionContext
         logger.Log(logLevel, $"Workflow Execution LOG:{eventName};message:{message}");
 
         return logEntry;
+    }
+
+    internal void RecordActivityOutput(ActivityExecutionContext activityExecutionContext, string? outputName, object? value)
+    {
+        ActivityOutputRegister.Record(activityExecutionContext, outputName, value);
+    }
+
+    public async Task<ActivityExecutionContext> CreateActivityExecutionContextAsync(IActivity activity, ActivityInvocationOptions? options = null)
+    {
+        var activityDescriptor = await ActivityRegistryLookup.FindAsync(activity) ?? throw new ActivityNotFoundException(activity.Type);
+        var parentContext = options?.Owner;
+        var now = DateTime.Now;
+        var id = ServiceProvider.GetRequiredService<ISnowflakeIdGenerator>().NextId();
+        var activityExecutionContext = new ActivityExecutionContext(id, this, parentContext, activity, activityDescriptor, now, CancellationToken);
+        var variablesToDeclare = options?.Variables ?? [];
+        var variableContainer = new[]
+        {
+            activityExecutionContext.ActivityNode
+        }.Concat(activityExecutionContext.ActivityNode.Ancestors()).FirstOrDefault(x => x.Activity is IVariableContainer)?.Activity as IVariableContainer;
+        activityExecutionContext.ExpressionExecutionContext.TransientProperties[ExpressionExecutionContextExtensions.ActivityExecutionContextKey] = activityExecutionContext;
+
+        if (variableContainer != null)
+        {
+            foreach (var variable in variablesToDeclare)
+            {
+                // Declare a dynamic variable on the activity execution context.
+                activityExecutionContext.DynamicVariables.RemoveAll(x => x.Name == variable.Name);
+                activityExecutionContext.DynamicVariables.Add(variable);
+
+                // Assign the variable to the expression execution context.
+                activityExecutionContext.ExpressionExecutionContext.CreateVariable(variable.Name, variable.Value);
+            }
+        }
+
+        var activityInput = options?.Input ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        activityExecutionContext.ActivityInput.Merge(activityInput);
+
+        // Populate call stack fields from options
+        activityExecutionContext.SchedulingActivityExecutionId = options?.SchedulingActivityExecutionId;
+        activityExecutionContext.SchedulingWorkflowInstanceId = options?.SchedulingWorkflowInstanceId;
+
+        // Calculate call stack depth
+        if (options?.SchedulingActivityExecutionId != null)
+        {
+            // First, try to find the scheduling context in the current workflow
+            var schedulingContext = ActivityExecutionContexts.FirstOrDefault(x => x.Id == options.SchedulingActivityExecutionId);
+            if (schedulingContext != null)
+            {
+                // Found in current workflow - use its depth
+                activityExecutionContext.SchedulingActivityId = schedulingContext.Activity.Id;
+                activityExecutionContext.CallStackDepth = schedulingContext.CallStackDepth + 1;
+            }
+            else if (options.SchedulingCallStackDepth.HasValue)
+            {
+                // Not found but caller provided depth (e.g., cross-workflow invocation)
+                activityExecutionContext.CallStackDepth = options.SchedulingCallStackDepth.Value + 1;
+            }
+            // else: scheduling context not found and no depth provided.
+            // Depth stays at default (0), which may result in incorrect call stack depth tracking
+            // if the scheduling context should have been present but wasn't found.
+        }
+
+        return activityExecutionContext;
     }
 }

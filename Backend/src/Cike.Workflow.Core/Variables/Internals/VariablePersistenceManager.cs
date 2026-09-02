@@ -30,9 +30,6 @@ public class VariablePersistenceManager(IStorageDriverManager storageDriverManag
                 if (driver == null)
                     continue;
 
-                if (excludeTagsList != null)
-                    continue;
-
                 var id = GetStateId(variable);
 
                 try
@@ -73,7 +70,7 @@ public class VariablePersistenceManager(IStorageDriverManager storageDriverManag
 
             foreach (var variable in variables)
             {
-                var block = variable.GetBlock(context.ExpressionExecutionContext);
+                var block = context.ExpressionExecutionContext.GetBlock(variable);
                 var metadata = (VariableBlockMetadata)block.Metadata!;
                 var driver = storageDriverManager.Find(metadata.StorageDriverType!);
 

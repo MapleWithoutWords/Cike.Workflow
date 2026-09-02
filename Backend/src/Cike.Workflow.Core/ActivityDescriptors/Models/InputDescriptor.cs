@@ -8,6 +8,7 @@ public class InputDescriptor : PropertyDescriptor
 
     public InputDescriptor(
         string name,
+        string clrName,
         Type type,
         Func<IActivity, object?> valueGetter,
         Action<IActivity, object?> valueSetter,
@@ -18,6 +19,7 @@ public class InputDescriptor : PropertyDescriptor
         string? evaluatorType = null)
     {
         Name = name;
+        ClrName = clrName;
         Type = type;
         ValueGetter = valueGetter;
         ValueSetter = valueSetter;

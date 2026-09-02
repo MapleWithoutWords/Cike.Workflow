@@ -1,7 +1,9 @@
+using Cike.Core.DependencyInjection;
+
 namespace Cike.Workflow.Expressions.Services;
 
 /// <inheritdoc />
-public class WellKnownTypeRegistry : IWellKnownTypeRegistry
+public class WellKnownTypeRegistry : IWellKnownTypeRegistry, IScopedDependency
 {
     private readonly Dictionary<string, Type> _aliasTypeDictionary = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<Type, string> _typeAliasDictionary = new();

@@ -1,5 +1,3 @@
-using Elsa.Workflows.Models;
-
 namespace Cike.Workflow.Core.Runners.Models;
 
 /// <summary>

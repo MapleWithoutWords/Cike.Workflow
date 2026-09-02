@@ -1,3 +1,5 @@
+using Cike.Workflow.Expressions.Extensions;
+
 namespace Cike.Workflow.Expressions.Models;
 
 /// <summary>
@@ -37,25 +39,25 @@ public class MemoryBlockReference
     /// </summary>
     public object? Get(MemoryRegister memoryRegister) => GetBlock(memoryRegister).Value;
 
-    ///// <summary>
-    ///// Returns the value of the memory block.
-    ///// </summary>
-    //public T? Get<T>(MemoryRegister memoryRegister) => Get(memoryRegister).ConvertTo<T>();
+    /// <summary>
+    /// Returns the value of the memory block.
+    /// </summary>
+    public T? Get<T>(MemoryRegister memoryRegister) => Get(memoryRegister).ConvertTo<T>();
 
-    ///// <summary>
-    ///// Returns the value of the memory block.
-    ///// </summary>
-    //public object? Get(ExpressionExecutionContext context) => context.Get(this);
+    /// <summary>
+    /// Returns the value of the memory block.
+    /// </summary>
+    public object? Get(ExpressionExecutionContext context) => context.Get(this);
 
-    ///// <summary>
-    ///// Returns the value of the memory block.
-    ///// </summary>
-    //public T? Get<T>(ExpressionExecutionContext context) => Get(context).ConvertTo<T>();
+    /// <summary>
+    /// Returns the value of the memory block.
+    /// </summary>
+    public T? Get<T>(ExpressionExecutionContext context) => Get(context).ConvertTo<T>();
 
-    ///// <summary>
-    ///// Returns the value of the memory block.
-    ///// </summary>
-    //public bool TryGet(ExpressionExecutionContext context, out object? value) => context.TryGet(this, out value);
+    /// <summary>
+    /// Returns the value of the memory block.
+    /// </summary>
+    public bool TryGet(ExpressionExecutionContext context, out object? value) => context.TryGet(this, out value);
 
     /// <summary>
     /// Sets the value of the memory block.
@@ -70,7 +72,7 @@ public class MemoryBlockReference
     /// <summary>
     /// Sets the value of the memory block.
     /// </summary>
-    //public void Set(ExpressionExecutionContext context, object? value, Action<MemoryBlock>? configure = null) => context.Set(this, value, configure);
+    public void Set(ExpressionExecutionContext context, object? value, Action<MemoryBlock>? configure = null) => context.Set(this, value, configure);
 
     /// <summary>
     /// Returns the <see cref="MemoryBlock"/> pointed to by the specified memory block reference.

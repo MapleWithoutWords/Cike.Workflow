@@ -9,6 +9,7 @@ public class OutputDescriptor : PropertyDescriptor
     /// <inheritdoc />
     public OutputDescriptor(
         string name,
+        string clrName,
         string displayName,
         Type type,
         Func<IActivity, object?> valueGetter,
@@ -16,6 +17,7 @@ public class OutputDescriptor : PropertyDescriptor
         bool? isSerializable = default)
     {
         Name = name;
+        ClrName = clrName;
         DisplayName = displayName;
         Type = type;
         ValueGetter = valueGetter;

@@ -10,6 +10,8 @@ public abstract class PropertyDescriptor
 {
     public string Name { get; set; } = null!;
 
+    public string ClrName { get; set; } = null!;
+
     [JsonPropertyName("typeName")]
     public Type Type { get; set; } = null!;
 

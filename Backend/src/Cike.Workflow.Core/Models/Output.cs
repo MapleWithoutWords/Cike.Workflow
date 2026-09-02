@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Cike.Workflow.Core.Models;
 
 public class Output : Argument
@@ -18,6 +12,12 @@ public class Output : Argument
 
     public Output(Func<MemoryBlockReference> memoryBlockReference) : base(memoryBlockReference)
     {
+    }
+
+    public object? ParseValue(object? value)
+    {
+        var genericType = GetType();
+        return Variable.ParseValue(genericType, value);
     }
 }
 
