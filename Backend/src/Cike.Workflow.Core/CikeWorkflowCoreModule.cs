@@ -1,6 +1,14 @@
+using Cike.EventBus.Local;
+
 namespace Cike.Workflow.Core;
 
-[DependsOn([typeof(CikeWorkflowExpressionModule), typeof(CikeAuthModule), typeof(CikeUniversalIdModule)])]
+[DependsOn([
+    typeof(CikeWorkflowExpressionModule),
+    typeof(CikeAuthModule),
+    typeof(CikeUniversalIdModule),
+    typeof(CikeEventBusLocalModule),
+    typeof(CikeCqrsModule),
+])]
 public class CikeWorkflowCoreModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)

@@ -52,7 +52,7 @@ public abstract class CompositeActivity : Activity, IVariableContainer, IComposi
     /// <summary>
     /// Completes this composite activity.
     /// </summary>
-    protected async Task CompleteAsync(ActivityExecutionContext context, object? result = null) => await context.SendSignalAsync(new CompleteCompositeSignal(result));
+    protected async Task CompleteAsync(ActivityExecutionContext context, Outcomes? result = null) => await context.SendSignalAsync(new CompleteCompositeSignal(result));
 
     /// <summary>
     /// Completes this composite activity.

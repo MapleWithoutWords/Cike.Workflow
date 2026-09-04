@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.WorkflowGraphs.Models;
+
 namespace Cike.Workflow.Core.Runners;
 
 public interface IWorkflowRunner

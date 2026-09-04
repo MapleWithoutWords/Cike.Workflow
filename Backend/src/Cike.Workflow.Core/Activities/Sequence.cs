@@ -47,7 +47,7 @@ public class Sequence : ContainerActivity
     {
         var targetContext = context.TargetContext;
         var childContext = context.ChildContext;
-        var isBreaking = targetContext.GetIsBreaking();
+        var isBreaking = targetContext.GetIsBreakingProperty();
         var completedActivity = childContext.Activity;
 
         // If the complete activity is a terminal node, complete the sequence immediately.
@@ -62,6 +62,6 @@ public class Sequence : ContainerActivity
 
     private void OnBreakSignalReceived(BreakSignal signal, SignalContext signalContext)
     {
-        signalContext.ReceiverActivityExecutionContext.SetIsBreaking();
+        signalContext.ReceiverActivityExecutionContext.SetIsBreakingProperty();
     }
 }

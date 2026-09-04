@@ -1,25 +1,21 @@
 using Cike.Core.DependencyInjection;
+using Cike.Workflow.Common.Serialization;
 using Cike.Workflow.Expressions.Extensions;
 
 namespace Cike.Workflow.Expressions.ExpressionHanlders;
 
-/// <inheritdoc />
 public class LiteralExpressionHandler : IExpressionHandler, IScopedDependency
 {
-    private readonly IWellKnownTypeRegistry _wellKnownTypeRegistry;
+    private readonly ISerializationTypeRegistry _serializationTypeRegistry;
 
-    /// <summary>
-    /// Constructor.
-    /// </summary>
-    public LiteralExpressionHandler(IWellKnownTypeRegistry wellKnownTypeRegistry)
+    public LiteralExpressionHandler(ISerializationTypeRegistry serializationTypeRegistry)
     {
-        _wellKnownTypeRegistry = wellKnownTypeRegistry;
+        _serializationTypeRegistry = serializationTypeRegistry;
     }
 
-    /// <inheritdoc />
     public ValueTask<object?> EvaluateAsync(Expression expression, Type returnType, ExpressionExecutionContext context, ExpressionEvaluatorOptions options)
     {
-        var value = expression.Value.ConvertTo(returnType, new ObjectConverterOptions(WellKnownTypeRegistry: _wellKnownTypeRegistry));
+        var value = expression.Value.ConvertTo(returnType, new ObjectConverterOptions(SerializationTypeRegistry: _serializationTypeRegistry));
         return ValueTask.FromResult(value);
     }
 }

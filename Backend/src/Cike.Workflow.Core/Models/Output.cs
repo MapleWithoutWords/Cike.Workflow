@@ -10,10 +10,6 @@ public class Output : Argument
     {
     }
 
-    public Output(Func<MemoryBlockReference> memoryBlockReference) : base(memoryBlockReference)
-    {
-    }
-
     public object? ParseValue(object? value)
     {
         var genericType = GetType();
@@ -28,10 +24,6 @@ public class Output<T> : Output
     }
 
     public Output(MemoryBlockReference memoryBlockReference) : base(memoryBlockReference)
-    {
-    }
-
-    public Output(Func<MemoryBlockReference> memoryBlockReference) : base(memoryBlockReference)
     {
     }
 }

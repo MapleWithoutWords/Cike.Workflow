@@ -24,4 +24,6 @@ public interface IActivityRegistry
     void Add(Type providerType, ActivityDescriptor descriptor);
 
     void Remove(Type providerType, ActivityDescriptor descriptor);
+
+    Task RegisterAsync(IEnumerable<Type> activityTypes, CancellationToken cancellationToken = default);
 }

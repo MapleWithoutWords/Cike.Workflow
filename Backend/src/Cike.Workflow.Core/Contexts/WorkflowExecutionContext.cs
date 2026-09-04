@@ -4,9 +4,11 @@ using Cike.Workflow.Core.ActivityDescriptors.Internals;
 using Cike.Workflow.Core.Contexts.Models;
 using Cike.Workflow.Core.Exceptions;
 using Cike.Workflow.Core.Helpers;
+using Cike.Workflow.Core.Runners;
 using Cike.Workflow.Core.Schedulers;
 using Cike.Workflow.Core.Schedulers.Models;
 using Cike.Workflow.Core.Variables;
+using Cike.Workflow.Core.WorkflowGraphs.Models;
 using System.Text.Json;
 using System.Xml.Linq;
 
@@ -20,6 +22,8 @@ public class WorkflowExecutionContext : IExecutionContext
     private ICollection<CancellationTokenRegistration> _cancellationRegistrations = new List<CancellationTokenRegistration>();
     private IList<ActivityExecutionContext> _activityExecutionContexts;
     private readonly IList<ActivityCompletionCallbackEntry> _completionCallbackEntries = new List<ActivityCompletionCallbackEntry>();
+    internal static ValueTask Complete(ActivityExecutionContext context) => context.CompleteActivityAsync();
+    internal static ValueTask Noop(ActivityExecutionContext context) => default;
 
     private WorkflowExecutionContext(
         IServiceProvider serviceProvider,
@@ -31,6 +35,7 @@ public class WorkflowExecutionContext : IExecutionContext
         IDictionary<string, object>? properties,
         ExecuteActivityDelegate? executeDelegate,
         string? triggerActivityId,
+        IEnumerable<ActivityIncident> incidents,
         IEnumerable<Bookmark> originalBookmarks,
         DateTime createdAt,
         CancellationToken cancellationToken)
@@ -52,11 +57,145 @@ public class WorkflowExecutionContext : IExecutionContext
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
         CancellationToken = cancellationToken;
+        Incidents = incidents.ToList();
         OriginalBookmarks = originalBookmarks.ToList();
         WorkflowGraph = workflowGraph;
         var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _cancellationTokenSources.Add(linkedCancellationTokenSource);
         _cancellationRegistrations.Add(linkedCancellationTokenSource.Token.Register(CancelWorkflow));
+    }
+
+    public static async Task<WorkflowExecutionContext> CreateAsync(
+        IServiceProvider serviceProvider,
+        WorkflowGraph workflowGraph,
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        return await CreateAsync(
+            serviceProvider,
+            workflowGraph,
+            id,
+            new List<ActivityIncident>(),
+            new List<Bookmark>(),
+            DateTime.Now,
+            cancellationToken: cancellationToken
+        );
+    }
+
+    public static async Task<WorkflowExecutionContext> CreateAsync(
+        IServiceProvider serviceProvider,
+        WorkflowGraph workflowGraph,
+        long id,
+        string? correlationId,
+        long? parentWorkflowInstanceId = null,
+        IDictionary<string, object>? input = null,
+        IDictionary<string, object>? properties = null,
+        ExecuteActivityDelegate? executeDelegate = null,
+        string? triggerActivityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await CreateAsync(
+            serviceProvider,
+            workflowGraph,
+            id,
+            new List<ActivityIncident>(),
+            new List<Bookmark>(),
+            DateTime.Now,
+            correlationId,
+            parentWorkflowInstanceId,
+            input,
+            properties,
+            executeDelegate,
+            triggerActivityId,
+            cancellationToken
+        );
+    }
+
+    public static async Task<WorkflowExecutionContext> CreateAsync(
+        IServiceProvider serviceProvider,
+        WorkflowGraph workflowGraph,
+        WorkflowState workflowState,
+        string? correlationId = null,
+        long? parentWorkflowInstanceId = null,
+        IDictionary<string, object>? input = null,
+        IDictionary<string, object>? properties = null,
+        ExecuteActivityDelegate? executeDelegate = null,
+        string? triggerActivityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var workflowExecutionContext = await CreateAsync(
+            serviceProvider,
+            workflowGraph,
+            workflowState.Id,
+            workflowState.Incidents,
+            workflowState.Bookmarks,
+            workflowState.CreatedAt,
+            correlationId,
+            parentWorkflowInstanceId,
+            input,
+            properties,
+            executeDelegate,
+            triggerActivityId,
+            cancellationToken);
+
+        var workflowStateExtractor = serviceProvider.GetRequiredService<IWorkflowStateExtractor>();
+        await workflowStateExtractor.ApplyAsync(workflowExecutionContext, workflowState);
+
+        return workflowExecutionContext;
+    }
+
+    public static async Task<WorkflowExecutionContext> CreateAsync(
+        IServiceProvider serviceProvider,
+        WorkflowGraph workflowGraph,
+        long id,
+        IEnumerable<ActivityIncident> incidents,
+        IEnumerable<Bookmark> originalBookmarks,
+        DateTime createdAt,
+        string? correlationId = null,
+        long? parentWorkflowInstanceId = null,
+        IDictionary<string, object>? input = null,
+        IDictionary<string, object>? properties = null,
+        ExecuteActivityDelegate? executeDelegate = null,
+        string? triggerActivityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Set up a workflow execution context.
+        var workflowExecutionContext = new WorkflowExecutionContext(
+            serviceProvider,
+            workflowGraph,
+            id,
+            correlationId ?? "",
+            parentWorkflowInstanceId,
+            input,
+            properties,
+            executeDelegate,
+            triggerActivityId,
+            incidents,
+            originalBookmarks,
+            createdAt,
+            cancellationToken)
+        {
+            MemoryRegister = workflowGraph.Workflow.CreateRegister()
+        };
+
+        workflowExecutionContext.ExpressionExecutionContext = new(serviceProvider, workflowExecutionContext.MemoryRegister, cancellationToken: cancellationToken);
+
+        await workflowExecutionContext.SetWorkflowGraphAsync(workflowGraph);
+        return workflowExecutionContext;
+    }
+
+    public async Task SetWorkflowGraphAsync(WorkflowGraph workflowGraph)
+    {
+        WorkflowGraph = workflowGraph;
+        var nodes = workflowGraph.Nodes;
+
+        // Register activity types.
+        var activityTypes = nodes.Select(x => x.Activity.GetType()).Distinct().ToList();
+        await ActivityRegistry.RegisterAsync(activityTypes, CancellationToken);
+
+        // Update the activity execution contexts with the actual activity instances.
+        foreach (var activityExecutionContext in ActivityExecutionContexts)
+            activityExecutionContext.Activity = workflowGraph.NodeIdLookup[activityExecutionContext.Activity.NodeId].Activity;
     }
 
     public long Id { get; set; }
@@ -70,6 +209,8 @@ public class WorkflowExecutionContext : IExecutionContext
     public string CorrelationId { get; set; }
 
     public IDictionary<string, object> Properties { get; set; } = null!;
+
+    public IDictionary<object, object> TransientProperties { get; set; } = new Dictionary<object, object>();
 
     public IDictionary<string, object> Input { get; set; } = null!;
 
@@ -85,6 +226,8 @@ public class WorkflowExecutionContext : IExecutionContext
 
     public bool IsExecuting { get; set; }
 
+    public ICollection<ActivityIncident> Incidents { get; set; }
+
     public ICollection<Bookmark> OriginalBookmarks { get; set; }
 
     public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
@@ -92,6 +235,8 @@ public class WorkflowExecutionContext : IExecutionContext
     public Diff<Bookmark> BookmarksDiff => Diff.For(OriginalBookmarks, Bookmarks);
 
     public ExecuteActivityDelegate? ExecuteDelegate { get; set; }
+
+    public ResumedBookmarkContext? ResumedBookmarkContext { get; set; }
 
     public ExpressionExecutionContext ExpressionExecutionContext { get; private set; } = null!;
 
@@ -151,6 +296,86 @@ public class WorkflowExecutionContext : IExecutionContext
     {
         var schedulerStrategy = GetRequiredService<IWorkflowExecutionContextSchedulerStrategy>();
         return schedulerStrategy.Schedule(this, activityNode, owner, options);
+    }
+
+    public ActivityWorkItem ScheduleWorkflow(
+        IDictionary<string, object>? input = null,
+        IEnumerable<Variable>? variables = null,
+        long? schedulingActivityExecutionId = null,
+        long? schedulingWorkflowInstanceId = null,
+        int? schedulingCallStackDepth = null)
+    {
+        var workflow = Workflow;
+        var workItem = new ActivityWorkItem(
+            workflow,
+            input: input,
+            variables: variables,
+            schedulingActivityExecutionId: schedulingActivityExecutionId,
+            schedulingWorkflowInstanceId: schedulingWorkflowInstanceId,
+            schedulingCallStackDepth: schedulingCallStackDepth);
+        Scheduler.Schedule(workItem);
+        return workItem;
+    }
+
+    public ActivityWorkItem? ScheduleBookmark(Bookmark bookmark, IDictionary<string, object>? input = null, IEnumerable<Variable>? variables = null)
+    {
+        // Get the activity execution context that owns the bookmark.
+        var bookmarkedActivityContext = ActivityExecutionContexts.FirstOrDefault(x => x.Id == bookmark.ActivityInstanceId);
+        var logger = GetRequiredService<ILogger<WorkflowExecutionContext>>();
+
+        if (bookmarkedActivityContext == null)
+        {
+            logger.LogWarning("Could not find activity execution context with ID {ActivityInstanceId} for bookmark {BookmarkId}", bookmark.ActivityInstanceId, bookmark.Id);
+            return null;
+        }
+
+        var bookmarkedActivity = bookmarkedActivityContext.Activity;
+
+        // Schedule the activity to resume.
+        var workItem = new ActivityWorkItem(bookmarkedActivity)
+        {
+            ExistingActivityExecutionContext = bookmarkedActivityContext,
+            Input = input ?? new Dictionary<string, object>(),
+            Variables = variables
+        };
+        Scheduler.Schedule(workItem);
+
+        // If no resumption point was specified, use a "noop" to prevent the regular "ExecuteAsync" method to be invoked and instead complete the activity.
+        // Unless the bookmark is configured to auto-complete, in which case we'll just complete the activity.
+        ExecuteDelegate = bookmark.CallbackMethodName != null
+            ? bookmarkedActivity.GetResumeActivityDelegate(bookmark.CallbackMethodName)
+            : bookmark.AutoComplete
+                ? WorkflowExecutionContext.Complete
+                : WorkflowExecutionContext.Noop;
+
+        // Store the bookmark to resume in the context.
+        ResumedBookmarkContext = new(bookmark);
+        logger.LogDebug("Scheduled activity {ActivityId} to resume from bookmark {BookmarkId}", bookmarkedActivity.Id, bookmark.Id);
+
+        return workItem;
+    }
+    /// <summary>
+    /// Schedules the specified activity of the workflow.
+    /// </summary>
+    public ActivityWorkItem ScheduleActivity(IActivity activity, IDictionary<string, object>? input = null, IEnumerable<Variable>? variables = null)
+    {
+        var workItem = new ActivityWorkItem(activity, input: input, variables: variables);
+        Scheduler.Schedule(workItem);
+        return workItem;
+    }
+
+    /// <summary>
+    /// Schedules the specified activity execution context of the workflow.
+    /// </summary>
+    public ActivityWorkItem ScheduleActivityExecutionContext(ActivityExecutionContext activityExecutionContext, IDictionary<string, object>? input = null, IEnumerable<Variable>? variables = null)
+    {
+        var workItem = new ActivityWorkItem(
+            activityExecutionContext.Activity,
+            input: input,
+            variables: variables,
+            existingActivityExecutionContext: activityExecutionContext);
+        Scheduler.Schedule(workItem);
+        return workItem;
     }
 
     #region CompletionCallback
@@ -286,6 +511,7 @@ public class WorkflowExecutionContext : IExecutionContext
         ActivityOutputRegister.Record(activityExecutionContext, outputName, value);
     }
 
+    #region ActivityExecutionContext
     public async Task<ActivityExecutionContext> CreateActivityExecutionContextAsync(IActivity activity, ActivityInvocationOptions? options = null)
     {
         var activityDescriptor = await ActivityRegistryLookup.FindAsync(activity) ?? throw new ActivityNotFoundException(activity.Type);
@@ -343,4 +569,28 @@ public class WorkflowExecutionContext : IExecutionContext
 
         return activityExecutionContext;
     }
+
+    public IEnumerable<ActivityExecutionContext> GetActiveActivityExecutionContexts()
+    {
+        // Filter out completed activity execution contexts, except for the root Workflow activity context, which stores workflow-level variables.
+        // This will currently break scripts accessing activity output directly, but there's a workaround for that via variable capturing.
+        // We may ultimately restore direct output access, but differently.
+        return ActivityExecutionContexts.Where(x => !x.IsCompleted || x.ParentActivityExecutionContext == null);
+    }
+
+    public void AddActivityExecutionContext(ActivityExecutionContext context) => _activityExecutionContexts.Add(context);
+
+    public void RemoveActivityExecutionContext(ActivityExecutionContext context)
+    {
+        _activityExecutionContexts.Remove(context);
+        context.ParentActivityExecutionContext?.Children.Remove(context);
+    }
+
+    public void RemoveActivityExecutionContexts(Func<ActivityExecutionContext, bool> predicate)
+    {
+        var itemsToRemove = _activityExecutionContexts.Where(predicate).ToList();
+        foreach (var item in itemsToRemove)
+            RemoveActivityExecutionContext(item);
+    }
+    #endregion
 }

@@ -1,3 +1,5 @@
+using Cike.Workflow.Common.Serialization;
+using Cike.Workflow.Common.Serialization.Converters;
 using Cike.Workflow.Expressions.Exceptions;
 using System.Collections;
 using System.ComponentModel;
@@ -17,7 +19,7 @@ namespace Cike.Workflow.Expressions.Extensions;
 /// </summary>
 public record ObjectConverterOptions(
     JsonSerializerOptions? SerializerOptions = null,
-    IWellKnownTypeRegistry? WellKnownTypeRegistry = null,
+    ISerializationTypeRegistry? SerializationTypeRegistry = null,
     bool DeserializeJsonObjectToObject = false,
     bool? StrictMode = null);
 
@@ -65,7 +67,10 @@ public static class ObjectConverter
         ReferenceHandler = ReferenceHandler.Preserve,
         Converters =
         {
-            new JsonStringEnumConverter()
+            new JsonStringEnumConverter(),
+            new IntegerJsonConverter(),
+            new BigIntegerJsonConverter(),
+            new DecimalJsonConverter(),
         },
         Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
     };
@@ -245,7 +250,7 @@ public static class ObjectConverter
                 return null;
 
             if (underlyingTargetType == typeof(Type))
-                return converterOptions?.WellKnownTypeRegistry != null ? converterOptions.WellKnownTypeRegistry.GetTypeOrDefault(s) : Type.GetType(s);
+                return converterOptions?.SerializationTypeRegistry != null ? converterOptions.SerializationTypeRegistry.GetTypeOrDefault(s) : Type.GetType(s);
 
             // At this point, if the input is a string and the target type is IEnumerable<string>, assume the string is a comma-separated list of strings.
             if (typeof(IEnumerable<string>).IsAssignableFrom(underlyingTargetType))

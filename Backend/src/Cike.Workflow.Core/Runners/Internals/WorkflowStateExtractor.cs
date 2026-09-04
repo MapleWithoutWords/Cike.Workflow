@@ -25,6 +25,7 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
             Bookmarks = workflowExecutionContext.Bookmarks,
             Input = GetPersistableInput(workflowExecutionContext),
             Output = workflowExecutionContext.Output,
+            Incidents = workflowExecutionContext.Incidents,
             IsSystem = workflowExecutionContext.WorkflowGraph.Workflow.IsSystem,
             CreatedAt = workflowExecutionContext.CreatedAt,
             UpdatedAt = workflowExecutionContext.UpdatedAt,
@@ -160,9 +161,8 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
             activityExecutionContext.TransitionTo(activityExecutionContextState.Status);
             activityExecutionContext.IsExecuting = activityExecutionContextState.IsExecuting;
             activityExecutionContext.AggregateFaultCount = activityExecutionContextState.FaultCount;
-            activityExecutionContext.StartedAt = activityExecutionContextState.StartedAt;
-            activityExecutionContext.CompletedAt = activityExecutionContextState.CompletedAt;
-            activityExecutionContext.Tag = activityExecutionContextState.Tag;
+            activityExecutionContext.CreatedAt = activityExecutionContextState.CreatedAt;
+            activityExecutionContext.FinishedAt = activityExecutionContextState.FinishedAt;
             activityExecutionContext.DynamicVariables = activityExecutionContextState.DynamicVariables;
 
             return activityExecutionContext;
@@ -200,8 +200,7 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
 
             var callbackName = completionCallbackEntry.MethodName;
             var callbackDelegate = !string.IsNullOrEmpty(callbackName) ? ownerActivityExecutionContext.Activity.GetActivityCompletionCallback(callbackName) : default;
-            var tag = completionCallbackEntry.Tag;
-            workflowExecutionContext.AddCompletionCallback(ownerActivityExecutionContext, childNode, callbackDelegate, tag);
+            workflowExecutionContext.AddCompletionCallback(ownerActivityExecutionContext, childNode, callbackDelegate);
         }
     }
 
@@ -249,8 +248,7 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
             var existingActivityExecutionContext = workflowExecutionContext.ActivityExecutionContexts.FirstOrDefault(x => x.Id == activityWorkItemState.ExistingActivityExecutionContextId);
             var variables = activityWorkItemState.Variables;
             var input = activityWorkItemState.Input;
-            var tag = activityWorkItemState.Tag;
-            var workItem = new ActivityWorkItem(activity, ownerContext, tag, variables, existingActivityExecutionContext, input);
+            var workItem = new ActivityWorkItem(activity, ownerContext, variables, existingActivityExecutionContext, input);
             workflowExecutionContext.Scheduler.Schedule(workItem);
         }
     }
@@ -267,7 +265,7 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
                 throw new("Lost an owner context");
         }
 
-        var completionCallbacks = workflowExecutionContext.CompletionCallbacks.Select(x => new CompletionCallbackState(x.Owner.Id, x.Child.NodeId, x.CompletionCallback?.Method.Name, x.Tag));
+        var completionCallbacks = workflowExecutionContext.CompletionCallbacks.Select(x => new CompletionCallbackState(x.Owner.Id, x.Child.NodeId, x.CompletionCallback?.Method.Name));
 
         state.CompletionCallbacks = completionCallbacks.ToList();
     }
@@ -299,9 +297,8 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
                 Status = activityExecutionContext.Status,
                 IsExecuting = activityExecutionContext.IsExecuting,
                 FaultCount = activityExecutionContext.AggregateFaultCount,
-                StartedAt = activityExecutionContext.StartedAt,
-                CompletedAt = activityExecutionContext.CompletedAt,
-                Tag = activityExecutionContext.Tag,
+                CreatedAt = activityExecutionContext.CreatedAt,
+                FinishedAt = activityExecutionContext.FinishedAt,
                 DynamicVariables = activityExecutionContext.DynamicVariables,
             };
             return activityExecutionContextState;
@@ -319,7 +316,6 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
             {
                 ActivityNodeId = x.Activity.NodeId,
                 OwnerContextId = x.Owner?.Id,
-                Tag = x.Tag,
                 Variables = x.Variables?.ToList(),
                 ExistingActivityExecutionContextId = x.ExistingActivityExecutionContext?.Id,
                 Input = x.Input,

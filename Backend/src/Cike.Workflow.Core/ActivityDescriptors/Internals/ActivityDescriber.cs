@@ -100,8 +100,7 @@ internal class ActivityDescriber : IActivityDescriber, ISingletonDependency
             isWrappedProperty,
             inputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title),
             inputAttribute?.IsSerializable ?? true,
-            autoEvaluate,
-            inputAttribute?.EvaluatorType?.FullName
+            autoEvaluate
         );
     }
 }

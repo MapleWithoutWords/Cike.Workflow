@@ -78,6 +78,33 @@ public class Variable : MemoryBlockReference
         return ParseValue(genericType, value);
     }
 
+    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
+    public bool TryParseValue(object? value, out object? parsedValue)
+    {
+        try
+        {
+            parsedValue = this.ParseValue(value);
+            return true;
+        }
+        catch
+        {
+            parsedValue = null;
+            return false;
+        }
+    }
+
+    public void Set(ActivityExecutionContext context, object? value)
+    {
+        var parsedValue = ParseValue(value);
+
+        var matchingContext =
+            context.ExpressionExecutionContext.FindContextContainingBlock(Id)
+            ?? context.FindParentWithVariableContainer()?.ExpressionExecutionContext
+            ?? context.WorkflowExecutionContext.ExpressionExecutionContext!;
+
+        ((MemoryBlockReference)this).Set(matchingContext, value);
+    }
+
     public static object? ParseValue(Type type, object? value)
     {
         var genericType = type.GenericTypeArguments.FirstOrDefault();

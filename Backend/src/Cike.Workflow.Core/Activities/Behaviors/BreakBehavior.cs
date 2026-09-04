@@ -1,7 +1,3 @@
-using Elsa.Extensions;
-using Elsa.Workflows.Activities;
-using Elsa.Workflows.Signals;
-
 namespace Cike.Workflow.Core.Activities.Behaviors;
 
 /// <summary>
@@ -21,7 +17,7 @@ public class BreakBehavior : Behavior
 
     private async ValueTask OnCompleteCompositeAsync(CompleteCompositeSignal signal, SignalContext context)
     {
-        context.ReceiverActivityExecutionContext.SetIsBreaking();
+        context.ReceiverActivityExecutionContext.SetIsBreakingProperty();
 
         // Cancel each descendant to clear bookmarks and cancel jobs etc.
         await CancelDescendantsAsync(context);
@@ -34,11 +30,11 @@ public class BreakBehavior : Behavior
     {
         // Prevent bubbling.
         context.StopPropagation();
-        
+
         // Set the IsBreaking property to true.
-        context.ReceiverActivityExecutionContext.SetIsBreaking();
+        context.ReceiverActivityExecutionContext.SetIsBreakingProperty();
     }
-    
+
     private async Task CancelDescendantsAsync(SignalContext context)
     {
         await context.ReceiverActivityExecutionContext.CancelActivityAsync();

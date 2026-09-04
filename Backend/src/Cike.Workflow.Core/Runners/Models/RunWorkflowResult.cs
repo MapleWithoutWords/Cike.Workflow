@@ -12,7 +12,7 @@ public record RunWorkflowResult(WorkflowExecutionContext WorkflowExecutionContex
 /// </summary>
 public record RunWorkflowResult<TResult>(WorkflowExecutionContext WorkflowExecutionContext, WorkflowState WorkflowState, WorkflowActivity Workflow, TResult Result, Journal Journal);
 
-public record Journal(ICollection<WorkflowExecutionLogEntry> WorkflowExecutionLogEntries, ICollection<ActivityExecutionContext> ActivityExecutionContexts)
+public record Journal(ICollection<ActivityExecutionContext> ActivityExecutionContexts)
 {
-    public static Journal Empty => new([], []);
+    public static Journal Empty => new([]);
 }

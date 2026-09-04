@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Reflection;
+
 namespace Cike.Workflow.Core.Activities.Abstracts;
 
 public interface IActivity
@@ -24,4 +27,42 @@ public interface IActivity
     ValueTask<bool> CanExecuteAsync(ActivityExecutionContext context);
 
     ValueTask ExecuteAsync(ActivityExecutionContext context);
+
+    public IEnumerable<PropertyInfo> GetInputProperties() => GetType().GetProperties().Where(x => typeof(Input).IsAssignableFrom(x.PropertyType)).ToList();
+
+    public TDelegate GetDelegate<TDelegate>(string methodName) where TDelegate : Delegate
+    {
+        var activityType = GetType();
+        const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy;
+        var resumeMethodInfo = default(MethodInfo?);
+        var currentType = activityType;
+
+        while (currentType != null && resumeMethodInfo == null)
+        {
+            resumeMethodInfo = currentType.GetMethod(methodName, bindingFlags);
+            currentType = currentType.BaseType;
+        }
+
+        if (resumeMethodInfo == null)
+            throw new Exception($"Can't find method name {methodName} on type {activityType} or its base type {activityType.BaseType}");
+
+        return resumeMethodInfo.IsStatic ? (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), resumeMethodInfo) : (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), this, resumeMethodInfo);
+    }
+
+    public ExecuteActivityDelegate GetResumeActivityDelegate(string resumeMethodName) => GetDelegate<ExecuteActivityDelegate>(resumeMethodName);
+
+    public ActivityCompletionCallback GetActivityCompletionCallback(string completionMethodName) => GetDelegate<ActivityCompletionCallback>(completionMethodName);
+
+    public IEnumerable<(string Name, Output Value)> GetOutputs()
+    {
+        var outputProps = GetType().GetProperties().Where(x => typeof(Output).IsAssignableFrom(x.PropertyType)).ToList();
+
+        var query =
+            from outputProp in outputProps
+            let output = (Output?)outputProp.GetValue(this)
+            where output != null
+            select new Tuple<string, Output>(outputProp.Name, output);
+
+        return query.Select(x => (x.Item1, x.Item2)).ToList();
+    }
 }

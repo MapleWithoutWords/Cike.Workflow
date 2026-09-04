@@ -1,7 +1,12 @@
+using Cike.Workflow.Core.Helpers;
+
 namespace Cike.Workflow.Core.ActivityDescriptors.Internals;
 
-internal class ActivityRegistry(ICurrentTenantAccessor currentTenantAccessor, ILogger<ActivityRegistry> logger) : IActivityRegistry, ISingletonDependency
+internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTenantAccessor currentTenantAccessor, ILogger<ActivityRegistry> logger) : IActivityRegistry, IActivityProvider, ISingletonDependency
 {
+    // Legacy support for manually registered activities
+    private readonly ISet<ActivityDescriptor> _manualActivityDescriptors = new HashSet<ActivityDescriptor>();
+
     private readonly ConcurrentDictionary<Guid, TenantRegistryData> _tenantRegistries = new();
     private readonly TenantRegistryData _agnosticRegistry = new();
 
@@ -177,6 +182,28 @@ internal class ActivityRegistry(ICurrentTenantAccessor currentTenantAccessor, IL
             registry.RemoveDescriptor(descriptor);
         }
     }
+
+    public async Task RegisterAsync(IEnumerable<Type> activityTypes, CancellationToken cancellationToken = default)
+    {
+        foreach (var activityType in activityTypes)
+            await RegisterAsync(activityType, cancellationToken);
+    }
+
+    public async Task RegisterAsync([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type activityType, CancellationToken cancellationToken)
+    {
+        var activityTypeName = ActivityTypeNameHelper.GenerateTypeName(activityType);
+
+        // Check if already registered in any registry
+        if (ListAll().Any(x => x.TypeName == activityTypeName))
+            return;
+
+        var activityDescriptor = await activityDescriber.DescribeActivityAsync(activityType, cancellationToken);
+
+        var registry = GetOrCreateRegistry(activityDescriptor.TenantId);
+        registry.Add(activityDescriptor, _manualActivityDescriptors);
+    }
+
+    public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default) => new(_manualActivityDescriptors);
 
     private TenantRegistryData GetOrCreateRegistry(Guid? tenantId)
     {

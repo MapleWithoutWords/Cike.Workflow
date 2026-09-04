@@ -37,4 +37,11 @@ public class ActivityDescriptor
     public bool IsStart { get; set; }
 
     public bool IsTerminal { get; set; }
+
+    public IDictionary<string, Input?> GetWrappedInputProperties(IActivity activity)
+    {
+        var wrappedInputDescriptors = Inputs.Where(x => x.IsWrapped).ToList();
+        var inputLookup = wrappedInputDescriptors.ToDictionary(x => x.Name, x => (Input?)x.ValueGetter(activity));
+        return inputLookup;
+    }
 }

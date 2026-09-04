@@ -5,7 +5,9 @@ namespace Cike.Workflow.Core.Models;
 /// </summary>
 public abstract class ArgumentDefinition
 {
-    public Type Type { get; set; } = typeof(object);
+    public string Type { get; set; } = "object";
+
+    public bool IsArray { get; set; }
 
     public string Name { get; set; } = default!;
 

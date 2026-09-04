@@ -1,14 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Cqrs" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.EventBus.Local" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.UniversalId" Version="$(CikeVersion)" />
     <PackageReference Include="Humanizer" Version="3.0.10" />
   </ItemGroup>

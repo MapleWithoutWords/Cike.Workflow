@@ -2,10 +2,13 @@ using Cike.Core.Extensions.System;
 using Cike.Core.Hashers;
 using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.Contexts.Models;
+using Cike.Workflow.Core.Exceptions;
 using Cike.Workflow.Core.Helpers;
 using Cike.Workflow.Core.Schedulers;
 using Cike.Workflow.Core.Schedulers.Models;
 using Cike.Workflow.Core.Variables;
+using Cike.Workflow.Core.WorkflowGraphs.Models;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -16,6 +19,7 @@ public class ActivityExecutionContext : IExecutionContext
 {
     private ActivityExecutionContext? _parentActivityExecutionContext;
     private List<Bookmark> _newBookmarks = [];
+    private Exception? _exception;
 
     public ActivityExecutionContext(
         long id,
@@ -27,6 +31,7 @@ public class ActivityExecutionContext : IExecutionContext
         CancellationToken cancellationToken)
     {
         Properties = new ChangeTrackingDictionary<string, object>(Taint);
+        Metadata = new ChangeTrackingDictionary<string, object>(Taint);
         ActivityState = new ChangeTrackingDictionary<string, object>(Taint);
         ActivityInput = new ChangeTrackingDictionary<string, object>(Taint);
         WorkflowExecutionContext = workflowExecutionContext;
@@ -87,7 +92,11 @@ public class ActivityExecutionContext : IExecutionContext
 
     public bool IsExecuting { get; set; }
 
+    public int AggregateFaultCount { get; set; }
+
     public IDictionary<object, object> TransientProperties { get; private set; } = new Dictionary<object, object>();
+
+    public IDictionary<string, object> Metadata { get; private set; }
 
     public ExpressionExecutionContext ExpressionExecutionContext { get; } = null!;
 
@@ -109,6 +118,16 @@ public class ActivityExecutionContext : IExecutionContext
 
     public int CallStackDepth { get; set; }
 
+    public Exception? Exception
+    {
+        get => _exception;
+        set
+        {
+            _exception = value;
+            Taint();
+        }
+    }
+
     public ActivityExecutionContext? ParentActivityExecutionContext
     {
         get => _parentActivityExecutionContext;
@@ -122,6 +141,17 @@ public class ActivityExecutionContext : IExecutionContext
     public ISet<ActivityExecutionContext> Children { get; } = new HashSet<ActivityExecutionContext>();
 
     public IEnumerable<Bookmark> NewBookmarks => _newBookmarks.AsReadOnly();
+
+    public bool IsCompleted => Status is ActivityStatus.Completed or ActivityStatus.Canceled;
+
+    public IDisposable EnterExecution()
+    {
+        this.IsExecuting = WorkflowExecutionContext.IsExecuting = true;
+        return new DisposeAction(() =>
+        {
+            this.IsExecuting = WorkflowExecutionContext.IsExecuting = false;
+        });
+    }
 
     #region Properties
     public T? GetProperty<T>(string key) => Properties.TryGetValue<T?>(key, out var value) ? value : default;
@@ -148,6 +178,10 @@ public class ActivityExecutionContext : IExecutionContext
     }
 
     public void RemoveProperty(string key) => Properties.Remove(key);
+
+    public bool GetIsBreakingProperty() => GetProperty<bool>("IsBreaking");
+
+    public void SetIsBreakingProperty() => SetProperty<bool>("IsBreaking", true);
     #endregion
 
     #region Parent/Children/FindActivity
@@ -402,11 +436,12 @@ public class ActivityExecutionContext : IExecutionContext
     #endregion
 
 
-    public T? Get<T>(Input<T>? input) => input == null ? default : Get<T>(input.MemoryBlockReference());
+    #region Get/Set Variable Input Output
+    public T? Get<T>(Input<T>? input) => input == null ? default : Get<T>(input.MemoryBlockReference);
 
-    public T? Get<T>(Output<T>? output) => output == null ? default : Get<T>(output.MemoryBlockReference());
+    public T? Get<T>(Output<T>? output) => output == null ? default : Get<T>(output.MemoryBlockReference);
 
-    public object? Get(Output? output) => output == null ? null : Get(output.MemoryBlockReference());
+    public object? Get(Output? output) => output == null ? null : Get(output.MemoryBlockReference);
 
     public object? Get(MemoryBlockReference blockReference)
     {
@@ -455,6 +490,40 @@ public class ActivityExecutionContext : IExecutionContext
         // Also store the value in the workflow execution transient activity output register.
         WorkflowExecutionContext.RecordActivityOutput(this, outputName, value);
     }
+
+    private MemoryBlock? GetMemoryBlock(MemoryBlockReference locationBlockReference)
+    {
+        return ExpressionExecutionContext.TryGetBlock(locationBlockReference, out var memoryBlock) ? memoryBlock : null;
+    }
+
+    public Variable SetDynamicVariable<T>(string name, T value, Action<MemoryBlock>? configure = null)
+    {
+        // Check if a predefined variable already exists.
+        var predefinedVariable = ExpressionExecutionContext.GetVariable(name);
+
+        if (predefinedVariable != null)
+        {
+            SetVariable(name, value);
+            return predefinedVariable;
+        }
+
+        // No predefined variable exists, so we will add a dynamic variable to the current container in scope.
+        var container = FindParentWithVariableContainer();
+
+        if (container == null)
+            throw new("No parent variable container found");
+
+        var existingVariable = container.DynamicVariables.FirstOrDefault(x => x.Name == name);
+
+        if (existingVariable == null)
+            container.DynamicVariables.Add(new Variable<T>(name, value));
+
+        return SetVariable(name, value);
+    }
+
+    public Variable SetVariable(string name, object? value, Action<MemoryBlock>? configure = null) =>
+        ExpressionExecutionContext.SetVariable(name, value, configure);
+    #endregion
 
     public T GetRequiredService<T>() where T : notnull => WorkflowExecutionContext.GetRequiredService<T>();
 
@@ -533,7 +602,7 @@ public class ActivityExecutionContext : IExecutionContext
         WorkflowExecutionContext.Scheduler.RemoveWhere(workItem => workItem.ExistingActivityExecutionContext == this || workItem.Owner == this);
     }
 
-    private async Task CancelActivityAsync()
+    internal async Task CancelActivityAsync()
     {
         if (!Status.CanCancelActivity())
             return;
@@ -563,6 +632,23 @@ public class ActivityExecutionContext : IExecutionContext
     {
         var entriesToRemove = WorkflowExecutionContext.CompletionCallbacks.Where(x => x.Owner == this).ToList();
         WorkflowExecutionContext.RemoveCompletionCallbacks(entriesToRemove);
+    }
+
+    public void Fault(Exception e)
+    {
+        Exception = e;
+        TransitionTo(ActivityStatus.Faulted);
+        var activity = Activity;
+        var exceptionState = ExceptionState.FromException(e);
+        var now = DateTime.Now;
+        var incident = new ActivityIncident(activity.Id, activity.NodeId, activity.Type, e.Message, exceptionState, now, Id);
+        WorkflowExecutionContext.Incidents.Add(incident);
+        AggregateFaultCount++;
+
+        var ancestors = GetAncestors();
+
+        foreach (var ancestor in ancestors)
+            ancestor.AggregateFaultCount++;
     }
 
     public void TransitionTo(ActivityStatus status)
@@ -598,9 +684,94 @@ public class ActivityExecutionContext : IExecutionContext
         return logEntry;
     }
 
+    #region Evaluate Input Properties
+    public bool GetHasEvaluatedProperties() => TransientProperties.TryGetValue<bool>("HasEvaluatedProperties", out var value) && value;
+    public void SetHasEvaluatedProperties() => TransientProperties["HasEvaluatedProperties"] = true;
 
-    private MemoryBlock? GetMemoryBlock(MemoryBlockReference locationBlockReference)
+
+
+    public async Task EvaluateInputPropertiesAsync()
     {
-        return ExpressionExecutionContext.TryGetBlock(locationBlockReference, out var memoryBlock) ? memoryBlock : null;
+        // Evaluate containing composite input properties, if any.
+        var compositeContainerContexts = GetAncestors().Where(x => x.Activity is CompositeActivity).ToList();
+
+        foreach (var activityExecutionContext in compositeContainerContexts)
+        {
+            if (!activityExecutionContext.GetHasEvaluatedProperties())
+                await activityExecutionContext.InternalEvaluateInputPropertiesAsync();
+        }
+
+        // Evaluate input properties.
+        await InternalEvaluateInputPropertiesAsync();
     }
+
+    private async Task InternalEvaluateInputPropertiesAsync()
+    {
+        var activityDescriptor = ActivityDescriptor;
+        var inputDescriptors = activityDescriptor.Inputs.Where(x => x.AutoEvaluate).ToList();
+
+        // Evaluate inputs.
+        foreach (var inputDescriptor in inputDescriptors)
+            await EvaluateInputPropertyAsync(activityDescriptor, inputDescriptor);
+
+        SetHasEvaluatedProperties();
+    }
+
+    private async Task<object?> EvaluateInputPropertyAsync(ActivityDescriptor activityDescriptor, InputDescriptor inputDescriptor)
+    {
+        try
+        {
+            return await EvaluateInputPropertyCoreAsync(activityDescriptor, inputDescriptor);
+        }
+        catch (Exception e)
+        {
+            throw new InputEvaluationException(inputDescriptor.Name, $"Failed to evaluate activity input '{inputDescriptor.Name}'", e);
+        }
+    }
+
+    private async Task<object?> EvaluateInputPropertyCoreAsync(ActivityDescriptor activityDescriptor, InputDescriptor inputDescriptor)
+    {
+        var activity = Activity;
+        object? value = null;
+        var input = inputDescriptor.ValueGetter(activity);
+        var identityGenerator = GetRequiredService<ISnowflakeIdGenerator>();
+
+        if (inputDescriptor.IsWrapped)
+        {
+            var wrappedInput = (Input?)input;
+
+            var expressionEvaluator = GetRequiredService<IExpressionEvaluator>();
+            var expressionExecutionContext = ExpressionExecutionContext;
+
+            if (wrappedInput?.Expression != null)
+            {
+                value = await expressionEvaluator.EvaluateAsync(wrappedInput.Expression!, wrappedInput.Type, expressionExecutionContext); ;
+            }
+
+            var memoryReference = wrappedInput?.MemoryBlockReference;
+
+            if (memoryReference != null)
+            {
+                // When input is created from an activity provider, there may be no memory block reference ID.
+                if (memoryReference.Id == null!)
+                    memoryReference.Id = $"{activity.NodeId}.{inputDescriptor.Name}"; // Construct a deterministic ID.
+
+                // Declare the input memory block in the current context. 
+                ExpressionExecutionContext.Set(memoryReference, value!);
+            }
+        }
+        else
+        {
+            value = input;
+        }
+
+        //Store Input Value
+        if (inputDescriptor.IsSerializable != false)
+        {
+            ActivityState[inputDescriptor.Name] = value;
+        }
+
+        return value;
+    }
+    #endregion
 }

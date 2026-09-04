@@ -15,8 +15,7 @@ public class InputDescriptor : PropertyDescriptor
         bool isWrapped,
         string displayName,
         bool isSerializable = true,
-        bool autoEvaluate = true,
-        string? evaluatorType = null)
+        bool autoEvaluate = true)
     {
         Name = name;
         ClrName = clrName;
@@ -26,13 +25,10 @@ public class InputDescriptor : PropertyDescriptor
         IsWrapped = isWrapped;
         DisplayName = displayName;
         AutoEvaluate = autoEvaluate;
-        EvaluatorType = evaluatorType;
         IsSerializable = isSerializable;
     }
 
     public bool IsWrapped { get; set; }
 
     public bool AutoEvaluate { get; set; } = true;
-
-    public string? EvaluatorType { get; set; }
 }

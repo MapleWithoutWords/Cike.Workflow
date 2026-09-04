@@ -1,4 +1,5 @@
 using Cike.Workflow.Core.Schedulers.Models;
+using Cike.Workflow.Core.WorkflowGraphs.Models;
 
 namespace Cike.Workflow.Core.Schedulers
 {

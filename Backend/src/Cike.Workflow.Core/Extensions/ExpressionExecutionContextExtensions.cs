@@ -1,3 +1,4 @@
+using Cike.Workflow.Common.Serialization;
 using System.Collections;
 
 // ReSharper disable once CheckNamespace
@@ -203,7 +204,7 @@ public static class ExpressionExecutionContextExtensions
             if (output != null)
             {
                 // Set the value on the output.
-                var outputMemoryBlockReference = output.MemoryBlockReference();
+                var outputMemoryBlockReference = output.MemoryBlockReference;
                 var parsedValue = output.ParseValue(value);
                 context.Set(outputMemoryBlockReference, parsedValue, configure);
 
@@ -222,7 +223,7 @@ public static class ExpressionExecutionContextExtensions
         /// </summary>
         public void SetBoundValue(Output output, object? value)
         {
-            var outputMemoryBlockReference = output.MemoryBlockReference();
+            var outputMemoryBlockReference = output.MemoryBlockReference;
             context.Set(outputMemoryBlockReference, value);
 
             var workflowExecutionContext = context.GetWorkflowExecutionContext();
@@ -391,7 +392,7 @@ public static class ExpressionExecutionContextExtensions
         if (_serializerOptions != null)
             return _serializerOptions;
 
-        var serializerOptions = context.GetRequiredService<IJsonSerializer>().GetOptions().Clone();
+        var serializerOptions = JsonHelper.CreateOptionsInternal();
         serializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
         _serializerOptions = serializerOptions;
         return serializerOptions;
