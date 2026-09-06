@@ -1,7 +1,7 @@
 namespace Cike.Workflow.Core.Variables.Internals;
 
 /// <inheritdoc />
-public class VariablePersistenceManager(IStorageDriverManager storageDriverManager, ILogger<VariablePersistenceManager> logger) : IVariablePersistenceManager
+public class VariablePersistenceManager(IStorageDriverManager storageDriverManager, ILogger<VariablePersistenceManager> logger) : IVariablePersistenceManager, IScopedDependency
 {
     /// <inheritdoc />
     public async Task LoadVariablesAsync(WorkflowExecutionContext workflowExecutionContext)

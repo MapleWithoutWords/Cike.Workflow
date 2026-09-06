@@ -5,6 +5,8 @@ namespace Cike.Workflow.Core.Activities.Abstracts;
 
 public interface IActivity
 {
+    private static readonly string[] CanStartWorkflowPropertyName = ["canStartWorkflow", "CanStartWorkflow"];
+
     string Id { get; set; }
 
     /// <summary>
@@ -65,4 +67,11 @@ public interface IActivity
 
         return query.Select(x => (x.Item1, x.Item2)).ToList();
     }
+
+    public bool GetCanStartWorkflow() => CustomProperties.GetValueOrDefault(CanStartWorkflowPropertyName, () => false);
+
+    /// <summary>
+    /// Sets a flag indicating whether this activity can be used for starting a workflow.
+    /// </summary>
+    public void SetCanStartWorkflow(bool value) => CustomProperties[CanStartWorkflowPropertyName[0]] = value;
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cike.Workflow.Core.Runners.Internals;
 
-public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IWorkflowStateExtractor
+public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IWorkflowStateExtractor, IScopedDependency
 {
     /// <inheritdoc />
     public WorkflowState Extract(WorkflowExecutionContext workflowExecutionContext)

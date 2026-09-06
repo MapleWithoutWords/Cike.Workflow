@@ -73,16 +73,6 @@ public static class DictionaryExtensions
         public object? GetValueOrDefault(string key) => dictionary.GetValueOrDefault<object>(key, () => null);
     }
 
-    public static T GetOrAdd<TKey, T>(this IDictionary<TKey, T> dictionary, TKey key, Func<T> valueFactory)
-    {
-        if (dictionary.TryGetValue(key, out var value))
-            return value;
-
-        value = valueFactory()!;
-        dictionary.Add(key, value);
-        return value;
-    }
-
     public static T GetOrAdd<TKey, T>(this IDictionary<TKey, object> dictionary, TKey key, Func<T> valueFactory)
     {
         if (dictionary.TryGetValue<TKey, T>(key, out var value))

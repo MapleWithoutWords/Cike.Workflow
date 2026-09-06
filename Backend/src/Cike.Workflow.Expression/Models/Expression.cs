@@ -24,5 +24,6 @@ public class Expression
 
     public object? Value { get; set; }
 
+
     public static Expression LiteralExpression(object? value) => new("Literal", value);
 }

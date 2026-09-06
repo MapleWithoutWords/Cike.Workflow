@@ -705,6 +705,32 @@ public class ActivityExecutionContext : IExecutionContext
         await InternalEvaluateInputPropertiesAsync();
     }
 
+    /// <summary>
+    /// Evaluates the specified input property of the activity.
+    /// </summary>
+    public async Task<T?> EvaluateInputPropertyAsync<TActivity, T>(Expression<Func<TActivity, Input<T>>> propertyExpression)
+    {
+        var inputName = propertyExpression.GetProperty()!.Name;
+        var input = await EvaluateInputPropertyAsync(inputName);
+        return input.ConvertTo<T>();
+    }
+
+    /// <summary>
+    /// Evaluates a specific input property of the activity.
+    /// </summary>
+    public async Task<object?> EvaluateInputPropertyAsync(string inputName)
+    {
+        var activity = Activity;
+        var activityRegistryLookup = GetRequiredService<IActivityRegistryLookupService>();
+        var activityDescriptor = await activityRegistryLookup.FindAsync(activity.Type) ?? throw new Exception("Activity descriptor not found");
+        var inputDescriptor = activityDescriptor.Inputs.FirstOrDefault(x => x.Name == inputName && x.IsWrapped);
+
+        if (inputDescriptor == null)
+            throw new Exception($"No input with name {inputName} could be found");
+
+        return await EvaluateInputPropertyAsync(activityDescriptor, inputDescriptor);
+    }
+
     private async Task InternalEvaluateInputPropertiesAsync()
     {
         var activityDescriptor = ActivityDescriptor;
