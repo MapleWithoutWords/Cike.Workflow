@@ -72,6 +72,7 @@ public static class ConnectionsExtensions
         /// Returns all inbound connections of the specified activity.
         /// </summary>
         public IEnumerable<ActivityConnection> InboundConnections(IActivity activity) => connections.Where(x => x.Target.ActivityId == activity.Id).Distinct().ToList();
+        public IEnumerable<ActivityConnection> InboundConnections(string activityId) => connections.Where(x => x.Target.ActivityId == activityId).Distinct().ToList();
 
         /// <summary>
         /// Returns all inbound activities of the specified activity.

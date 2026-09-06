@@ -6,15 +6,15 @@ namespace Cike.Workflow.Core.Activities.FlowchartActivity.Models;
 /// Represents a directed graph structure for managing workflow connections.
 /// Caches forward and backward connections to optimize graph traversal.
 /// </summary>
-public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? rootActivity, Dictionary<string, IActivity> activities)
+public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? rootActivity)
 {
     private List<ActivityConnection>? _cachedForwardConnections;
-    private readonly Dictionary<IActivity, List<ActivityConnection>> _cachedInboundForwardConnections = new();
-    private readonly Dictionary<IActivity, List<ActivityConnection>> _cachedInboundConnections = new();
-    private readonly Dictionary<IActivity, List<ActivityConnection>> _cachedOutboundConnections = new();
+    private readonly Dictionary<string, List<ActivityConnection>> _cachedInboundForwardConnections = new();
+    private readonly Dictionary<string, List<ActivityConnection>> _cachedInboundConnections = new();
+    private readonly Dictionary<string, List<ActivityConnection>> _cachedOutboundConnections = new();
     private readonly Dictionary<ActivityConnection, (bool IsBackwardConnection, bool IsValid)> _cachedIsBackwardConnection = new();
-    private readonly Dictionary<IActivity, bool> _cachedIsDanglingActivity = new();
-    private readonly Dictionary<IActivity, List<IActivity>> _cachedAncestors = new();
+    private readonly Dictionary<string, bool> _cachedIsDanglingActivity = new();
+    private readonly Dictionary<string, List<string>> _cachedAncestors = new();
 
     /// <summary>
     /// Gets the list of forward connections, computing them if not already cached.
@@ -24,22 +24,24 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
     /// <summary>
     /// Retrieves all inbound forward connections for a given activity.
     /// </summary>
-    public List<ActivityConnection> GetForwardInboundConnections(IActivity activity) => _cachedInboundForwardConnections.GetOrAdd(activity, () => ForwardConnections.InboundConnections(activity).ToList());
+    public List<ActivityConnection> GetForwardInboundConnections(IActivity activity) => _cachedInboundForwardConnections.GetOrAdd(activity.Id, () => ForwardConnections.InboundConnections(activity).ToList());
+
+    public List<ActivityConnection> GetForwardInboundConnections(string activityId) => _cachedInboundForwardConnections.GetOrAdd(activityId, () => ForwardConnections.InboundConnections(activityId).ToList());
 
     /// <summary>
     /// Retrieves all outbound connections for a given activity.
     /// </summary>
-    public List<ActivityConnection> GetOutboundConnections(IActivity activity) => _cachedOutboundConnections.GetOrAdd(activity, () => connections.OutboundConnections(activity).ToList());
+    public List<ActivityConnection> GetOutboundConnections(IActivity activity) => _cachedOutboundConnections.GetOrAdd(activity.Id, () => connections.OutboundConnections(activity).ToList());
 
     /// <summary>
     /// Retrieves all inbound connections for a given activity.
     /// </summary>
-    public List<ActivityConnection> GetInboundConnections(IActivity activity) => _cachedInboundConnections.GetOrAdd(activity, () => connections.InboundConnections(activity).ToList());
+    public List<ActivityConnection> GetInboundConnections(IActivity activity) => _cachedInboundConnections.GetOrAdd(activity.Id, () => connections.InboundConnections(activity).ToList());
 
     /// <summary>
     /// Determines if a given activity is "dangling," meaning it does not exist as a target in any forward connection.
     /// </summary>
-    public bool IsDanglingActivity(IActivity activity) => _cachedIsDanglingActivity.GetOrAdd(activity, () => activity != rootActivity && ForwardConnections.All(c => c.Target.ActivityId != activity.Id));
+    public bool IsDanglingActivity(IActivity activity) => _cachedIsDanglingActivity.GetOrAdd(activity.Id, () => activity != rootActivity && ForwardConnections.All(c => c.Target.ActivityId != activity.Id));
 
     /// <summary>
     /// Determines if a given connection is a backward connection (i.e., not part of the forward traversal) and whether it is valid.
@@ -54,7 +56,7 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
         }
 
         // Compute if the connection is backward
-        bool isBackwardConnection = !GetForwardInboundConnections(connection.Target.Activity).Contains(connection);
+        bool isBackwardConnection = !GetForwardInboundConnections(connection.Target.ActivityId).Contains(connection);
 
         // Compute if the backward connection is valid
         isValid = isBackwardConnection && IsValidBackwardConnection(ForwardConnections, rootActivity, connection);
@@ -68,24 +70,24 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
     /// <summary>
     /// Retrieves all ancestor activities for a given activity by traversing ForwardConnections in reverse.
     /// </summary>
-    public List<IActivity> GetAncestorActivities(IActivity activity)
+    public List<string> GetAncestorActivities(IActivity activity)
     {
-        return _cachedAncestors.GetOrAdd(activity, () => ComputeAncestors(activity));
+        return _cachedAncestors.GetOrAdd(activity.Id, () => ComputeAncestors(activity));
     }
 
     /// <summary>
     /// Computes the list of ancestors by following Source activities in ForwardConnections.
     /// </summary>
-    private List<IActivity> ComputeAncestors(IActivity activity)
+    private List<string> ComputeAncestors(IActivity activity)
     {
-        HashSet<IActivity> ancestors = new();
-        Queue<IActivity> queue = new();
+        HashSet<string> ancestors = new();
+        Queue<string> queue = new();
 
         // Find all connections where this activity is the target
-        foreach (var connection in ForwardConnections.Where(c => c.Target.Activity == activity))
+        foreach (var connection in ForwardConnections.Where(c => c.Target.ActivityId == activity.Id))
         {
-            if (ancestors.Add(connection.Source.Activity))
-                queue.Enqueue(connection.Source.Activity);
+            if (ancestors.Add(connection.Source.ActivityId))
+                queue.Enqueue(connection.Source.ActivityId);
         }
 
         // Traverse upwards through the graph
@@ -93,10 +95,10 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
         {
             var current = queue.Dequeue();
 
-            foreach (var connection in ForwardConnections.Where(c => c.Target.Activity == current))
+            foreach (var connection in ForwardConnections.Where(c => c.Target.ActivityId == current))
             {
-                if (ancestors.Add(connection.Source.Activity))
-                    queue.Enqueue(connection.Source.Activity);
+                if (ancestors.Add(connection.Source.ActivityId))
+                    queue.Enqueue(connection.Source.ActivityId);
             }
         }
 
@@ -193,15 +195,15 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
     /// <summary>
     /// Determines whether a backward connection is valid by ensuring all paths from source to root pass through target.
     /// </summary>
-    private static bool IsValidBackwardConnection(List<ActivityConnection> forwardConnections, IActivity? root, Connection connection)
+    private static bool IsValidBackwardConnection(List<ActivityConnection> forwardConnections, IActivity? root, ActivityConnection connection)
     {
         if (root == null) return false;
 
-        var pathsToRoot = GetPathsToRoot(forwardConnections, root, connection.Source.Activity);
+        var pathsToRoot = GetPathsToRoot(forwardConnections, root, connection.Source.ActivityId);
 
         foreach (var path in pathsToRoot)
         {
-            if (!path.Contains(connection.Target.Activity))
+            if (!path.Contains(connection.Target.ActivityId))
                 return false;
         }
 
@@ -211,10 +213,10 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
     /// <summary>
     /// Finds all paths from a given start activity to the root using BFS.
     /// </summary>
-    private static List<List<IActivity>> GetPathsToRoot(List<ActivityConnection> forwardConnections, IActivity root, IActivity start)
+    private static List<List<string>> GetPathsToRoot(List<ActivityConnection> forwardConnections, IActivity root, string start)
     {
-        List<List<IActivity>> paths = new();
-        Queue<List<IActivity>> queue = new();
+        List<List<string>> paths = new();
+        Queue<List<string>> queue = new();
         queue.Enqueue(new()
             { start });
 
@@ -223,21 +225,21 @@ public class FlowGraph(ICollection<ActivityConnection> connections, IActivity? r
             var path = queue.Dequeue();
             var lastNode = path.Last();
 
-            if (lastNode == root)
+            if (lastNode == root.Id)
             {
                 paths.Add([.. path]);
                 continue;
             }
 
             var previousNodes = forwardConnections
-                .Where(c => c.Target.Activity == lastNode)
-                .Select(c => c.Source.Activity);
+                .Where(c => c.Target.ActivityId == lastNode)
+                .Select(c => c.Source.ActivityId);
 
             foreach (var prev in previousNodes)
             {
                 if (!path.Contains(prev))
                 {
-                    var newPath = new List<IActivity>(path) { prev };
+                    var newPath = new List<string>(path) { prev };
                     queue.Enqueue(newPath);
                 }
             }

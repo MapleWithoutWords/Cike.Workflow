@@ -117,7 +117,7 @@ public class Flowchart : ContainerActivity
         var activeOutboundConnections = outboundConnections.Where(x => outcomes.Contains(x.Source.Port)).Distinct().ToList();
 
         foreach (var connection in activeOutboundConnections)
-            tokens.Add(Token.Create(connection.Source.Activity, connection.Target.Activity, connection.Source.Port));
+            tokens.Add(Token.Create(connection.Source.ActivityId, connection.Target.ActivityId, connection.Source.Port));
 
         // Consume inbound tokens to the completed activity.
         var inboundTokens = tokens.Where(t => t.ToActivityId == completedActivity.Id && t is { Consumed: false, Blocked: false }).ToList();
@@ -131,7 +131,7 @@ public class Flowchart : ContainerActivity
         // Schedule next activities based on merge modes.
         foreach (var connection in activeOutboundConnections)
         {
-            var targetActivity = connection.Target.Activity;
+            var targetActivity = Activities.First(a => a.Id == connection.Target.ActivityId);
             var mergeMode = await targetActivity.GetMergeModeAsync(ctx.ChildContext);
 
             switch (mergeMode)
@@ -144,7 +144,7 @@ public class Flowchart : ContainerActivity
                     // Check for existing blocked token on this specific connection.
                     var existingBlockedToken = tokens.FirstOrDefault(t =>
                         t.ToActivityId == targetActivity.Id &&
-                        t.FromActivityId == connection.Source.Activity.Id &&
+                        t.FromActivityId == connection.Source.ActivityId &&
                         t.Outcome == connection.Source.Port &&
                         t.Blocked);
 
