@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Elsa.Workflows.Activities;
+namespace Cike.Workflow.Core.Activities;
 
 public class ForEach<T> : Activity
 {
