@@ -1,9 +1,8 @@
 using Cike.Core.Modularity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Cike.Uow;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace Cike.Workflow.Core.Tests;
 
@@ -12,4 +11,10 @@ namespace Cike.Workflow.Core.Tests;
     ])]
 internal class CikeWorkflowCoreTestModule : CikeModule
 {
+    public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
+    {
+        context.Services.AddLogging();
+        context.Services.AddSingleton(Substitute.For<IUnitOfWork>());
+        await base.ConfigureServicesAsync(context);
+    }
 }

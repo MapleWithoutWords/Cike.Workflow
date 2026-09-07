@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Cike.Workflow.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.Cqrs" Version="$(CikeVersion)" />

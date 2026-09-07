@@ -1,4 +1,8 @@
 using Cike.EventBus.Local;
+using Cike.EventBus.Local.LocalEventMiddlewares;
+using Cike.EventBus.Local.Middlewares;
+using Cike.Workflow.Core.Runners.Internals.Middlewares;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Cike.Workflow.Core;
 
@@ -21,6 +25,11 @@ public class CikeWorkflowCoreModule : CikeModule
             DisplayName = "Workflow Instance",
             Factory = serviceProvider => serviceProvider.GetRequiredService<WorkflowInstanceStorageDriver>()
         });
+
+        context.Services.TryAddEnumerable(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunWorkflowInstanceCommand>), typeof(ExceptionRunWorkflowInstanceMiddleware), ServiceLifetime.Transient));
+
+        context.Services.TryAddEnumerable(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ExceptionRunActivityInstanceMiddleware), ServiceLifetime.Transient));
+        context.Services.TryAddEnumerable(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ActivityInstanceExecutionLogMiddleware), ServiceLifetime.Transient));
         await base.ConfigureServicesAsync(context);
     }
 

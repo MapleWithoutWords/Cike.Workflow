@@ -63,7 +63,7 @@ public static class ActivityExecutionContextExtensions
             // Store in TransientProperties so FlowChart is not persisted in WorkflowState
             var flowchart = (Flowchart)context.Activity;
             var startActivity = flowchart.GetStartActivity(context.WorkflowExecutionContext.TriggerActivityId);
-            return context.TransientProperties.GetOrAdd(GraphTransientProperty, () => new FlowGraph(flowchart.Connections, startActivity, flowchart.Activities.ToDictionary(e => e.Id, e => e)));
+            return context.TransientProperties.GetOrAdd(GraphTransientProperty, () => new FlowGraph(flowchart.Connections, startActivity));
         }
 
         public async Task CancelInboundAncestorsAsync(IActivity activity)
@@ -73,7 +73,7 @@ public static class ActivityExecutionContextExtensions
 
             var flowGraph = context.GetFlowGraph();
             var ancestorActivities = flowGraph.GetAncestorActivities(activity);
-            var inboundActivityExecutionContexts = context.WorkflowExecutionContext.ActivityExecutionContexts.Where(x => ancestorActivities.Contains(x.Activity) && x.ParentActivityExecutionContext == context).ToList();
+            var inboundActivityExecutionContexts = context.WorkflowExecutionContext.ActivityExecutionContexts.Where(x => ancestorActivities.Contains(x.Activity.Id) && x.ParentActivityExecutionContext == context).ToList();
 
             // Cancel each ancestor activity.
             foreach (var activityExecutionContext in inboundActivityExecutionContexts)

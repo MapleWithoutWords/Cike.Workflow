@@ -276,7 +276,7 @@ public class WorkflowExecutionContext : IExecutionContext
 
     internal void TransitionTo(WorkflowStatus status)
     {
-        if (status.IsFinished())
+        if (Status.IsFinished())
             throw new($"Cannot transition from {Status} to {status}");
 
         Status = status;

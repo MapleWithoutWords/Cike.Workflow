@@ -6,7 +6,7 @@ namespace Cike.Workflow.Core.Activities;
 /// Represents an executable process.
 /// </summary>
 [Browsable(false)]
-[Activity("Cike", "Workflows", "A workflow is an activity that executes its Root activity.")]
+[Activity(Namespace = "Cike", Category = "Workflows", Description = "A workflow is an activity that executes its Root activity.", Type = "Workflow")]
 public class WorkflowActivity : CompositeActivity<object>, ICloneable
 {
     /// <summary>

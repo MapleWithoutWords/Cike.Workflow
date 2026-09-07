@@ -9,6 +9,7 @@ namespace Cike.Workflow.Core.Activities.FlowchartActivity;
 public class Flowchart : ContainerActivity
 {
     private const string TokenStoreKey = "Flowchart.Tokens";
+    private const string GraphTransientProperty = "FlowGraph";
 
     public Flowchart() : base()
     {
@@ -132,7 +133,7 @@ public class Flowchart : ContainerActivity
         foreach (var connection in activeOutboundConnections)
         {
             var targetActivity = Activities.First(a => a.Id == connection.Target.ActivityId);
-            var mergeMode = await targetActivity.GetMergeModeAsync(ctx.ChildContext);
+            var mergeMode = targetActivity.GetMergeMode();
 
             switch (mergeMode)
             {
@@ -160,12 +161,12 @@ public class Flowchart : ContainerActivity
 
                         // Block other inbound connections (adjust per mode if needed).
                         var otherInboundConnections = flowGraph.GetForwardInboundConnections(targetActivity)
-                            .Where(x => x.Source.Activity != completedActivity)
+                            .Where(x => x.Source.ActivityId != completedActivity.Id)
                             .ToList();
 
                         foreach (var inboundConnection in otherInboundConnections)
                         {
-                            var blockedToken = Token.Create(inboundConnection.Source.Activity, inboundConnection.Target.Activity, inboundConnection.Source.Port).Block();
+                            var blockedToken = Token.Create(inboundConnection.Source.ActivityId, inboundConnection.Target.ActivityId, inboundConnection.Source.Port).Block();
                             tokens.Add(blockedToken);
                         }
                     }
@@ -188,7 +189,7 @@ public class Flowchart : ContainerActivity
                         var hasAllTokens = inboundConnectionsMerge.All(inbound =>
                             tokens.Any(t =>
                                 t is { Consumed: false, Blocked: false } &&
-                                t.FromActivityId == inbound.Source.Activity.Id &&
+                                t.FromActivityId == inbound.Source.ActivityId &&
                                 t.ToActivityId == targetActivity.Id &&
                                 t.Outcome == inbound.Source.Port
                             )
@@ -226,7 +227,7 @@ public class Flowchart : ContainerActivity
                         var hasAllTokens = allInboundConnectionsConverge.All(inbound =>
                             tokens.Any(t =>
                                 t is { Consumed: false, Blocked: false } &&
-                                t.FromActivityId == inbound.Source.Activity.Id &&
+                                t.FromActivityId == inbound.Source.ActivityId &&
                                 t.ToActivityId == targetActivity.Id &&
                                 t.Outcome == inbound.Source.Port
                             )
@@ -259,7 +260,7 @@ public class Flowchart : ContainerActivity
                     // Flows freely - approximation that proceeds when upstream completes, ignoring dead paths.
                     var inboundConnectionsStream = flowGraph.GetForwardInboundConnections(targetActivity);
                     var hasUnconsumed = inboundConnectionsStream.Any(inbound =>
-                        tokens.Any(t => !t.Consumed && !t.Blocked && t.ToActivityId == inbound.Source.Activity.Id)
+                        tokens.Any(t => !t.Consumed && !t.Blocked && t.ToActivityId == inbound.Source.ActivityId)
                     );
 
                     if (!hasUnconsumed)
@@ -284,12 +285,6 @@ public class Flowchart : ContainerActivity
 
         // Purge consumed tokens for the completed activity.
         tokens.RemoveAll(t => t.ToActivityId == completedActivity.Id && t.Consumed);
-    }
-
-    private FlowGraph GetFlowGraph(ActivityExecutionContext context)
-    {
-        // Store in TransientProperties so FlowChart is not persisted in WorkflowState 
-        return context.TransientProperties.GetOrAdd(GraphTransientProperty, () => new FlowGraph(Connections, GetStartActivity(context)));
     }
 
     internal List<Token> GetTokenList(ActivityExecutionContext context)

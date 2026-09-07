@@ -57,4 +57,10 @@ public class Input<T> : Input
     {
 
     }
+
+    public T? GetOrDefault(ActivityExecutionContext context, Func<T>? defaultValue = default)
+    {
+        var value = context.Get(this);
+        return value != null ? value : defaultValue != null ? defaultValue.Invoke() : default;
+    }
 }

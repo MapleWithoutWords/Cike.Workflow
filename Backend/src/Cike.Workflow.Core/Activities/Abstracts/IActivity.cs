@@ -1,3 +1,4 @@
+using Cike.Workflow.Core.Activities.FlowchartActivity.Models;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -74,4 +75,30 @@ public interface IActivity
     /// Sets a flag indicating whether this activity can be used for starting a workflow.
     /// </summary>
     public void SetCanStartWorkflow(bool value) => CustomProperties[CanStartWorkflowPropertyName[0]] = value;
+
+    public MergeMode? GetMergeMode()
+    {
+        if (!CustomProperties.TryGetValue("mergeMode", out var value))
+            return null;
+
+        // Handle both string and enum values for backwards compatibility
+        var result = value switch
+        {
+            MergeMode mode => mode,
+            string str when Enum.TryParse<MergeMode>(str, true, out var mode) => mode,
+            _ => (MergeMode?)null
+        };
+
+        // Treat MergeMode.None as equivalent to null (no merge mode set)
+        return result == MergeMode.None ? null : result;
+    }
+
+    public void SetMergeMode(MergeMode? value)
+    {
+        // Treat MergeMode.None as equivalent to null (no merge mode set)
+        if (value == null || value == MergeMode.None)
+            CustomProperties.Remove("mergeMode");
+        else
+            CustomProperties["mergeMode"] = value.ToString()!;
+    }
 }
