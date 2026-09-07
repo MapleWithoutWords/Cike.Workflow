@@ -72,7 +72,7 @@ public class WorkflowStateExtractor(ILogger<WorkflowStateExtractor> logger) : IW
     private IDictionary<string, object> GetPersistableInput(WorkflowExecutionContext workflowExecutionContext)
     {
         // TODO: This is a temporary solution. We need to find a better way to handle this.
-        var persistableInput = workflowExecutionContext.WorkflowGraph.Workflow.Inputs.Where(x => x.StorageDriverType == nameof(WorkflowInstanceStorageDriver)).ToList();
+        var persistableInput = workflowExecutionContext.WorkflowGraph.Workflow.Inputs.Where(x => x.StorageDriverType == nameof(WorkflowInstanceStorageDriver) || x.StorageDriverType.IsNullOrEmpty()).ToList();
         var input = workflowExecutionContext.Input;
         var filteredInput = new Dictionary<string, object>();
 

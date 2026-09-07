@@ -10,7 +10,7 @@ namespace Cike.Workflow.Core.ActivityDescriptors.Models;
 
 public class ActivityDescriptor
 {
-    public Guid? TenantId { get; set; }
+    public long TenantId { get; set; }
 
     public string TypeName { get; set; } = null!;
 

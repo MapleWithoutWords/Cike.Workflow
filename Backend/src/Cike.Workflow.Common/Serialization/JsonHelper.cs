@@ -35,4 +35,14 @@ public static class JsonHelper
 
         return options;
     }
+
+    public static T Deserialize<T>(string json, JsonSerializerOptions? options = null)
+    {
+        return JsonSerializer.Deserialize<T>(json, options ?? DefaultSerializerOptions)!;
+    }
+
+    public static string Serialize<T>(T value, JsonSerializerOptions? options = null)
+    {
+        return JsonSerializer.Serialize(value, options ?? DefaultSerializerOptions);
+    }
 }

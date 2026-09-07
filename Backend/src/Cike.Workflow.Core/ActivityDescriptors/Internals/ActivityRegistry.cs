@@ -7,7 +7,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
     // Legacy support for manually registered activities
     private readonly ISet<ActivityDescriptor> _manualActivityDescriptors = new HashSet<ActivityDescriptor>();
 
-    private readonly ConcurrentDictionary<Guid, TenantRegistryData> _tenantRegistries = new();
+    private readonly ConcurrentDictionary<long, TenantRegistryData> _tenantRegistries = new();
     private readonly TenantRegistryData _agnosticRegistry = new();
 
     private readonly ConcurrentDictionary<Type, byte> _initializedProviders = new();
@@ -25,7 +25,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
         var descriptors = (await activityProvider.GetDescriptorsAsync(cancellationToken)).ToList();
 
-        var descriptorsByTenant = descriptors.GroupBy(d => d.TenantId ?? Guid.Empty);
+        var descriptorsByTenant = descriptors.GroupBy(d => d.TenantId);
 
         foreach (var group in descriptorsByTenant)
         {
@@ -81,7 +81,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public IEnumerable<ActivityDescriptor> ListAll()
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         var tenantDescriptors = _tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry)
             ? tenantRegistry.ActivityDescriptors.Values
@@ -94,7 +94,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public IEnumerable<ActivityDescriptor> ListByProvider(Type providerType)
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         var tenantDescriptors = _tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry) &&
                                 tenantRegistry.ProvidedActivityDescriptors.TryGetValue(providerType, out var tenantProviderDescriptors)
@@ -110,7 +110,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public ActivityDescriptor? Find(string type)
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         if (_tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry))
         {
@@ -126,7 +126,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
     /// <inheritdoc />
     public ActivityDescriptor? Find(string type, int version)
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         if (_tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry) &&
             tenantRegistry.ActivityDescriptors.TryGetValue((type, version), out var tenantDescriptor))
@@ -141,7 +141,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public ActivityDescriptor? Find(Func<ActivityDescriptor, bool> predicate)
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         if (_tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry))
         {
@@ -154,7 +154,7 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public IEnumerable<ActivityDescriptor> FindMany(Func<ActivityDescriptor, bool> predicate)
     {
-        var currentTenantId = currentTenantAccessor.GetTenantId() ?? Guid.Empty;
+        var currentTenantId = currentTenantAccessor.GetTenantId();
 
         var tenantDescriptors = _tenantRegistries.TryGetValue(currentTenantId, out var tenantRegistry)
             ? tenantRegistry.ActivityDescriptors.Values.Where(predicate)
@@ -205,13 +205,13 @@ internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTe
 
     public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default) => new(_manualActivityDescriptors);
 
-    private TenantRegistryData GetOrCreateRegistry(Guid? tenantId)
+    private TenantRegistryData GetOrCreateRegistry(long tenantId)
     {
         // Null or agnostic tenant ID goes to agnostic registry
-        if (tenantId == null || tenantId == Guid.Empty)
+        if (tenantId <= 0)
             return _agnosticRegistry;
 
         // Get or create tenant-specific registry
-        return _tenantRegistries.GetOrAdd(tenantId.Value, _ => new());
+        return _tenantRegistries.GetOrAdd(tenantId, _ => new());
     }
 }

@@ -71,9 +71,6 @@ public interface IActivity
 
     public bool GetCanStartWorkflow() => CustomProperties.GetValueOrDefault(CanStartWorkflowPropertyName, () => false);
 
-    /// <summary>
-    /// Sets a flag indicating whether this activity can be used for starting a workflow.
-    /// </summary>
     public void SetCanStartWorkflow(bool value) => CustomProperties[CanStartWorkflowPropertyName[0]] = value;
 
     public MergeMode? GetMergeMode()

@@ -4,19 +4,21 @@ public abstract class Input : Argument
 {
     public Input(MemoryBlockReference memoryBlockReference, Type type) : base(memoryBlockReference)
     {
-        Type = type;
+        TypeName = type.FullName;
     }
 
     public Input(Expression? expression, MemoryBlockReference memoryBlockReference, Type type) : base(memoryBlockReference)
     {
         Expression = expression;
-        Type = type;
+        TypeName = type.FullName;
     }
 
     public Expression? Expression { get; }
 
-    [JsonPropertyName("typeName")]
-    public Type Type { get; set; }
+    public string TypeName { get; set; }
+
+    [JsonIgnore]
+    public Type Type { get => System.Type.GetType(TypeName)!; }
 }
 
 public class Input<T> : Input

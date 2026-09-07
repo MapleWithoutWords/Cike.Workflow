@@ -22,14 +22,12 @@ namespace Cike.Workflow.Core.Tests.Performance;
 [TestFixture]
 public class PerformanceTest : BaseIntegrationTest
 {
-    private IWorkflowRunner _runner = null!;
     private IWorkflowGraphBuilder _graphBuilder = null!;
     private IWorkflowStateExtractor _extractor = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _runner = serviceProvider.GetRequiredService<IWorkflowRunner>();
         _graphBuilder = serviceProvider.GetRequiredService<IWorkflowGraphBuilder>();
         _extractor = serviceProvider.GetRequiredService<IWorkflowStateExtractor>();
     }
@@ -44,12 +42,12 @@ public class PerformanceTest : BaseIntegrationTest
         var thresholds = new List<long>();
 
         // Warm-up
-        await _runner.RunAsync(workflow);
+        await runner.RunAsync(workflow);
 
         var sw = Stopwatch.StartNew();
         for (var i = 0; i < iterations; i++)
         {
-            var result = await _runner.RunAsync(workflow);
+            var result = await runner.RunAsync(workflow);
             Assert.That(result.WorkflowState.Status, Is.EqualTo(WorkflowStatus.Finished));
         }
         sw.Stop();
@@ -75,12 +73,12 @@ public class PerformanceTest : BaseIntegrationTest
         const int iterations = 20;
 
         // Warm-up
-        await _runner.RunAsync(workflow);
+        await runner.RunAsync(workflow);
 
         var sw = Stopwatch.StartNew();
         for (var i = 0; i < iterations; i++)
         {
-            var result = await _runner.RunAsync(workflow);
+            var result = await runner.RunAsync(workflow);
             Assert.That(result.WorkflowState.Status, Is.EqualTo(WorkflowStatus.Finished));
         }
         sw.Stop();
@@ -213,7 +211,7 @@ public class PerformanceTest : BaseIntegrationTest
             sequence.Activities.Add(new WriteLine($"activity-{i}"));
 
         var workflow = new WorkflowActivity(sequence);
-        var result = await _runner.RunAsync(workflow);
+        var result = await runner.RunAsync(workflow);
         var context = result.WorkflowExecutionContext;
 
         const int iterations = 50;

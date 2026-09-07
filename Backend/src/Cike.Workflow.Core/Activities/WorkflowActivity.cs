@@ -113,7 +113,7 @@ public class WorkflowDefinitionInfo
         Id = 1,
         DefinitionId = "1",
         Version = 1,
-        TenantId = Guid.Empty,
+        TenantId = 0,
         IsLatest = true,
         IsPublished = true,
         Name = "",
@@ -124,7 +124,7 @@ public class WorkflowDefinitionInfo
 
     public int Version { get; set; }
 
-    public Guid? TenantId { get; set; }
+    public long TenantId { get; set; }
 
     public bool IsLatest { get; set; }
 

@@ -37,7 +37,7 @@ public class For : Activity
     public IActivity? Body { get; set; }
 
     [Output]
-    public Output<object?> CurrentValue { get; set; } = new();
+    public Output<object?>? CurrentValue { get; set; }
 
     /// <inheritdoc />
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
@@ -45,7 +45,10 @@ public class For : Activity
         var iterateNode = Body;
 
         if (iterateNode == null)
+        {
+            await context.CompleteActivityAsync();
             return;
+        }
 
         await HandleIteration(context);
     }

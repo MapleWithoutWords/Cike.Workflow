@@ -18,7 +18,7 @@ public class CikeWorkflowExpressionModule : CikeModule
         expressionDescriptorRegistry.Add(new ExpressionDescriptor
         {
             Type = "Literal",
-            DisplayName = "Name",
+            DisplayName = "Literal",
             HandlerFactory = serviceProvider => serviceProvider.GetRequiredService<LiteralExpressionHandler>()
         });
 

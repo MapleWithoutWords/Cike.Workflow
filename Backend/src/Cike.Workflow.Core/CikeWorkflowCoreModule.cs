@@ -1,6 +1,5 @@
-using Cike.EventBus.Local;
 using Cike.EventBus.Local.LocalEventMiddlewares;
-using Cike.EventBus.Local.Middlewares;
+using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.Runners.Internals.Middlewares;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -35,6 +34,11 @@ public class CikeWorkflowCoreModule : CikeModule
 
     public override async Task InitializeAsync(ApplicationInitializationContext context)
     {
+        var activityProviders = context.ServiceProvider.GetServices<IActivityProvider>();
+        var activityRegistry = context.ServiceProvider.GetService<IActivityRegistry>();
+        foreach (var provider in activityProviders)
+            await activityRegistry.EnsureDescriptorsAsync(provider);
+
         await base.InitializeAsync(context);
     }
 }

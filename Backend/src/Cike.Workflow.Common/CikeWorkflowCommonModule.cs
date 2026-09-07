@@ -9,7 +9,8 @@ public class CikeWorkflowCommonModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
-        context.Services.AddSingleton<ISerializationTypeRegistry>(SerializationTypeRegistry.CreateDefault());
+        context.Services.Configure<SerializationTypeOptions>(_ => { });
+        context.Services.AddSingleton<ISerializationTypeRegistry, SerializationTypeRegistry>();
         await base.ConfigureServicesAsync(context);
     }
 }
