@@ -2,73 +2,80 @@ using Cike.Workflow.Common.Serialization;
 using Cike.Workflow.Core.ActivityDescriptors;
 using System.Reflection;
 
-namespace Cike.Workflow.Core.Tests.Serializers
+namespace Cike.Workflow.Core.Serialization.Converters;
+
+public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonConverter<IActivity>
 {
-    public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonConverter<IActivity>
+    public override IActivity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        public override IActivity? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        using var doc = JsonDocument.ParseValue(ref reader);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("type", out var activityTypeNameElement))
+            throw new JsonException("Failed to extract activity type property");
+        var activityTypeName = activityTypeNameElement.GetString()!;
+
+        var activityDescriptor = activityRegistry.Find(activityTypeName);
+
+        return (IActivity)JsonSerializer.Deserialize(root, activityDescriptor?.ClrType ?? typeof(NotFoundActivity), GetClonedOptions(JsonHelper.DefaultSerializerOptions))!;
+    }
+
+    public override void Write(Utf8JsonWriter writer, IActivity value, JsonSerializerOptions options)
+    {
+        if (value == null)
         {
-            using var doc = JsonDocument.ParseValue(ref reader);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("type", out var activityTypeNameElement))
-                throw new JsonException("Failed to extract activity type property");
-            var activityTypeName = activityTypeNameElement.GetString()!;
-
-            var activityDescriptor = activityRegistry.Find(activityTypeName);
-
-            return (IActivity)JsonSerializer.Deserialize(root, activityDescriptor?.ClrType ?? typeof(NotFoundActivity), JsonHelper.DefaultSerializerOptions)!;
+            writer.WriteNullValue();
+            return;
+        }
+        var activityDescriptor = activityRegistry.Find(value.Type);
+        if (activityDescriptor == null)
+        {
+            writer.WriteNullValue();
+            return;
         }
 
-        public override void Write(Utf8JsonWriter writer, IActivity value, JsonSerializerOptions options)
+        writer.WriteStartObject();
+
+        var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var property in properties)
         {
-            if (value == null)
+            if (property.GetCustomAttribute<JsonIgnoreAttribute>() != null)
+                continue;
+
+            var propName = options.PropertyNamingPolicy?.ConvertName(property.Name) ?? property.Name;
+            writer.WritePropertyName(propName);
+            var input = property.GetValue(value);
+
+            if (input == null)
             {
                 writer.WriteNullValue();
-                return;
-            }
-            var activityDescriptor = activityRegistry.Find(value.Type);
-            if (activityDescriptor == null)
-            {
-                writer.WriteNullValue();
-                return;
+                continue;
             }
 
-            writer.WriteStartObject();
-
-            var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var property in properties)
+            if (property.Name == nameof(IActivity.CustomProperties))
             {
-                if (property.GetCustomAttribute<JsonIgnoreAttribute>() != null)
-                    continue;
-
-                var propName = options.PropertyNamingPolicy?.ConvertName(property.Name) ?? property.Name;
-                writer.WritePropertyName(propName);
-                var input = property.GetValue(value);
-
-                if (input == null)
+                var customProperties = new Dictionary<string, object>(value.CustomProperties);
+                foreach (var kvp in customProperties)
                 {
-                    writer.WriteNullValue();
-                    continue;
+                    if (kvp.Value is IActivity or IEnumerable<IActivity>)
+                        customProperties.Remove(kvp.Key);
                 }
 
-                if (property.Name == nameof(IActivity.CustomProperties))
-                {
-                    var customProperties = new Dictionary<string, object>(value.CustomProperties);
-                    foreach (var kvp in customProperties)
-                    {
-                        if (kvp.Value is IActivity or IEnumerable<IActivity>)
-                            customProperties.Remove(kvp.Key);
-                    }
-
-                    input = customProperties;
-                }
-
-                JsonSerializer.Serialize(writer, input, options);
+                input = customProperties;
             }
 
-            writer.WriteEndObject();
+            JsonSerializer.Serialize(writer, input, options);
         }
+
+        writer.WriteEndObject();
+    }
+
+
+    private JsonSerializerOptions GetClonedOptions(JsonSerializerOptions options)
+    {
+        var clonedOptions = new JsonSerializerOptions(options);
+        clonedOptions.Converters.Add(new InputJsonConverterFactory());
+        return clonedOptions;
     }
 }

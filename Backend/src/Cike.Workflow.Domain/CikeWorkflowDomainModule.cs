@@ -1,4 +1,5 @@
 using Cike.Workflow.Core;
+using Cike.Workflow.Domain.Shared;
 
 namespace Cike.Domain;
 

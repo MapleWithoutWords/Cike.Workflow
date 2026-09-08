@@ -1,4 +1,4 @@
-namespace Cike.Domain.Shared;
+namespace Cike.Workflow.Domain.Shared;
 
 [DependsOn([
     ])]

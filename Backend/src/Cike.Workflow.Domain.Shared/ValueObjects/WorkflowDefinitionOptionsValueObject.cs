@@ -1,6 +1,6 @@
 using Cike.Workflow.Core.Models;
 
-namespace Cike.Workflow.Domain.Data.ValueObjects;
+namespace Cike.Workflow.Domain.Shared.ValueObjects;
 
 public class WorkflowDefinitionOptionsValueObject
 {

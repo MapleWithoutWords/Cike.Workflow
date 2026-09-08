@@ -4,6 +4,7 @@ using Cike.Workflow.Core.Activities;
 using Cike.Workflow.Core.Activities.FlowchartActivity;
 using Cike.Workflow.Core.Activities.FlowchartActivity.Models;
 using Cike.Workflow.Core.ActivityDescriptors;
+using Cike.Workflow.Core.Serialization.Converters;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cike.Workflow.Core.Tests.Serializers;
@@ -37,7 +38,7 @@ internal class WorkflowSerializerTest : BaseIntegrationTest
         var activityRegister = serviceProvider.GetService<IActivityRegistry>();
         var serializationTypeRegistry = serviceProvider.GetService<ISerializationTypeRegistry>();
         jsonOptions.Converters.Add(new ActivityJsonConverter(activityRegister));
-        //jsonOptions.Converters.Add(new TypeJsonConverter(serializationTypeRegistry));
+        jsonOptions.Converters.Add(new InputJsonConverterFactory());
         var jsonStr = JsonHelper.Serialize(flowchart2, jsonOptions);
 
         var deserializedFlowchart = JsonHelper.Deserialize<Flowchart>(jsonStr, jsonOptions);

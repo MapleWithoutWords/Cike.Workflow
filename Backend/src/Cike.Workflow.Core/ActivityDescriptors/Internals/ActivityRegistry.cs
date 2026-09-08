@@ -2,7 +2,7 @@ using Cike.Workflow.Core.Helpers;
 
 namespace Cike.Workflow.Core.ActivityDescriptors.Internals;
 
-internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTenantAccessor currentTenantAccessor, ILogger<ActivityRegistry> logger) : IActivityRegistry, IActivityProvider, ISingletonDependency
+internal class ActivityRegistry(IActivityDescriber activityDescriber, ICurrentTenantAccessor currentTenantAccessor) : IActivityRegistry, IActivityProvider, ISingletonDependency
 {
     // Legacy support for manually registered activities
     private readonly ISet<ActivityDescriptor> _manualActivityDescriptors = new HashSet<ActivityDescriptor>();

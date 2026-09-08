@@ -1,4 +1,5 @@
 using Cike.Domain.Entities;
+using Cike.Workflow.Domain.Shared.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Linq;

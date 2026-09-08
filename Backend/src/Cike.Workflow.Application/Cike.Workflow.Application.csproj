@@ -17,5 +17,9 @@
     <ProjectReference Include="..\Cike.Workflow.Application.Contracts\Cike.Workflow.Application.Contracts.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="WorkflowDefinitions\Commands\" />
+    <Folder Include="WorkflowDefinitions\Queries\" />
+  </ItemGroup>
 
 </Project>

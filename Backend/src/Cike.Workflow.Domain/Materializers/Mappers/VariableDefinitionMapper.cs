@@ -1,3 +1,5 @@
+using Cike.Workflow.Domain.Shared.ValueObjects;
+
 namespace Cike.Workflow.Domain.Materializers.Mappers;
 
 public class VariableDefinitionMapper(ISerializationTypeRegistry workflowJsonTypeRegistry, IServiceScopeFactory scopeFactory, ILogger<VariableDefinitionMapper> logger) : ISingletonDependency

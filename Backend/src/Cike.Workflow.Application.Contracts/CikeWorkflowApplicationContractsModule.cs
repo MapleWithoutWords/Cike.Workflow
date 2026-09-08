@@ -1,3 +1,5 @@
+using Cike.Workflow.Domain.Shared;
+
 namespace Cike.Workflow.Application.Contracts;
 
 [DependsOn(
