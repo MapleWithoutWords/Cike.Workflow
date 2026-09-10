@@ -36,7 +36,6 @@ public class WorkflowDefinitionCommandHandler(
         await ValidateDuplicateAsync(dto.WorkspaceId, dto.Name, dto.DefinitionId, null, cancellationToken);
 
         var entity = dto.Adapt<WorkflowDefinition>();
-        entity.OriginalStringData = JsonSerializer.Serialize(JsonHelper.CreateOptionsInternal().WithConverters(new ActivityJsonConverter())
 
         await workflowDefinitionStore.AddAsync(entity, cancellationToken);
         command.Id = entity.Id;
