@@ -1,4 +1,5 @@
 using Cike.Workflow.Common.Serialization;
+using Cike.Workflow.Common.Serialization.Internals;
 using System.Dynamic;
 
 namespace Cike.Workflow.Core.Serialization.Converters;

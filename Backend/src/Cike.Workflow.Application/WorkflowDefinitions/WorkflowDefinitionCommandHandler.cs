@@ -1,4 +1,8 @@
+using Cike.Core.Extensions.System;
 using Cike.Workflow.Application.WorkflowDefinitions.Commands;
+using Cike.Workflow.Common.Serialization;
+using Cike.Workflow.Core.Serialization.Converters;
+using System.Text.Json;
 
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
@@ -32,6 +36,7 @@ public class WorkflowDefinitionCommandHandler(
         await ValidateDuplicateAsync(dto.WorkspaceId, dto.Name, dto.DefinitionId, null, cancellationToken);
 
         var entity = dto.Adapt<WorkflowDefinition>();
+        entity.OriginalStringData = JsonSerializer.Serialize(JsonHelper.CreateOptionsInternal().WithConverters(new ActivityJsonConverter())
 
         await workflowDefinitionStore.AddAsync(entity, cancellationToken);
         command.Id = entity.Id;

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Cike.Workflow.Common.Serialization;
 using Elsa.Common.Serialization;
 
 namespace Cike.Workflow.Core.Serialization.Converters;
