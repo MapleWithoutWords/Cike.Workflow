@@ -1,6 +1,6 @@
 using Cike.Core.DependencyInjection;
 
-namespace Cike.Workflow.Expressions.Services;
+namespace Cike.Workflow.Expressions.Internals;
 
 /// <inheritdoc />
 internal class ExpressionEvaluator(IExpressionDescriptorRegistry registry, IServiceProvider serviceProvider) : IExpressionEvaluator, IScopedDependency

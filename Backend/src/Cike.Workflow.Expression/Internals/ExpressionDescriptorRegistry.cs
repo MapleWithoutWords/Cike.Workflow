@@ -1,4 +1,4 @@
-namespace Cike.Workflow.Expressions.Services;
+namespace Cike.Workflow.Expressions.Internals;
 
 /// <inheritdoc />
 internal class ExpressionDescriptorRegistry : IExpressionDescriptorRegistry

@@ -1,8 +1,9 @@
 using Cike.Core.DependencyInjection;
 using Cike.Workflow.Common.Serialization;
 using Cike.Workflow.Expressions.Extensions;
+using Cike.Workflow.Expressions.Internals;
 
-namespace Cike.Workflow.Expressions.ExpressionHanlders;
+namespace Cike.Workflow.Expressions.LiteralExpressions;
 
 public class LiteralExpressionHandler : IExpressionHandler, IScopedDependency
 {

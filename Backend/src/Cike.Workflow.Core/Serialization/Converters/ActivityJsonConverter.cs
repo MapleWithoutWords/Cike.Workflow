@@ -74,7 +74,7 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
     private JsonSerializerOptions GetClonedOptions(JsonSerializerOptions options)
     {
         var clonedOptions = new JsonSerializerOptions(options);
-        clonedOptions.Converters.Add(new InputJsonConverterFactory());
+        //clonedOptions.Converters.Add(new InputJsonConverterFactory());
         return clonedOptions;
     }
 }

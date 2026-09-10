@@ -38,7 +38,7 @@ internal class WorkflowSerializerTest : BaseIntegrationTest
         var activityRegister = serviceProvider.GetService<IActivityRegistry>();
         var serializationTypeRegistry = serviceProvider.GetService<ISerializationTypeRegistry>();
         jsonOptions.Converters.Add(new ActivityJsonConverter(activityRegister));
-        jsonOptions.Converters.Add(new InputJsonConverterFactory());
+        //jsonOptions.Converters.Add(new InputJsonConverterFactory());
         var jsonStr = JsonHelper.Serialize(flowchart2, jsonOptions);
 
         var deserializedFlowchart = JsonHelper.Deserialize<Flowchart>(jsonStr, jsonOptions);

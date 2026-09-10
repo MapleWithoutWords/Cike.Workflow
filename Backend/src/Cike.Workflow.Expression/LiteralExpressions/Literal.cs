@@ -1,4 +1,4 @@
-namespace Cike.Workflow.Expressions.Models;
+namespace Cike.Workflow.Expressions.LiteralExpressions;
 
 public class Literal : MemoryBlockReference
 {
