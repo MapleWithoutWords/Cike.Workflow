@@ -4,6 +4,7 @@ namespace Cike.Service.Open;
     typeof(CikeWorkflowApplicationModule),
     typeof(CikeWorkflowEntityFrameworkCoreModule),
     typeof(CikeAspNetCoreMinimalApiModule),
+    typeof(CikeFluentValidationModule),
     ])]
 public class CikeWorkflowServiceOpenModule : CikeModule
 {

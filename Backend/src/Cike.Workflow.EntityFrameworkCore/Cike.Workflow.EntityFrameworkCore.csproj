@@ -14,6 +14,8 @@
     <PackageReference Include="Quartz.AspNetCore" Version="3.13.1" />
     <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.13.1" />
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.4" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftPackageVersion)">
@@ -22,6 +24,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Cike.Workflow.Caching\Cike.Workflow.Caching.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj" />
   </ItemGroup>
 

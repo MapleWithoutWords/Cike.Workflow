@@ -71,7 +71,6 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
         writer.WriteEndObject();
     }
 
-
     private JsonSerializerOptions GetClonedOptions(JsonSerializerOptions options)
     {
         var clonedOptions = new JsonSerializerOptions(options);

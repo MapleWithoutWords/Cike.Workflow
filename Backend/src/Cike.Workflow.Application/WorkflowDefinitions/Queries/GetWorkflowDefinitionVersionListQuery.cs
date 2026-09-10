@@ -1,12 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+namespace Cike.Workflow.Application.WorkflowDefinitions.Queries;
 
-namespace Cike.Workflow.Application.WorkflowDefinitions.Queries
-{
-    internal class GetWorkflowDefinitionVersionListQuery
-    {
-    }
-}
+public record GetWorkflowDefinitionVersionListQuery(string DefinitionId) : Query<List<WorkflowDefinitionVersionItemDto>>;

@@ -36,8 +36,5 @@
     <ProjectReference Include="..\..\src\Cike.Workflow.Service.Open\Cike.Workflow.Service.Open.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-  </ItemGroup>
 
 </Project>

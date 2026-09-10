@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Cike.Workflow.EntityFrameworkCore.EntityConfigurations;
 
 public class EntitiyConfiguration :
+    IEntityTypeConfiguration<Workspace>,
     IEntityTypeConfiguration<Folder>,
     IEntityTypeConfiguration<WorkflowDefinition>,
     IEntityTypeConfiguration<WorkflowInstance>,
@@ -10,10 +11,22 @@ public class EntitiyConfiguration :
     IEntityTypeConfiguration<BookmarkEntity>,
     IEntityTypeConfiguration<BookmarkQueueItem>
 {
+    public void Configure(EntityTypeBuilder<Workspace> builder)
+    {
+        builder.Property(e => e.Id).ValueGeneratedNever().HasComment("主键");
+        builder.Property(e => e.Code).HasMaxLength(128);
+        builder.Property(e => e.Name).HasMaxLength(128).HasComment("名称");
+        builder.Property(e => e.Description).HasMaxLength(512).HasComment("描述");
+
+        builder.HasIndex(e => e.Code);
+        builder.HasIndex(e => new { e.Code, e.Name });
+        builder.HasIndex(e => e.CreatedBy);
+    }
+
     public void Configure(EntityTypeBuilder<Folder> builder)
     {
         builder.Property(e => e.Id).ValueGeneratedNever().HasComment("主键");
-        builder.Property(e => e.ParentId).ValueGeneratedNever().HasComment("父级目录ID");
+        builder.Property(e => e.ParentId).HasComment("父级目录ID");
         builder.Property(e => e.Name).HasMaxLength(128).HasComment("名称");
 
         builder.HasIndex(e => e.ParentId);

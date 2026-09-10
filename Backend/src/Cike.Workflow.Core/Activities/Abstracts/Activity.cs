@@ -1,6 +1,7 @@
 using Cike.Workflow.Core.Activities.Behaviors;
 using Cike.Workflow.Core.Extensions;
 using Cike.Workflow.Core.Helpers;
+using Cike.Workflow.Core.Serialization.Converters;
 using System.Text.Json.Serialization;
 
 namespace Cike.Workflow.Core.Activities.Abstracts;
@@ -28,8 +29,10 @@ public abstract class Activity : IActivity, ISignalHandler
 
     public int Version { get; set; }
 
+    [JsonConverter(typeof(PolymorphicObjectConverterFactory))]
     public IDictionary<string, object> CustomProperties { get; set; } = new Dictionary<string, object>();
 
+    [JsonConverter(typeof(PolymorphicObjectConverterFactory))]
     public IDictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
 
     [JsonIgnore]

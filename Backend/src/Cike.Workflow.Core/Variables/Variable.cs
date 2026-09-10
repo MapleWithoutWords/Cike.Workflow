@@ -49,15 +49,8 @@ public class Variable : MemoryBlockReference
     /// </summary>
     public string Name { get; set; } = null!;
 
-    /// <summary>
-    /// A default value for the variable.
-    /// </summary>
     public object? Value { get; set; }
 
-    /// <summary>
-    /// The storage driver type to use for persistence.
-    /// If no driver is specified, the referenced memory block will remain in memory for as long as the expression execution context exists.
-    /// </summary>
     public string? StorageDriverType { get; set; }
 
     public Type GetVariableType()

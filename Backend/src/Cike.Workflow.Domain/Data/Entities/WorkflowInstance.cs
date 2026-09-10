@@ -1,19 +1,13 @@
-using Cike.Data;
 using Cike.Workflow.Core.Enums;
-using Cike.Workflow.Core.Models;
 using Cike.Workflow.Core.Runners.Models;
-using Cike.Workflow.Core.Variables;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cike.Workflow.Domain.Data.Entities;
 
 public class WorkflowInstance : FullAuditedAggregateRoot<long>, IMultiTenant
 {
     public long TenantId { get; set; }
+
+    public long WorkspaceId { get; set; }
 
     public string DefinitionId { get; set; } = null!;
 

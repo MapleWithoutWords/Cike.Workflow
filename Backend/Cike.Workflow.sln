@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Common", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Core.Tests", "tests\Cike.Workflow.Core.Tests\Cike.Workflow.Core.Tests.csproj", "{8F281CAE-2F0C-4039-9956-B24EB90D85DD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cike.Workflow.Caching", "src\Cike.Workflow.Caching\Cike.Workflow.Caching.csproj", "{57E53FD9-955E-4B17-AC6A-F89168BBC338}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,10 @@ Global
 		{8F281CAE-2F0C-4039-9956-B24EB90D85DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F281CAE-2F0C-4039-9956-B24EB90D85DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F281CAE-2F0C-4039-9956-B24EB90D85DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57E53FD9-955E-4B17-AC6A-F89168BBC338}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57E53FD9-955E-4B17-AC6A-F89168BBC338}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57E53FD9-955E-4B17-AC6A-F89168BBC338}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57E53FD9-955E-4B17-AC6A-F89168BBC338}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -104,6 +110,7 @@ Global
 		{4625C476-D8A3-464A-B823-61799D357D30} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
 		{01B03B00-9743-440F-A043-4F62C77C94D9} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
 		{8F281CAE-2F0C-4039-9956-B24EB90D85DD} = {B635D266-25F5-4F25-81AA-F2AEF9D5FB78}
+		{57E53FD9-955E-4B17-AC6A-F89168BBC338} = {5C497DA0-0547-49CE-8DBD-286C6A99A1F9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {05E25C7C-A0AF-4725-8C39-05F6A67D7A32}

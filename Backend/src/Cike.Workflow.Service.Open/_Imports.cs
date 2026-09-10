@@ -12,5 +12,5 @@ global using Swashbuckle.AspNetCore.SwaggerGen;
 global using System.Reflection;
 global using System.Text.Json.Serialization;
 global using Cike.AspNetCore.Swagger;
+global using Cike.FluentValidation;
 global using FluentValidation;
-global using Cike.Service.Open;

@@ -1,14 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace Cike.Workflow.Domain.Data;
 
 public interface IBaseStore<TEntity> where TEntity : class, IEntity<long>
 {
     IQueryable<TEntity> Queryable { get; }
+
+    Task<TEntity?> FindAsync(long id, CancellationToken cancellationToken = default);
+
+    Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default);
+
+    Task<(long Total, List<TEntity> Items)> ToPaginationAsync(IQueryable<TEntity> query, IPagedAndSortedRequest pageAndSorted, CancellationToken cancellationToken = default);
 
     Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 

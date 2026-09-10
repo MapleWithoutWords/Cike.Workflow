@@ -9,4 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cike.Workflow.Core\Cike.Workflow.Core.csproj" />
+  </ItemGroup>
 </Project>

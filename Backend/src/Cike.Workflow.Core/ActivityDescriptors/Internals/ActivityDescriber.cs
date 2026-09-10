@@ -5,8 +5,13 @@ using System.Xml.Linq;
 
 namespace Cike.Workflow.Core.ActivityDescriptors.Internals;
 
-internal class ActivityDescriber : IActivityDescriber, ISingletonDependency
+internal class ActivityDescriber : IActivityDescriber
 {
+    public static IActivityDescriber CreateInstance()
+    {
+        return new ActivityDescriber();
+    }
+
     public async Task<ActivityDescriptor> DescribeActivityAsync([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type activityType, CancellationToken cancellationToken = default)
     {
         var activityAttr = activityType.GetCustomAttribute<ActivityAttribute>();

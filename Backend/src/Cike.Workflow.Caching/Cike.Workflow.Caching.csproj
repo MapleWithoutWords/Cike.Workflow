@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cike.Caching" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Contracts" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
+  </ItemGroup>
+
+</Project>

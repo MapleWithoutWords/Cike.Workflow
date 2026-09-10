@@ -1,4 +1,5 @@
 using Cike.Workflow.Application.Contracts;
+using Cike.Workflow.Caching;
 
 namespace Cike.Application;
 
@@ -7,6 +8,7 @@ namespace Cike.Application;
     typeof(CikeWorkflowApplicationContractsModule),
     typeof(CikeCqrsModule),
     typeof(CikeEventBusLocalModule),
+    typeof(CikeWorkflowCachingModule),
     ])]
 public class CikeWorkflowApplicationModule : CikeModule
 {
