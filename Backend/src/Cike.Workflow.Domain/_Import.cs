@@ -4,6 +4,7 @@ global using Cike.Core.Modularity;
 global using Cike.Data;
 global using Cike.Data.Domain.Entities;
 global using Cike.Domain.Entities;
+global using Cike.Domain.Repositories;
 global using Cike.Workflow.Common.Serialization;
 global using Cike.Workflow.Common.Serialization.Internals;
 global using Cike.Workflow.Core.Activities;

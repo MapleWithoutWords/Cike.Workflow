@@ -5,8 +5,8 @@ namespace Cike.Workflow.Application.WorkflowDefinitions;
 
 public class WorkflowDefinitionCommandHandler(
     IWorkflowDefinitionStore workflowDefinitionStore,
-    IWorkspaceStore workspaceStore,
-    IFolderStore folderStore,
+    IWorkspaceRepository workspaceRepository,
+    IFolderRepository folderRepository,
     IDistributedCacheClient distributedCacheClient,
     IActivitySerializer activitySerializer)
 {
@@ -17,12 +17,12 @@ public class WorkflowDefinitionCommandHandler(
     {
         var dto = command.Dto;
 
-        if (!await workspaceStore.Queryable.AsNoTracking()
+        if (!await workspaceRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("所属工作空间不存在，请检查后重试。");
 
         if (dto.FolderId != 0
-            && !await folderStore.Queryable.AsNoTracking()
+            && !await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.Id == dto.FolderId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("目录不属于该工作空间，请检查后重试。");
 

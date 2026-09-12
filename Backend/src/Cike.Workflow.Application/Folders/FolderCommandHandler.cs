@@ -1,8 +1,8 @@
 namespace Cike.Workflow.Application.Folders;
 
 public class FolderCommandHandler(
-    IFolderStore folderStore,
-    IWorkspaceStore workspaceStore,
+    IFolderRepository folderRepository,
+    IWorkspaceRepository workspaceRepository,
     IWorkflowDefinitionStore workflowDefinitionStore)
 {
     [LocalEventHandler]
@@ -10,19 +10,19 @@ public class FolderCommandHandler(
     {
         var dto = command.Dto;
 
-        if (!await workspaceStore.Queryable.AsNoTracking()
+        if (!await workspaceRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("所属工作空间不存在，请检查后重试。");
 
         if (dto.ParentId != 0
-            && !await folderStore.Queryable.AsNoTracking()
+            && !await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.Id == dto.ParentId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("上级目录不存在，请检查后重试。");
 
         await ValidateNameDuplicateAsync(dto.WorkspaceId, dto.ParentId, dto.Name, null, cancellationToken);
 
         var entity = dto.Adapt<Folder>();
-        await folderStore.AddAsync(entity, cancellationToken);
+        await folderRepository.InsertAsync(entity, cancellationToken: cancellationToken);
         command.Id = entity.Id;
     }
 
@@ -34,7 +34,7 @@ public class FolderCommandHandler(
         await ValidateNameDuplicateAsync(entity.WorkspaceId, entity.ParentId, command.Dto.Name, command.Id, cancellationToken);
 
         command.Dto.Adapt(entity);
-        await folderStore.UpdateAsync(entity, cancellationToken);
+        await folderRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
     }
 
     [LocalEventHandler]
@@ -42,19 +42,19 @@ public class FolderCommandHandler(
     {
         var entity = await GetEntityAsync(command.Id, cancellationToken);
 
-        var hasContent = await folderStore.Queryable.AsNoTracking()
+        var hasContent = await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.ParentId == command.Id, cancellationToken)
         || await workflowDefinitionStore.Queryable.AsNoTracking()
             .AnyAsync(x => x.FolderId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该目录下存在子目录或工作流，请先删除后再移除目录。");
 
-        await folderStore.DeleteAsync(entity, cancellationToken);
+        await folderRepository.DeleteAsync(entity, cancellationToken: cancellationToken);
     }
 
     private async Task ValidateNameDuplicateAsync(long workspaceId, long parentId, string name, long? excludeId, CancellationToken cancellationToken = default)
     {
-        var nameExists = await folderStore.Queryable.AsNoTracking()
+        var nameExists = await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.WorkspaceId == workspaceId && x.ParentId == parentId && x.Name == name
                            && (excludeId == null || x.Id != excludeId), cancellationToken);
         if (nameExists)
@@ -63,7 +63,7 @@ public class FolderCommandHandler(
 
     private async Task<Folder> GetEntityAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await folderStore.FindAsync(id, cancellationToken)
+        return await folderRepository.FindAsync(id, cancellationToken)
             ?? throw new UserFriendlyException("目录不存在，请检查后重试。");
     }
 }

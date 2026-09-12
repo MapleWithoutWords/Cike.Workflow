@@ -1,8 +1,8 @@
 namespace Cike.Workflow.Application.Workspaces;
 
 public class WorkspaceCommandHandler(
-    IWorkspaceStore workspaceStore,
-    IFolderStore folderStore,
+    IWorkspaceRepository workspaceRepository,
+    IFolderRepository folderRepository,
     IWorkflowDefinitionStore workflowDefinitionStore,
     IDistributedCacheClient distributedCacheClient)
 {
@@ -22,7 +22,7 @@ public class WorkspaceCommandHandler(
 
         var entity = dto.Adapt<Workspace>();
 
-        await workspaceStore.AddAsync(entity, cancellationToken);
+        await workspaceRepository.InsertAsync(entity, cancellationToken: cancellationToken);
         command.Id = entity.Id;
     }
 
@@ -35,7 +35,7 @@ public class WorkspaceCommandHandler(
 
         command.Dto.Adapt(entity);
 
-        await workspaceStore.UpdateAsync(entity, cancellationToken);
+        await workspaceRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
     }
 
     [LocalEventHandler]
@@ -43,14 +43,14 @@ public class WorkspaceCommandHandler(
     {
         var entity = await GetEntityAsync(command.Id, cancellationToken);
 
-        var hasContent = await folderStore.Queryable.AsNoTracking()
+        var hasContent = await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken)
         || await workflowDefinitionStore.Queryable.AsNoTracking()
             .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该工作空间下存在目录或工作流，请先删除后再移除工作空间。");
 
-        await workspaceStore.DeleteAsync(entity, cancellationToken);
+        await workspaceRepository.DeleteAsync(entity, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class WorkspaceCommandHandler(
     /// </summary>
     private async Task ValidateDuplicateAsync(string name, string? code, long? excludeId, CancellationToken cancellationToken = default)
     {
-        var duplicates = await workspaceStore.Queryable.AsNoTracking()
+        var duplicates = await workspaceRepository.GetQueryable().AsNoTracking()
             .Where(x => (x.Name == name && (excludeId == null || x.Id != excludeId))
                         || (code != null && x.Code == code))
             .Select(x => new { x.Name, x.Code })
@@ -72,7 +72,7 @@ public class WorkspaceCommandHandler(
 
     private async Task<Workspace> GetEntityAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await workspaceStore.FindAsync(id, cancellationToken)
+        return await workspaceRepository.FindAsync(id, cancellationToken)
             ?? throw new UserFriendlyException("工作空间不存在，请检查后重试。");
     }
 }
