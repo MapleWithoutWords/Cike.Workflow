@@ -6,7 +6,7 @@
 
 ## Solution
 
-将 7 个带附加行为的 Store 迁移为框架自定义仓储——缓存同步的 Workspace / Folder、影子属性序列化的 WorkflowDefinition / WorkflowInstance / Bookmark / ActivityInstanceExecutionRecord：继承 `EfCoreRepository<CikeWorkflowDbContenxt, TEntity, long>`、声明 `IXxxRepository : IRepository<TEntity, long>` 业务接口、标注 `IScopedDependency` 走约定注册并天然覆盖同实体的默认仓储。`BookmarkQueueItem` 无任何附加行为，删除其接口与实现，直接使用框架默认仓储（`AddCikeDbContext` 反射 DbSet 自动注册）。删除自建 `BaseStore` / `IBaseStore`。**外部行为保持不变，唯一例外：补齐 `Update` 路径的影子属性序列化**（修复现状静默丢失缺陷，见 Implementation Decisions）；其余——缓存同步、影子属性插入/读取路径、排序默认值、删除幂等语义、API 契约——均与迁移前一致。
+将 6 个带附加行为的 Store 迁移为框架自定义仓储——缓存同步的 Workspace / Folder、影子属性序列化的 WorkflowDefinition / WorkflowInstance / Bookmark / ActivityInstanceExecutionRecord：继承 `EfCoreRepository<CikeWorkflowDbContenxt, TEntity, long>`、声明 `IXxxRepository : IRepository<TEntity, long>` 业务接口、标注 `IScopedDependency` 走约定注册并天然覆盖同实体的默认仓储。`BookmarkQueueItem` 无任何附加行为，删除其接口与实现，直接使用框架默认仓储（`AddCikeDbContext` 反射 DbSet 自动注册）。删除自建 `BaseStore` / `IBaseStore`。**外部行为保持不变，唯一例外：补齐 `Update` 路径的影子属性序列化**（修复现状静默丢失缺陷，见 Implementation Decisions）；其余——缓存同步、影子属性插入/读取路径、排序默认值、删除幂等语义、API 契约——均与迁移前一致。
 
 ## User Stories
 
@@ -30,7 +30,7 @@
 
 ## Implementation Decisions
 
-- **迁移范围**：7 个带附加行为的 Store 迁移为自定义仓储（Workspace、Folder——缓存同步；WorkflowDefinition、WorkflowInstance、Bookmark、ActivityInstanceExecutionRecord——影子属性序列化）及其接口；`BookmarkQueueItemStore` / `IBookmarkQueueItemStore` 无任何 override，直接删除，消费方注入框架默认仓储。判断标准：**有影子属性序列化或缓存同步等附加行为才建自定义仓储，纯 CRUD 实体一律默认仓储**。删除 `BaseStore`（含带缓存泛型版本）与 `IBaseStore`。
+- **迁移范围**：6 个带附加行为的 Store 迁移为自定义仓储（Workspace、Folder——缓存同步；WorkflowDefinition、WorkflowInstance、Bookmark、ActivityInstanceExecutionRecord——影子属性序列化）及其接口；`BookmarkQueueItemStore` / `IBookmarkQueueItemStore` 无任何 override，直接删除，消费方注入框架默认仓储。判断标准：**有影子属性序列化或缓存同步等附加行为才建自定义仓储，纯 CRUD 实体一律默认仓储**。删除 `BaseStore`（含带缓存泛型版本）与 `IBaseStore`。
 - **自定义仓储形态**：实现类继承框架 `EfCoreRepository<CikeWorkflowDbContenxt, TEntity, long>`，实现 `IXxxRepository`，标注 `IScopedDependency` 走约定注册；约定注册先于 `AddCikeDbContext` 的 TryAdd 默认注册执行，因此天然覆盖同实体默认仓储，无需额外配置。
 - **接口位置与命名**：`IXxxStore` → `IXxxRepository`，继承 `IRepository<TEntity, long>`；接口仍定义在 Domain 层（框架 `IRepository` 位于 `Cike.Data.Domain` 包，无 EF Core 依赖，Domain 层可直接引用）；实现类仍在 EntityFrameworkCore 层（框架边界：EF Core 只属于该层）。
 - **缓存同步（Workspace / Folder）**：在自定义仓储中 override 框架写方法，保留"写库成功后同步缓存"的现状语义。框架的单数写方法内部**委托批量方法**（`InsertAsync → InsertManyAsync(new[]{entity})`，Update/Delete 同理），因此**只需覆写批量方法**即可覆盖全部写路径；若两组都覆写，单实体写会触发两次缓存同步。
@@ -48,7 +48,7 @@
 ## Testing Decisions
 
 - **好测试的标准**：只断言外部可观察行为——CRUD 返回值与持久化结果、序列化 round-trip、缓存同步可见性、DI 解析结果；不测实现细节（不 mock 被测仓储、不断言内部调用序列），使后续重构不需要改测试。
-- **被测模块**：`Cike.Workflow.EntityFrameworkCore.Tests` 覆盖全部 7 个自定义仓储，并断言 BookmarkQueueItem 解析到框架默认仓储；API 层现有测试（Service.Open.Tests）不改动，作为端点契约不变的既有保护。
+- **被测模块**：`Cike.Workflow.EntityFrameworkCore.Tests` 覆盖全部 6 个自定义仓储，并断言 BookmarkQueueItem 解析到框架默认仓储；API 层现有测试（Service.Open.Tests）不改动，作为端点契约不变的既有保护。
 - **测试类型**：
   - **DI 覆盖解析**：`IXxxRepository` 与 `IRepository<TEntity, long>`、`IReadOnlyRepository<TEntity, long>` 解析到同一自定义仓储类型（先例：框架 `CustomRepositoryTests`）；`IRepository<BookmarkQueueItem, long>` 解析到框架默认 `EfCoreRepository`（确认未被误覆盖）。
   - **CRUD 行为**：插入返回已填充主键的实体、`FindAsync` 幂等查找、按 id 删除不存在的记录静默返回、分页返回正确的 Total / Items。
@@ -73,3 +73,5 @@
 - 4 个序列化 Store 的现状差异需逐一对齐：WorkflowDefinition（`SerializedOptions`）、WorkflowInstance（`SerializedWorkflowState`）、ActivityInstanceExecutionRecord（6 个影子属性、空集合写 null）、BookmarkStore（`SerializedPayload` / `SerializedMetadata`，null 安全 + 列表反序列化）。Update 路径序列化为本次统一补齐项，4 个仓储一致覆盖、不保留差异。
 - 现状 `BaseStore.DeleteRangeAsync(ids)` 是"加载实体再删除"，框架 `DeleteAsync(id)` 为 `FindAsync` 后删除且幂等——语义等价。
 - 基座需注意：`CikeWorkflowEntityFrameworkCoreModule` 依赖 `CikeWorkflowCachingModule`（Redis），测试模块需以缓存替身替换，避免测试宿主连 Redis。
+- **迁移中发现的第二个行为例外（已修复并记录）**：`JsonWorkflowStateSerializer.GetOptions()` 缓存缺陷——首次调用返回带引用保留 handler 的 options（写 `$id`/`$values` 格式），后续调用返回不带 handler 的缓存，导致首次序列化产物在后续反序列化时无法读取（WorkflowState 单查还原静默失败）。修复：仅缓存转换器集合，每次调用返回带独立 handler 的副本。Core.Tests 配套回归测试。
+- **旧 BookmarkStore 列表反序列化实际失效**（已修复）：旧实现用无跟踪查询后读影子属性——无跟踪实体不携带影子值，`Entry(...).CurrentValue` 读到 null，列表反序列化从未生效。新实现改为跟踪查询，使"Bookmark 列表查询反序列化"这一保留项真正可用。
