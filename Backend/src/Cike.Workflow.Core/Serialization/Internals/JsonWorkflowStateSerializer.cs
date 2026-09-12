@@ -63,13 +63,18 @@ public class JsonWorkflowStateSerializer : IWorkflowStateSerializer, ISingletonD
     /// <inheritdoc />
     public JsonSerializerOptions GetOptions()
     {
-        if (_options != null)
-            return _options;
+        // 仅缓存转换器集合；每次调用都返回带独立 CrossScopedReferenceHandler 的副本，
+        // 保证序列化（写 $id/$values 引用格式）与反序列化（读该格式）使用一致的 options。
+        // 此前首次调用返回带 handler 的副本、后续返回不带 handler 的缓存，
+        // 导致首次序列化产物（含 $values 格式）在后续反序列化时无法读取。
+        if (_options == null)
+        {
+            var options = JsonHelper.CreateOptionsInternal();
+            options.Converters.Add(new TypeJsonConverter(_workflowJsonTypeRegistry));
+            options.Converters.Add(new PolymorphicObjectConverterFactory(_workflowJsonTypeRegistry, _loggerFactory.CreateLogger<PolymorphicObjectConverter>()));
+            _options = options;
+        }
 
-        var options = JsonHelper.CreateOptionsInternal();
-        options.Converters.Add(new TypeJsonConverter(_workflowJsonTypeRegistry));
-        options.Converters.Add(new PolymorphicObjectConverterFactory(_workflowJsonTypeRegistry, _loggerFactory.CreateLogger<PolymorphicObjectConverter>()));
-        _options = options;
-        return new(options) { ReferenceHandler = new CrossScopedReferenceHandler() };
+        return new(_options) { ReferenceHandler = new CrossScopedReferenceHandler() };
     }
 }

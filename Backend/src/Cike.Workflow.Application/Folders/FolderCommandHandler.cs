@@ -3,7 +3,7 @@ namespace Cike.Workflow.Application.Folders;
 public class FolderCommandHandler(
     IFolderRepository folderRepository,
     IWorkspaceRepository workspaceRepository,
-    IWorkflowDefinitionStore workflowDefinitionStore)
+    IWorkflowDefinitionRepository workflowDefinitionRepository)
 {
     [LocalEventHandler]
     public async Task AddAsync(AddFolderCommand command, CancellationToken cancellationToken = default)
@@ -44,7 +44,7 @@ public class FolderCommandHandler(
 
         var hasContent = await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.ParentId == command.Id, cancellationToken)
-        || await workflowDefinitionStore.Queryable.AsNoTracking()
+        || await workflowDefinitionRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.FolderId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该目录下存在子目录或工作流，请先删除后再移除目录。");

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
-public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> folderCacheService, IWorkflowDefinitionStore workflowDefinitionStore)
+public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> folderCacheService, IWorkflowDefinitionRepository workflowDefinitionRepository)
 {
     [LocalEventHandler]
     public async Task GetListAsync(GetWorkflowDefinitionFolderListQuery query, CancellationToken cancellationToken = default)
@@ -19,11 +19,11 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
         {
             workflowFilter = e => e.WorkspaceId == query.WorkspaceId && e.FolderId == query.FolderId && e.IsLatest && (e.Name.Contains(query.Keyword) || e.DefinitionId.Contains(query.Keyword));
         }
-        var latestWorkflows = await workflowDefinitionStore.GetListAsync(workflowFilter, query.Sorting, cancellationToken);
+        var latestWorkflows = await workflowDefinitionRepository.GetListAsync(workflowFilter, query.Sorting, cancellationToken);
 
         var draftDefinitionIds = latestWorkflows.Where(x => !x.IsPublished).Select(x => x.DefinitionId).ToList();
         var publishedVersionMap = draftDefinitionIds.Count > 0
-            ? await workflowDefinitionStore.Queryable.AsNoTracking()
+            ? await workflowDefinitionRepository.GetQueryable().AsNoTracking()
                 .Where(x => draftDefinitionIds.Contains(x.DefinitionId) && x.IsPublished)
                 .GroupBy(x => x.DefinitionId)
                 .Select(g => new { DefinitionId = g.Key, Version = g.Max(x => x.Version) })
@@ -62,14 +62,14 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
     [LocalEventHandler]
     public async Task GetAsync(GetWorkflowDefinitionQuery query, CancellationToken cancellationToken)
     {
-        var entity = await workflowDefinitionStore.FindAsync(query.Id, cancellationToken);
+        var entity = await workflowDefinitionRepository.FindAsync(query.Id, cancellationToken);
         query.Result = entity.Adapt<WorkflowDefinitionDetailDto>();
     }
 
     [LocalEventHandler]
     public async Task GetVersionListAsync(GetWorkflowDefinitionVersionListQuery query, CancellationToken cancellationToken = default)
     {
-        var versions = await workflowDefinitionStore.GetListAsync(
+        var versions = await workflowDefinitionRepository.GetListAsync(
             x => x.DefinitionId == query.DefinitionId, "Version desc", cancellationToken);
 
         query.Result = versions.Adapt<List<WorkflowDefinitionVersionItemDto>>();

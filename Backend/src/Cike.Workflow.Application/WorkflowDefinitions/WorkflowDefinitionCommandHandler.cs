@@ -4,7 +4,7 @@ using Cike.Workflow.Core.Serialization;
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
 public class WorkflowDefinitionCommandHandler(
-    IWorkflowDefinitionStore workflowDefinitionStore,
+    IWorkflowDefinitionRepository workflowDefinitionRepository,
     IWorkspaceRepository workspaceRepository,
     IFolderRepository folderRepository,
     IDistributedCacheClient distributedCacheClient,
@@ -36,7 +36,7 @@ public class WorkflowDefinitionCommandHandler(
         var entity = dto.Adapt<WorkflowDefinition>();
         entity.OriginalStringData = activitySerializer.Serialize(new Flowchart());
 
-        await workflowDefinitionStore.AddAsync(entity, cancellationToken);
+        await workflowDefinitionRepository.InsertAsync(entity, cancellationToken: cancellationToken);
         command.Id = entity.Id;
     }
 
@@ -51,7 +51,7 @@ public class WorkflowDefinitionCommandHandler(
         await ValidateDuplicateAsync(entity.WorkspaceId, command.Dto.Name, null, entity.DefinitionId, cancellationToken);
 
         command.Dto.Adapt(entity);
-        await workflowDefinitionStore.UpdateAsync(entity, cancellationToken);
+        await workflowDefinitionRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
     }
 
     [LocalEventHandler]
@@ -62,16 +62,16 @@ public class WorkflowDefinitionCommandHandler(
         if (entity.IsSystem)
             throw new UserFriendlyException("系统内置工作流不允许删除。");
 
-        var versions = await workflowDefinitionStore.Queryable
+        var versions = await workflowDefinitionRepository.GetQueryable()
             .Where(x => x.DefinitionId == entity.DefinitionId)
             .ToListAsync(cancellationToken);
 
-        await workflowDefinitionStore.DeleteRangeAsync(versions, cancellationToken);
+        await workflowDefinitionRepository.DeleteManyAsync(versions, cancellationToken: cancellationToken);
     }
 
     private async Task ValidateDuplicateAsync(long workspaceId, string name, string? definitionId, string? excludeDefinitionId, CancellationToken cancellationToken = default)
     {
-        var duplicates = await workflowDefinitionStore.Queryable.AsNoTracking()
+        var duplicates = await workflowDefinitionRepository.GetQueryable().AsNoTracking()
             .Where(x => x.IsLatest
                         && (definitionId != null && x.DefinitionId == definitionId
                             || x.WorkspaceId == workspaceId && x.Name == name
@@ -87,7 +87,7 @@ public class WorkflowDefinitionCommandHandler(
 
     private async Task<WorkflowDefinition> GetEntityAsync(long id, CancellationToken cancellationToken = default)
     {
-        return await workflowDefinitionStore.FindAsync(id, cancellationToken)
+        return await workflowDefinitionRepository.FindAsync(id, cancellationToken)
             ?? throw new UserFriendlyException("工作流定义不存在，请检查后重试。");
     }
 }

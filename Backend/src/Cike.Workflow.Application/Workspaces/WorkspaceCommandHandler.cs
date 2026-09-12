@@ -3,7 +3,7 @@ namespace Cike.Workflow.Application.Workspaces;
 public class WorkspaceCommandHandler(
     IWorkspaceRepository workspaceRepository,
     IFolderRepository folderRepository,
-    IWorkflowDefinitionStore workflowDefinitionStore,
+    IWorkflowDefinitionRepository workflowDefinitionRepository,
     IDistributedCacheClient distributedCacheClient)
 {
     private const string CodeSeqKey = "cike:workflow:workspace:code:seq";
@@ -45,7 +45,7 @@ public class WorkspaceCommandHandler(
 
         var hasContent = await folderRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken)
-        || await workflowDefinitionStore.Queryable.AsNoTracking()
+        || await workflowDefinitionRepository.GetQueryable().AsNoTracking()
             .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该工作空间下存在目录或工作流，请先删除后再移除工作空间。");
