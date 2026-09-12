@@ -2,11 +2,11 @@ using System.Net;
 
 namespace Cike.Workflow.Service.Open.Tests.WorkflowDefinitions;
 
-/// <summary>票③：回滚工作流定义到历史版本（覆盖草稿 / 生成新草稿）。</summary>
+/// <summary>票③：回滚工作流定义到历史版本（覆盖草稿 / 生成新草稿）。入参：DefinitionId + 目标版本行 Id。</summary>
 internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
 {
-    private Task<HttpResponseMessage> PostRollbackAsync(long id, int targetVersion)
-        => CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Rollback/{id}", new { targetVersion });
+    private Task<HttpResponseMessage> PostRollbackAsync(string definitionId, long definitionVersionId)
+        => CreateClient().PostAsJsonAsync("/api/v1/WorkflowDefinitions/Rollback", new { definitionId, definitionVersionId });
 
     private async Task<long> SaveAsync(long id, string prefix)
     {
@@ -35,7 +35,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         await PublishAsync(rowId);
         await SaveAsync(rowId, "rb2");
 
-        var response = await PostRollbackAsync(rowId, 1);
+        var response = await PostRollbackAsync(definitionId, rowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var detail = (await GetDetailAsync(rowId)).RootElement;
@@ -61,7 +61,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         await SaveAsync(rowId, "rb2");
         await PublishAsync(rowId);
 
-        var response = await PostRollbackAsync(rowId, 1);
+        var response = await PostRollbackAsync(definitionId, rowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var versions = await GetVersionListAsync(definitionId);
@@ -102,7 +102,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
             usableAsActivity = false,
         }));
 
-        await EnsureSuccessAsync(await PostRollbackAsync(draftId, 1));
+        await EnsureSuccessAsync(await PostRollbackAsync(definitionId, rowId));
 
         var detail = (await GetDetailAsync(draftId)).RootElement;
         Assert.That(GetString(detail, "description"), Is.EqualTo("改名后的描述"));
@@ -115,7 +115,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "cur");
 
-        var response = await PostRollbackAsync(rowId, 1);
+        var response = await PostRollbackAsync(definitionId, rowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("相同"));
@@ -129,7 +129,24 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         await PublishAsync(rowId);
         await SaveAsync(rowId, "nb2");
 
-        var response = await PostRollbackAsync(rowId, 99);
+        var response = await PostRollbackAsync(definitionId, 999_999);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("不存在"));
+    }
+
+    [Test]
+    public async Task RollbackAsync_回滚目标版本不属于该定义_返回400()
+    {
+        var (definitionId, rowId) = await PrepareAsync();
+        await SaveAsync(rowId, "own");
+        await PublishAsync(rowId);
+        await SaveAsync(rowId, "own2");
+        // 另一个定义的版本行
+        var otherDefinitionId = $"WF_{Guid.NewGuid():N}";
+        var otherRowId = await CreateDefinitionAsync(await CreateWorkspaceAsync(), 0, otherDefinitionId);
+
+        var response = await PostRollbackAsync(definitionId, otherRowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("不存在"));
@@ -144,7 +161,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         await SaveAsync(rowId, "sys2");
         await SeedDefinitionAsync(definitionId, e => e.IsSystem = true);
 
-        var response = await PostRollbackAsync(rowId, 1);
+        var response = await PostRollbackAsync(definitionId, rowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("系统内置"));
@@ -159,7 +176,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         await SaveAsync(rowId, "ro2");
         await SeedDefinitionAsync(definitionId, e => e.IsReadonly = true);
 
-        var response = await PostRollbackAsync(rowId, 1);
+        var response = await PostRollbackAsync(definitionId, rowId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("只读"));

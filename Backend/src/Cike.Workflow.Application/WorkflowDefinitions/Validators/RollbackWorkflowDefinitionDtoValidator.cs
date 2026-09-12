@@ -4,7 +4,10 @@ public class RollbackWorkflowDefinitionDtoValidator : AbstractValidator<Rollback
 {
     public RollbackWorkflowDefinitionDtoValidator()
     {
-        RuleFor(x => x.TargetVersion)
-            .GreaterThan(0).WithMessage("回滚目标版本必须大于0。");
+        RuleFor(x => x.DefinitionId)
+            .NotEmpty().WithMessage("工作流编号不能为空。");
+
+        RuleFor(x => x.DefinitionVersionId)
+            .GreaterThan(0).WithMessage("回滚目标版本不能为空。");
     }
 }

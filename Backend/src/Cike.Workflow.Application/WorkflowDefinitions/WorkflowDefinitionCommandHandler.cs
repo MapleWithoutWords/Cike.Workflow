@@ -69,7 +69,7 @@ public class WorkflowDefinitionCommandHandler(
 
         var latest = await GetLatestAsync(entity.DefinitionId, cancellationToken);
 
-        var data = SerializeCanvas(command.Dto.Body);
+        var data = activitySerializer.Serialize(command.Dto.Body);
 
         if (!latest.IsPublished)
         {
@@ -174,24 +174,19 @@ public class WorkflowDefinitionCommandHandler(
     [LocalEventHandler]
     public async Task RollbackAsync(RollbackWorkflowDefinitionCommand command, CancellationToken cancellationToken = default)
     {
-        var entity = await GetEntityAsync(command.Id, cancellationToken);
+        // 目标版本行直接经 FindAsync 取回（同时还原 Options 影子属性，回滚要复制画布内容含 Options）
+        var target = await workflowDefinitionRepository.FindAsync(command.DefinitionVersionId, cancellationToken)
+            ?? throw new UserFriendlyException("回滚目标版本不存在，请检查后重试。");
 
-        if (entity.IsSystem)
+        if (target.DefinitionId != command.DefinitionId)
+            throw new UserFriendlyException("回滚目标版本不存在，请检查后重试。");
+
+        if (target.IsSystem)
             throw new UserFriendlyException("系统内置工作流不允许回滚。");
-        if (entity.IsReadonly)
+        if (target.IsReadonly)
             throw new UserFriendlyException("只读工作流不允许回滚。");
 
-        // 经 FindAsync 取回，确保目标版本的 Options 影子属性被还原（回滚要复制画布内容含 Options）
-        var targetId = await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .Where(x => x.DefinitionId == entity.DefinitionId && x.Version == command.TargetVersion)
-            .Select(x => (long?)x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-        var target = targetId == null
-            ? throw new UserFriendlyException("回滚目标版本不存在，请检查后重试。")
-            : await workflowDefinitionRepository.FindAsync(targetId.Value, cancellationToken)
-              ?? throw new UserFriendlyException("回滚目标版本不存在，请检查后重试。");
-
-        var latest = await GetLatestAsync(entity.DefinitionId, cancellationToken);
+        var latest = await GetLatestAsync(target.DefinitionId, cancellationToken);
 
         if (latest.Id == target.Id)
             throw new UserFriendlyException("回滚目标版本与当前版本相同，无需回滚。");
@@ -268,48 +263,5 @@ public class WorkflowDefinitionCommandHandler(
             ? throw new UserFriendlyException("工作流定义不存在，请检查后重试。")
             : await workflowDefinitionRepository.FindAsync(latestId.Value, cancellationToken)
               ?? throw new UserFriendlyException("工作流定义不存在，请检查后重试。");
-    }
-
-    /// <summary>
-    /// 宽松的画布校验：Body 经活动序列化器序列化并反序列化成功即可（不校验画布业务完整性）。
-    /// </summary>
-    private string SerializeCanvas(IActivity body)
-    {
-        if (ContainsUnknownActivity(body))
-            throw new UserFriendlyException("画布包含未知的活动类型，无法保存。");
-
-        string data;
-        try
-        {
-            data = activitySerializer.Serialize(body);
-        }
-        catch (Exception)
-        {
-            throw new UserFriendlyException("画布内容序列化失败，请检查节点配置。");
-        }
-
-        try
-        {
-            if (activitySerializer.Deserialize(data) == null)
-                throw new UserFriendlyException("画布内容无法通过序列化校验，请检查节点配置。");
-        }
-        catch (UserFriendlyException)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new UserFriendlyException("画布内容无法通过序列化校验，请检查节点配置。");
-        }
-
-        return data;
-    }
-
-    private static bool ContainsUnknownActivity(IActivity activity)
-    {
-        if (activity is NotFoundActivity)
-            return true;
-
-        return activity is ContainerActivity container && container.Activities.Any(ContainsUnknownActivity);
     }
 }

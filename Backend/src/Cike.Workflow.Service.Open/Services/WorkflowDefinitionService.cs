@@ -89,11 +89,10 @@ public class WorkflowDefinitionService : MinimalApiServiceBase
 
     public async Task<Results<Ok, BadRequest>> RollbackAsync(
         [FromServices] ILocalEventBus localEventBus,
-        long id,
         RollbackWorkflowDefinitionDto dto,
         CancellationToken cancellationToken = default)
     {
-        var command = new RollbackWorkflowDefinitionCommand(id, dto.TargetVersion);
+        var command = new RollbackWorkflowDefinitionCommand(dto.DefinitionId, dto.DefinitionVersionId);
         await localEventBus.PublishAsync(command, cancellationToken);
         return TypedResults.Ok();
     }

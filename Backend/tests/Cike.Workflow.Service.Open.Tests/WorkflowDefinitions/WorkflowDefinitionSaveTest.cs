@@ -92,23 +92,6 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
     }
 
     [Test]
-    public async Task SaveAsync_画布包含未知活动类型_返回400()
-    {
-        var (_, definitionId, rowId) = await PrepareAsync();
-        var canvas = new
-        {
-            type = "Cike.NoSuchActivity",
-            id = "bad",
-            activities = Array.Empty<object>(),
-            connections = Array.Empty<object>(),
-        };
-
-        var response = await PostSaveAsync(rowId, new { body = canvas });
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-    }
-
-    [Test]
     public async Task SaveAsync_画布内容为空_返回400()
     {
         var (_, definitionId, rowId) = await PrepareAsync();

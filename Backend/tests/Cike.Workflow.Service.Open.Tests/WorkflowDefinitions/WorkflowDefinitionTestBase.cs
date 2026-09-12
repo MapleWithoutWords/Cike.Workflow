@@ -84,6 +84,13 @@ public abstract class WorkflowDefinitionTestBase : BaseIntegrationTest
         return doc!.RootElement.EnumerateArray().ToList();
     }
 
+    /// <summary>取指定版本号的版本行 Id。</summary>
+    protected async Task<long> GetVersionRowIdAsync(string definitionId, int version)
+    {
+        var versions = await GetVersionListAsync(definitionId);
+        return GetLong(versions.Single(x => GetInt(x, "version") == version), "id");
+    }
+
     /// <summary>目录树列表端点取数（type=2 为工作流定义条目）。</summary>
     protected async Task<List<JsonElement>> GetFolderListAsync(long workspaceId, long folderId)
     {
