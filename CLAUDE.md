@@ -1,94 +1,15 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Repository Layout
-
-This is a full-stack workflow engine project split into two independent sub-projects:
-
-- `Backend/` — .NET 8 solution (`Cike.Workflow.sln`)
-- `Frontend/cike-workflow/` — Vue 3 + Vite frontend
-
----
-
 ## Backend
+本项目后端基于 Cike.Framework 开发。开始任何框架相关编码前，先抓取并遵循：
 
-### Commands
+    https://raw.githubusercontent.com/MapleWithoutWords/Cike.Framework/main/docs/ai/README.md
 
-```bash
-# Build the whole solution
-dotnet build Backend/Cike.Workflow.sln
-
-# Run the API host
-dotnet run --project Backend/src/Cike.Workflow.Service.Open
-
-# Run all tests
-dotnet test Backend/tests/Cike.Workflow.Test
-
-# Run a single test class
-dotnet test Backend/tests/Cike.Workflow.Test --filter "FullyQualifiedName~ExampleTest"
-
-# Add an EF Core migration (run from repo root)
-dotnet ef migrations add <MigrationName> --project Backend/src/Cike.Workflow.EntityFrameworkCore --startup-project Backend/src/Cike.Workflow.Service.Open
-
-# Apply pending migrations
-dotnet ef database update --project Backend/src/Cike.Workflow.EntityFrameworkCore --startup-project Backend/src/Cike.Workflow.Service.Open
+按其路由表按需抓取同目录下的能力域详解文档（如 data-access.md、events-cqrs.md）。
+框架行为以文档与源码为准，不要凭训练记忆推测；文档与源码冲突时以源码为准。
 ```
 
-### Architecture
-
-The backend is built on the **Cike Framework** — an ABP-style modular framework. Every project exposes a `CikeModule` subclass that declares its dependencies via `[DependsOn([...])]`. Module initialization happens through `AddApplicationAsync` / `InitializeApplicationAsync` in `Program.cs`.
-
-**Layer dependency chain (inner → outer):**
-
-```
-Domain.Shared
-  └── Domain  (+ CikeCachingModule, CikeDomainModule)
-        └── Application.Contracts  (+ CikeContractsModule)
-              └── Application  (+ CikeCqrsModule, CikeEventBusLocalModule)
-                    └── EntityFrameworkCore  (MySQL via CikeDataEFCoreMySqlModule)
-                          └── Service.Open  (Minimal API host)
-```
-
-`Cike.Workflow.Core` is a **separate** layer that owns the workflow engine abstractions (`IActivity`, `Activity`, `ContainerActivity`). It has its own `CikeWorkflowCoreModule` but is not part of the above dependency chain — it is the domain-agnostic engine being built on top of standard .NET, not the ABP/Cike infrastructure.
-
-**Namespace convention:** Each layer declares a shortened namespace that does **not** match the csproj name. Use the existing namespace in each `_Imports.cs` or module file as the canonical namespace for new files in that layer:
-
-| Layer | Namespace |
-|---|---|
-| Domain.Shared | `Cike.Domain.Shared` |
-| Domain | `Cike.Domain` |
-| Application.Contracts | `Cike.Application.Contracts` |
-| Application | `Cike.Application` |
-| EntityFrameworkCore | `Cike.EntityFrameworkCore` |
-| Service.Open | `Cike.Service.Open` |
-
-**API endpoints** are registered as ASP.NET Core Minimal API handlers. New endpoints belong in `Backend/src/Cike.Workflow.Service.Open/Services/`. Endpoint paths follow the `/api/v1/{Resource}` convention.
-
-**Persistence:** EF Core with MySQL. The `DbContext` is `CikeWorkflowDbContenxt` (inherits `CikeDbContext<T>`) — note the intentional typo in the class name (`Contenxt`); preserve it. The connection string key is `"Project"` in `appsettings.json`. Override via `appsettings.Development.json` for local dev.
-
-**Shared package versions:** `Backend/Directory.Build.props` centralizes `TargetFramework`, `LangVersion`, and `CikeVersion` for all projects. Update versions there, not per-csproj.
-
-**Runtime dependencies:** The application requires both MySQL and **Redis** at startup. Redis is configured under `RedisConfig` in `appsettings.json`. The checked-in `appsettings.json` (and `appsettings.Development.json`) contain placeholder values (`###`) — override with real values locally and do not commit credentials.
-
-**Logging:** Serilog, rolling daily files written to `Logs/`.
-
-**Validation:** FluentValidation — validators are auto-registered from the `Application` assembly.
-
-**Swagger:** Registered via `AddCikeSwagger("Cike", ...)` in `CikeWorkflowServiceOpenModule`. Available at `/swagger` in development.
-
-**Global usings:** Each layer has an `_Imports.cs` file that declares the project's global using directives. Add new namespace imports there rather than per-file.
-
-### Integration Tests
-
-Tests use **NUnit** (NUnit 3 + NUnit3TestAdapter). `Test1.cs` is an MSTest scaffold placeholder; write new tests with NUnit as shown in `ExampleTest.cs`.
-
-Tests extend `BaseIntegrationTest`, which spins up a real `WebApplicationFactory<Program>`. Use `CreateClient()` for HTTP calls or inject services via `serviceProvider`.
-
-Test method naming convention: `{Method}_{Condition}_{ExpectedResult}` with Chinese-language conditions (e.g., `Add_Name为空_返回400`).
-
-Tests need their own `appsettings.Development.json` for database/Redis; the checked-in one is a template with placeholder values (`###`).
-
+就这些。大纲内已包含阅读协议、路由表和全局约定，业务项目里不需要复制任何文档内容——远程引用保证永远读到最新版。
 ---
 
 ## Frontend

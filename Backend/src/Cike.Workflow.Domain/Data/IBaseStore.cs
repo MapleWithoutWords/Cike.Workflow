@@ -10,6 +10,8 @@ public interface IBaseStore<TEntity> where TEntity : class, IEntity<long>
 
     Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default);
 
+    Task<List<TResult>> GetListAsync<TResult>(Expression<Func<TEntity, bool>> filter, Expression<Func<TEntity, TResult>> selector, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default);
+
     Task<(long Total, List<TEntity> Items)> ToPaginationAsync(IQueryable<TEntity> query, IPagedAndSortedRequest pageAndSorted, CancellationToken cancellationToken = default);
 
     Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);

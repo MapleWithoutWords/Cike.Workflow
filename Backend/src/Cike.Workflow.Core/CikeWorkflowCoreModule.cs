@@ -38,8 +38,10 @@ public class CikeWorkflowCoreModule : CikeModule
 
     public override async Task InitializeAsync(ApplicationInitializationContext context)
     {
-        var activityProviders = context.ServiceProvider.GetServices<IActivityProvider>();
-        var activityRegistry = context.ServiceProvider.GetService<IActivityRegistry>();
+        // IActivityProvider 可能是 Scoped 注册（如 TypedActivityProvider），根容器直接解析会抛异常
+        using var scope = context.ServiceProvider.CreateScope();
+        var activityProviders = scope.ServiceProvider.GetServices<IActivityProvider>();
+        var activityRegistry = scope.ServiceProvider.GetService<IActivityRegistry>();
         foreach (var provider in activityProviders)
             await activityRegistry!.EnsureDescriptorsAsync(provider);
 

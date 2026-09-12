@@ -22,6 +22,7 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
 
     public override void Write(Utf8JsonWriter writer, IActivity value, JsonSerializerOptions options)
     {
+        var clonedOptions = GetClonedWriterOptions(options);
         if (value == null)
         {
             writer.WriteNullValue();
@@ -43,7 +44,7 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
             if (property.GetCustomAttribute<JsonIgnoreAttribute>() != null)
                 continue;
 
-            var propName = options.PropertyNamingPolicy?.ConvertName(property.Name) ?? property.Name;
+            var propName = clonedOptions.PropertyNamingPolicy?.ConvertName(property.Name) ?? property.Name;
             writer.WritePropertyName(propName);
             var input = property.GetValue(value);
 
@@ -65,7 +66,7 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
                 input = customProperties;
             }
 
-            JsonSerializer.Serialize(writer, input, options);
+            JsonSerializer.Serialize(writer, input, clonedOptions);
         }
 
         writer.WriteEndObject();
@@ -74,7 +75,14 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
     private JsonSerializerOptions GetClonedOptions(JsonSerializerOptions options)
     {
         var clonedOptions = new JsonSerializerOptions(options);
-        //clonedOptions.Converters.Add(new InputJsonConverterFactory());
+        //clonedOptions.Converters.Add(new PolymorphicObjectConverterFactory());
+        return clonedOptions;
+    }
+
+    private JsonSerializerOptions GetClonedWriterOptions(JsonSerializerOptions options)
+    {
+        var clonedOptions = GetClonedOptions(options);
+        //clonedOptions.Converters.Add(new JsonIgnoreCompositeRootConverterFactory(serviceProvider.GetRequiredService<ActivityWriter>()));
         return clonedOptions;
     }
 }

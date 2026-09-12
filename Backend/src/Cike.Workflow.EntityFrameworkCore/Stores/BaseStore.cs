@@ -9,7 +9,14 @@ public abstract class BaseStore<TEntity>(CikeWorkflowDbContenxt context) : IBase
 
     public virtual async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default)
     {
-        return await Queryable.AsNoTracking().Where(filter).OrderBy(sorting).ToListAsync(cancellationToken);
+        var query = Queryable.AsNoTracking().Where(filter).OrderBy(sorting);
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public virtual async Task<List<TResult>> GetListAsync<TResult>(Expression<Func<TEntity, bool>> filter, Expression<Func<TEntity, TResult>> selector, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default)
+    {
+        var query = Queryable.AsNoTracking().Where(filter).OrderBy(sorting);
+        return await query.Select(selector).ToListAsync(cancellationToken);
     }
 
     public virtual async Task<TEntity?> FindAsync(long id, CancellationToken cancellationToken = default)

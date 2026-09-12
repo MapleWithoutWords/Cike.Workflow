@@ -1,3 +1,5 @@
+using Cike.Data.Extensions;
+
 namespace Cike.EntityFrameworkCore;
 
 [DependsOn([
@@ -7,5 +9,9 @@ namespace Cike.EntityFrameworkCore;
     ])]
 public class CikeWorkflowEntityFrameworkCoreModule : CikeModule
 {
-
+    public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
+    {
+        context.Services.AddCikeDbContext<CikeWorkflowDbContenxt>();
+        await base.ConfigureServicesAsync(context);
+    }
 }

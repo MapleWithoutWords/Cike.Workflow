@@ -34,7 +34,7 @@ public class JsonActivitySerializer(IServiceProvider serviceProvider) : IActivit
         var options = JsonHelper.CreateOptionsInternal();
 
         options.Converters.Add(ActivatorUtilities.CreateInstance<ActivityJsonConverter>(serviceProvider));
-        options.Converters.Add(ActivatorUtilities.CreateInstance<InputJsonConverterFactory>(serviceProvider));
+        //options.Converters.Add(ActivatorUtilities.CreateInstance<InputJsonConverterFactory>(serviceProvider));
 
         return options;
     }
@@ -48,7 +48,7 @@ public class JsonActivitySerializer(IServiceProvider serviceProvider) : IActivit
 
         var options = JsonHelper.CreateOptionsInternal();
         options.Converters.Add(ActivatorUtilities.CreateInstance<ActivityJsonConverter>(serviceProvider));
-        options.Converters.Add(ActivatorUtilities.CreateInstance<InputJsonConverterFactory>(serviceProvider));
+        //options.Converters.Add(ActivatorUtilities.CreateInstance<InputJsonConverterFactory>(serviceProvider));
         _options = options;
         return _options;
     }

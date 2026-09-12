@@ -68,7 +68,6 @@ public class EntitiyConfiguration :
 
         builder.Ignore(x => x.WorkflowState);
         builder.Property<string>("SerializedWorkflowState").HasColumnType("json");
-        builder.Property<string>("SerializedWorkflowStateCompressionAlgorithm").HasMaxLength(16);
 
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(64);
         builder.HasIndex(x => new { x.TenantId, x.Status, x.Version });
@@ -91,7 +90,6 @@ public class EntitiyConfiguration :
         builder.Ignore(x => x.Properties);
 
         builder.Property<string>("SerializedActivityState").HasColumnType("json");
-        builder.Property<string>("SerializedActivityStateCompressionAlgorithm").HasMaxLength(16);
         builder.Property<string>("SerializedException").HasColumnType("json");
         builder.Property<string>("SerializedPayload").HasColumnType("json");
         builder.Property<string>("SerializedOutputs").HasColumnType("json");

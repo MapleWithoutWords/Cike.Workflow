@@ -3,9 +3,9 @@ using Cike.Core.DependencyInjection;
 namespace Cike.Workflow.Domain.Materializers.Internals;
 
 /// <inheritdoc />
-public class MaterializerManager(Func<IEnumerable<IWorkflowMaterializer>> materializers) : IMaterializerManager, IScopedDependency
+public class MaterializerManager(IEnumerable<IWorkflowMaterializer> materializers) : IMaterializerManager, IScopedDependency
 {
-    private readonly Lazy<IReadOnlyCollection<IWorkflowMaterializer>> _materializers = new(() => materializers().ToArray());
+    private readonly Lazy<IReadOnlyCollection<IWorkflowMaterializer>> _materializers = new(() => materializers.ToArray());
 
     /// <inheritdoc />
     public IWorkflowMaterializer? GetMaterializer(string name)

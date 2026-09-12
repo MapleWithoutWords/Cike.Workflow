@@ -11,5 +11,8 @@ namespace Cike.Domain;
     ])]
 public class CikeWorkflowDomainModule : CikeModule
 {
-
+    public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
+    {
+        await base.ConfigureServicesAsync(context);
+    }
 }

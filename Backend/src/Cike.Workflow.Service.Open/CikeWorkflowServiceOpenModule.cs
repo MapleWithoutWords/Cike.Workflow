@@ -16,7 +16,6 @@ public class CikeWorkflowServiceOpenModule : CikeModule
             options.SupportNonNullableReferenceTypes();
             //options.DocumentFilter<PolymorphismDocumentFilter<MessagePlatformBaseJsonConfig, MessagePlatformType>>();
         });
-        context.Services.AddValidatorsFromAssembly(typeof(CikeWorkflowApplicationModule).Assembly);
         await base.ConfigureServicesAsync(context);
     }
 

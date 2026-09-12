@@ -1,8 +1,5 @@
-using Cike.Core.Extensions.System;
-using Cike.Workflow.Application.WorkflowDefinitions.Commands;
-using Cike.Workflow.Common.Serialization;
-using Cike.Workflow.Core.Serialization.Converters;
-using System.Text.Json;
+using Cike.Workflow.Core.Activities.FlowchartActivity;
+using Cike.Workflow.Core.Serialization;
 
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
@@ -10,7 +7,8 @@ public class WorkflowDefinitionCommandHandler(
     IWorkflowDefinitionStore workflowDefinitionStore,
     IWorkspaceStore workspaceStore,
     IFolderStore folderStore,
-    IDistributedCacheClient distributedCacheClient)
+    IDistributedCacheClient distributedCacheClient,
+    IActivitySerializer activitySerializer)
 {
     private const string DefinitionIdSeqKey = "cike:workflow:workflow-definition:code:seq";
 
@@ -36,6 +34,7 @@ public class WorkflowDefinitionCommandHandler(
         await ValidateDuplicateAsync(dto.WorkspaceId, dto.Name, dto.DefinitionId, null, cancellationToken);
 
         var entity = dto.Adapt<WorkflowDefinition>();
+        entity.OriginalStringData = activitySerializer.Serialize(new Flowchart());
 
         await workflowDefinitionStore.AddAsync(entity, cancellationToken);
         command.Id = entity.Id;
@@ -70,9 +69,6 @@ public class WorkflowDefinitionCommandHandler(
         await workflowDefinitionStore.DeleteRangeAsync(versions, cancellationToken);
     }
 
-    /// <summary>
-    /// 校验编号/名称是否重复（编号全局唯一查 IsLatest 行；名称空间内唯一；excludeDefinitionId 用于更新时排除自身）。
-    /// </summary>
     private async Task ValidateDuplicateAsync(long workspaceId, string name, string? definitionId, string? excludeDefinitionId, CancellationToken cancellationToken = default)
     {
         var duplicates = await workflowDefinitionStore.Queryable.AsNoTracking()

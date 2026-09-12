@@ -15,7 +15,18 @@ internal class WorkflowSerializerTest : BaseIntegrationTest
     public void TestSerializeWorkflow()
     {
         var fc2Start = new Start { Id = "fc2_s" };
-        var fc2If = new If { Id = "fc2_if", Condition = new(false) };
+        var fc2If = new If
+        {
+            Id = "fc2_if",
+            Condition = new(false),
+            CustomProperties = new Dictionary<string, object> {
+                { "key", "value" },
+                { "key2", 1 },
+                { "canStartWorkflow", false },
+                { "key3", new { id = 1, name = "name" } },
+                { "p1", new Person{  Id = 1,  Name = "name" } }
+            }
+        };
         var fc2True = new WriteLine("FC2-True") { Id = "fc2_t" };
         var fc2False = new WriteLine("FC2-False") { Id = "fc2_f" };
         var fc2End = new End { Id = "fc2_e" };
@@ -38,9 +49,15 @@ internal class WorkflowSerializerTest : BaseIntegrationTest
         var activityRegister = serviceProvider.GetService<IActivityRegistry>();
         var serializationTypeRegistry = serviceProvider.GetService<ISerializationTypeRegistry>();
         jsonOptions.Converters.Add(new ActivityJsonConverter(activityRegister));
-        //jsonOptions.Converters.Add(new InputJsonConverterFactory());
+        jsonOptions.Converters.Add(new PolymorphicObjectConverterFactory(serializationTypeRegistry));
         var jsonStr = JsonHelper.Serialize(flowchart2, jsonOptions);
 
         var deserializedFlowchart = JsonHelper.Deserialize<Flowchart>(jsonStr, jsonOptions);
     }
+}
+
+public class Person
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
 }
