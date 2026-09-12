@@ -76,6 +76,13 @@ public class ActivityJsonConverter(IActivityRegistry activityRegistry) : JsonCon
     {
         var clonedOptions = new JsonSerializerOptions(options);
         //clonedOptions.Converters.Add(new PolymorphicObjectConverterFactory());
+
+        // 本转换器必须随克隆传递：Read 内部按具体 CLR 类型反序列化时，
+        // 其 IActivity 类型成员（如 Flowchart.Activities / Start）需要再次路由回本转换器，
+        // 否则嵌套活动节点反序列化失败（接口类型不支持）。
+        if (clonedOptions.Converters.All(x => x is not ActivityJsonConverter))
+            clonedOptions.Converters.Add(this);
+
         return clonedOptions;
     }
 
