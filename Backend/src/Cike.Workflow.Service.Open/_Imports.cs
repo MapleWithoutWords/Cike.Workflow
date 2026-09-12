@@ -14,3 +14,5 @@ global using System.Text.Json.Serialization;
 global using Cike.AspNetCore.Swagger;
 global using Cike.FluentValidation;
 global using FluentValidation;
+global using Cike.Workflow.Core.ActivityDescriptors;
+global using Cike.Workflow.Core.Serialization.Converters;

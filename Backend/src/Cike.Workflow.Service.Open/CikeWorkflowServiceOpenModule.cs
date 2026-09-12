@@ -10,12 +10,18 @@ public class CikeWorkflowServiceOpenModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
-
         context.Services.AddCikeSwagger("Cike", options =>
         {
             options.SupportNonNullableReferenceTypes();
             //options.DocumentFilter<PolymorphismDocumentFilter<MessagePlatformBaseJsonConfig, MessagePlatformType>>();
         });
+
+        // HTTP 层支持画布（IActivity 多态）的请求/响应序列化
+        context.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.Converters.Add(new ActivityJsonConverter(context.Services.GetSingletonInstance<IActivityRegistry>()));
+        });
+
         await base.ConfigureServicesAsync(context);
     }
 

@@ -10,7 +10,7 @@
     <Compile Include="Services\readme.md" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="Cike.Workflow.Test" />
+    <InternalsVisibleTo Include="Cike.Workflow.Service.Open.Tests" />
   </ItemGroup>
 
   <ItemGroup>

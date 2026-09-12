@@ -54,6 +54,50 @@ public class WorkflowDefinitionService : MinimalApiServiceBase
         return TypedResults.Ok(command.Id);
     }
 
+    public async Task<Results<Ok<long>, BadRequest>> SaveAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        SaveWorkflowDefinitionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new SaveWorkflowDefinitionCommand(id, dto);
+        await localEventBus.PublishAsync(command, cancellationToken);
+        return TypedResults.Ok(command.DraftId);
+    }
+
+    public async Task<Results<Ok, BadRequest>> PublishAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        PublishWorkflowDefinitionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new PublishWorkflowDefinitionCommand(id, dto.PublishedNote);
+        await localEventBus.PublishAsync(command, cancellationToken);
+        return TypedResults.Ok();
+    }
+
+    public async Task<Results<Ok, BadRequest>> MoveAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        MoveWorkflowDefinitionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new MoveWorkflowDefinitionCommand(id, dto.FolderId);
+        await localEventBus.PublishAsync(command, cancellationToken);
+        return TypedResults.Ok();
+    }
+
+    public async Task<Results<Ok, BadRequest>> RollbackAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        RollbackWorkflowDefinitionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new RollbackWorkflowDefinitionCommand(id, dto.TargetVersion);
+        await localEventBus.PublishAsync(command, cancellationToken);
+        return TypedResults.Ok();
+    }
+
     public async Task<Results<Ok, BadRequest>> UpdateAsync(
         [FromServices] ILocalEventBus localEventBus,
         long id,
