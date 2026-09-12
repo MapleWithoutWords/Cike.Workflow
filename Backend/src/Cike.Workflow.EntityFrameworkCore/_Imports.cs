@@ -12,7 +12,6 @@ global using Cike.Workflow.Caching.Models;
 global using Cike.Workflow.Domain.Data;
 global using Cike.Workflow.Domain.Data.Entities;
 global using Cike.Workflow.Domain.Shared.CacheModels;
-global using Cike.Workflow.Domain.Shared.Stores;
 global using Microsoft.EntityFrameworkCore;
 global using System.Reflection;
 global using Cike.Contracts.EntityDtos;
