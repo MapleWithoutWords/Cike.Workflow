@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Cike.Workflow.Test;
+namespace Cike.Workflow.Service.Open.Tests;
 
 /// <summary>
 /// 测试用认证处理器：所有请求自动通过，携带固定用户声明（PublishedBy 等审计字段断言依赖它）。

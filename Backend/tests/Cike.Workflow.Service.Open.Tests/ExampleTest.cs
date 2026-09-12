@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
 
-namespace Cike.Workflow.Test.Service.Open
+namespace Cike.Workflow.Service.Open.Tests
 {
     internal class ExampleTest:BaseIntegrationTest
     {

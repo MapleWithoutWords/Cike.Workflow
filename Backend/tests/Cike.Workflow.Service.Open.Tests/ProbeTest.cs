@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 
-namespace Cike.Workflow.Test.Service.Open;
+namespace Cike.Workflow.Service.Open.Tests;
 
 internal class ProbeTest : BaseIntegrationTest
 {

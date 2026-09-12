@@ -1,0 +1,144 @@
+using Cike.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Cike.Workflow.Service.Open.Tests.WorkflowDefinitions;
+
+/// <summary>
+/// 工作流定义生命周期测试基类：封装"建工作空间 → 建目录 → 建定义"的 API 数据准备、
+/// 查询端点断言取数，以及无法经 API 构造的数据（IsSystem / IsReadonly / 已发布行）的直库播种。
+/// 测试数据一律显式传 Code / DefinitionId，避免触发分布式缓存序列号路径（Redis）。
+/// </summary>
+[Category("Integration")]
+public abstract class WorkflowDefinitionTestBase : BaseIntegrationTest
+{
+    /// <summary>合法画布：Start → End（发布校验可通过）。</summary>
+    protected static object CreateValidCanvas(string prefix = "f")
+        => new
+        {
+            type = "Cike.Flowchart",
+            id = $"{prefix}_flowchart",
+            activities = new object[]
+            {
+                new { type = "Cike.Start", id = $"{prefix}_start" },
+                new { type = "Cike.End", id = $"{prefix}_end" },
+            },
+            connections = new object[]
+            {
+                new { source = new { activityId = $"{prefix}_start" }, target = new { activityId = $"{prefix}_end" } },
+            },
+        };
+
+    protected async Task<long> CreateWorkspaceAsync()
+    {
+        var response = await CreateClient().PostAsJsonAsync("/api/v1/Workspaces", new
+        {
+            code = $"WS_{Guid.NewGuid():N}",
+            name = $"工作空间_{Guid.NewGuid():N}".Substring(0, 20),
+            description = "集成测试",
+        });
+        await EnsureSuccessAsync(response);
+        return await ReadLongAsync(response);
+    }
+
+    protected async Task<long> CreateFolderAsync(long workspaceId, long parentId = 0)
+    {
+        var response = await CreateClient().PostAsJsonAsync("/api/v1/Folders", new
+        {
+            workspaceId,
+            parentId,
+            name = $"目录_{Guid.NewGuid():N}".Substring(0, 20),
+        });
+        await EnsureSuccessAsync(response);
+        return await ReadLongAsync(response);
+    }
+
+    protected async Task<long> CreateDefinitionAsync(long workspaceId, long folderId, string definitionId)
+    {
+        var response = await CreateClient().PostAsJsonAsync("/api/v1/WorkflowDefinitions", new
+        {
+            workspaceId,
+            folderId,
+            definitionId,
+            name = $"流程_{Guid.NewGuid():N}".Substring(0, 20),
+            description = "集成测试",
+        });
+        await EnsureSuccessAsync(response);
+        return await ReadLongAsync(response);
+    }
+
+    /// <summary>详情端点取数（状态断言一律经查询端点）。</summary>
+    protected async Task<JsonDocument> GetDetailAsync(long id)
+    {
+        var response = await CreateClient().GetAsync($"/api/v1/WorkflowDefinitions/{id}");
+        await EnsureSuccessAsync(response);
+        return await response.Content.ReadFromJsonAsync<JsonDocument>();
+    }
+
+    /// <summary>版本列表端点取数（按 Version 降序）。</summary>
+    protected async Task<List<JsonElement>> GetVersionListAsync(string definitionId)
+    {
+        var response = await CreateClient().GetAsync($"/api/v1/WorkflowDefinitions/VersionList?definitionId={definitionId}");
+        await EnsureSuccessAsync(response);
+        var doc = await response.Content.ReadFromJsonAsync<JsonDocument>();
+        return doc!.RootElement.EnumerateArray().ToList();
+    }
+
+    /// <summary>目录树列表端点取数（type=2 为工作流定义条目）。</summary>
+    protected async Task<List<JsonElement>> GetFolderListAsync(long workspaceId, long folderId)
+    {
+        var response = await CreateClient().GetAsync($"/api/v1/WorkflowDefinitions/List?workspaceId={workspaceId}&folderId={folderId}");
+        await EnsureSuccessAsync(response);
+        var doc = await response.Content.ReadFromJsonAsync<JsonDocument>();
+        return doc!.RootElement.EnumerateArray().ToList();
+    }
+
+    /// <summary>
+    /// 直库播种（IsSystem / IsReadonly 等无法经 API 构造的数据），作用于该定义的所有版本行。
+    /// CikeDbContext 跟踪即自动开事务，需显式提交，否则 Scope 释放时回滚。
+    /// </summary>
+    protected async Task SeedDefinitionAsync(string definitionId, Action<WorkflowDefinition> configure)
+    {
+        using var scope = _rootServices.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var entities = await dbContext.WorkflowDefinitions.Where(x => x.DefinitionId == definitionId).ToListAsync();
+        foreach (var entity in entities)
+            configure(entity);
+        await dbContext.SaveChangesAsync();
+        await dbContext.Database.CurrentTransaction!.CommitAsync();
+    }
+
+    protected static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"请求失败 [{(int)response.StatusCode}]: {await response.Content.ReadAsStringAsync()}");
+    }
+
+    /// <summary>框架将 long 序列化为字符串，统一按字符串读取再解析。</summary>
+    protected static async Task<long> ReadLongAsync(HttpResponseMessage response)
+        => long.Parse((await response.Content.ReadAsStringAsync()).Trim('"'));
+
+    protected static string GetString(JsonElement element, string propertyName)
+        => element.GetProperty(propertyName).GetString()!;
+
+    protected static long GetLong(JsonElement element, string propertyName)
+    {
+        var raw = element.GetProperty(propertyName);
+        return raw.ValueKind == JsonValueKind.String ? long.Parse(raw.GetString()!) : raw.GetInt64();
+    }
+
+    protected static int GetInt(JsonElement element, string propertyName)
+    {
+        var raw = element.GetProperty(propertyName);
+        return raw.ValueKind == JsonValueKind.String ? int.Parse(raw.GetString()!) : raw.GetInt32();
+    }
+
+    protected static bool GetBool(JsonElement element, string propertyName)
+        => element.GetProperty(propertyName).GetBoolean();
+
+    protected static DateTime GetDateTime(JsonElement element, string propertyName)
+    {
+        var raw = element.GetProperty(propertyName);
+        return raw.ValueKind == JsonValueKind.String ? raw.GetDateTime() : default;
+    }
+}
