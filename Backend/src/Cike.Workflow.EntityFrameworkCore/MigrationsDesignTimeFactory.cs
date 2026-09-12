@@ -1,0 +1,22 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Cike.EntityFrameworkCore;
+
+/// <summary>
+/// 设计时工厂：供 `dotnet ef migrations` 生成/应用迁移。
+/// 仅用于构建模型（迁移生成不连库），连接串与生产方言在工厂内静态指定。
+/// </summary>
+public class MigrationsDesignTimeFactory : IDesignTimeDbContextFactory<CikeWorkflowDbContenxt>
+{
+    public CikeWorkflowDbContenxt CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<CikeWorkflowDbContenxt>();
+        optionsBuilder.UseMySql(
+            "Server=localhost;Port=3306;Database=cike_workflow;Uid=root;Pwd=root;",
+            new MySqlServerVersion(new Version(8, 0, 36)));
+
+        return new CikeWorkflowDbContenxt(optionsBuilder.Options, new ServiceCollection().BuildServiceProvider());
+    }
+}

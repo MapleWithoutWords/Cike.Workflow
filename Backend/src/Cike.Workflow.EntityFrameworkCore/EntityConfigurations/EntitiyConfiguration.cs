@@ -49,7 +49,8 @@ public class EntitiyConfiguration :
         builder.Property(e => e.PublishedBy).HasComment("发布人ID");
         builder.Property(e => e.PublishedAt).HasComment("发布时间").HasDefaultValue(DateTime.MinValue);
 
-        builder.HasIndex(x => new { x.DefinitionId, x.Version, x.IsDeleted });
+        // 唯一索引：兜底"发布后首次保存并发创建 v+1"等并发场景（最后写入胜出或唯一冲突报错）
+        builder.HasIndex(x => new { x.DefinitionId, x.Version, x.IsDeleted }).IsUnique();
         builder.HasIndex(x => x.FolderId);
         builder.HasIndex(x => x.Version);
         builder.HasIndex(x => x.UsableAsActivity);
