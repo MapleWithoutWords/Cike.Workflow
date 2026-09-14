@@ -1,13 +1,13 @@
 using Cike.Contracts.EntityDtos;
 using Cike.Data;
 using Cike.Workflow.Domain.Shared.Enums;
-using Cike.Workflow.Domain.Shared.ValueObjects;
 
 namespace Cike.Workflow.Domain.Shared.CacheModels;
 
 /// <summary>
-/// 工作流定义运行时缓存模型：携带实体全部标量字段 + Options + OriginalStringData 画布全文，
-/// 供 WorkflowRuntime 按 DefinitionId + Version 直接取用（拿到即可喂物化器）。
+/// 工作流定义运行时缓存模型：携带实体全部标量字段 + OptionsPayload（IPayloadSerializer 序列化的
+/// Options JSON）+ OriginalStringData 画布全文，供 WorkflowRuntime 按 DefinitionId + Version 直接取用；
+/// Options 消费方用 IPayloadSerializer 反序列化（与 DB 影子列同一链路）。
 /// 与 <see cref="FolderCacheModel"/> 同目录同风格；不缓存物化后的 WorkflowActivity。
 /// </summary>
 public class WorkflowDefinitionCacheModel : FullAuditedEntityDto<long>, IMultiTenant
@@ -32,7 +32,13 @@ public class WorkflowDefinitionCacheModel : FullAuditedEntityDto<long>, IMultiTe
 
     public string OriginalStringData { get; set; } = null!;
 
-    public WorkflowDefinitionOptionsValueObject Options { get; set; } = new();
+    /// <summary>
+    /// Options 的 JSON 载荷——必须用 IPayloadSerializer 序列化 / 反序列化（与 DB 影子列 SerializedOptions
+    /// 同源同链路）：其内部含 Expression.Value / CustomProperties 等 object 多态成员，依赖项目注册的
+    /// PolymorphicObjectConverter / TypeJsonConverter 还原类型；缓存客户端自带序列化器没有这些转换器，
+    /// 直接挂对象图会类型漂移，故缓存只存不透明字符串。
+    /// </summary>
+    public string OptionsPayload { get; set; } = "{}";
 
     public bool IsReadonly { get; set; }
 

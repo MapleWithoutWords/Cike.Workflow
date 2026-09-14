@@ -52,7 +52,11 @@ public class WorkflowDefinitionRepository(CikeWorkflowDbContenxt context, IPaylo
     {
         foreach (var entity in entities)
         {
-            await workflowDefinitionCache.SetAsync(entity.Adapt<WorkflowDefinitionCacheModel>(), cancellationToken);
+            var model = entity.Adapt<WorkflowDefinitionCacheModel>();
+            // Options 走与影子列同一个 IPayloadSerializer：保留 Expression.Value / CustomProperties
+            // 等 object 多态成员的类型保真；缓存客户端自带序列化器没有项目的转换器，只准存不透明字符串。
+            model.OptionsPayload = payloadSerializer.Serialize(entity.Options);
+            await workflowDefinitionCache.SetAsync(model, cancellationToken);
         }
     }
 

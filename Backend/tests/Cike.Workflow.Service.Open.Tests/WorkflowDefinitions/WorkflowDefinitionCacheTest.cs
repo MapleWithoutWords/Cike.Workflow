@@ -1,4 +1,6 @@
 using Cike.Workflow.Caching;
+using Cike.Workflow.Core.Serialization;
+using Cike.Workflow.Domain.Shared.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
@@ -65,7 +67,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
     }
 
     [Test]
-    public async Task GetAsync_保存带变量草稿后_Options对象图roundtrip无损()
+    public async Task GetAsync_保存带变量草稿后_Options载荷经IPayloadSerializer还原等价()
     {
         var (definitionId, rowId) = await PrepareAsync();
 
@@ -80,9 +82,40 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
 
         var cached = await Cache.GetAsync(definitionId, 1);
 
-        Assert.That(cached!.Options.Variables, Has.Count.EqualTo(1));
-        Assert.That(cached.Options.Variables[0].Name, Is.EqualTo("count"));
-        Assert.That(cached.Options.Variables[0].TypeName, Is.EqualTo("Int32"));
+        // 缓存模型只存不透明 OptionsPayload；用与影子列同一序列化器还原（项目 polymorphic/Type 转换器链路）
+        var options = serviceProvider.GetRequiredService<IPayloadSerializer>()
+            .Deserialize<WorkflowDefinitionOptionsValueObject>(cached!.OptionsPayload);
+        Assert.That(options.Variables, Has.Count.EqualTo(1));
+        Assert.That(options.Variables[0].Name, Is.EqualTo("count"));
+        Assert.That(options.Variables[0].TypeName, Is.EqualTo("Int32"));
+    }
+
+    [Test]
+    public async Task GetAsync_保存含输入默认值草稿后_OptionsPayload与影子列序列化同源()
+    {
+        var (definitionId, rowId) = await PrepareAsync();
+
+        await EnsureSuccessAsync(await PostSaveAsync(rowId, new
+        {
+            root = CreateValidCanvas("poly"),
+            options = new
+            {
+                inputs = new object[]
+                {
+                    new { name = "amount", type = "Decimal", defaultValue = new { type = "Literal", value = 42 } },
+                },
+            },
+        }));
+
+        var cached = await Cache.GetAsync(definitionId, 1);
+        var options = serviceProvider.GetRequiredService<IPayloadSerializer>()
+            .Deserialize<WorkflowDefinitionOptionsValueObject>(cached!.OptionsPayload);
+
+        // object 多态成员（Expression.Value）经 IPayloadSerializer 链路可还原，非 JsonElement 裸漂移
+        Assert.That(options.Inputs, Has.Count.EqualTo(1));
+        Assert.That(options.Inputs[0].DefaultValue.Type, Is.EqualTo("Literal"));
+        Assert.That(options.Inputs[0].DefaultValue.Value, Is.Not.Null);
+        Assert.That(Convert.ToInt64(options.Inputs[0].DefaultValue.Value), Is.EqualTo(42));
     }
 
     [Test]
