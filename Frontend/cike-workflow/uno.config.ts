@@ -11,6 +11,8 @@ export default defineConfig({
       },
       typography: 'md3',
       elevation: 'md3',
+      // Enable `dark:`/`light:` variants scoped to Vuetify theme classes
+      themes: ['light', 'dark'],
     }),
   ],
   transformers: [

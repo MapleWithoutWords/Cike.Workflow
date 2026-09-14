@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file *.png)",
+      "Bash(python -c ' *)",
+      "WebSearch",
+      "Bash(gh search *)",
+      "Bash(pnpm type-check *)"
+    ]
+  }
+}

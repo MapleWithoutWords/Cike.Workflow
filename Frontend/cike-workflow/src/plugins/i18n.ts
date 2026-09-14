@@ -1,21 +1,14 @@
 import { createI18n } from 'vue-i18n'
 
-const messages = {
-  en: {
-    message: {
-      hello: 'hello world',
-    },
-  },
-  ja: {
-    message: {
-      hello: 'こんにちは、世界',
-    },
-  },
-}
+import en from '@/locales/en'
+import zhCN from '@/locales/zh-CN'
 
 export default createI18n({
   legacy: false,
-  locale: 'en',
+  locale: 'zh-CN',
   fallbackLocale: 'en',
-  messages,
+  messages: {
+    'zh-CN': zhCN,
+    en,
+  },
 })
