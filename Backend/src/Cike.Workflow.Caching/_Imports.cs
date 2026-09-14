@@ -1,4 +1,5 @@
 global using Cike.Caching;
+global using Cike.Core.DependencyInjection;
 global using Cike.Core.Modularity;
 global using Cike.Contracts.EntityDtos;
 global using Cike.Data;

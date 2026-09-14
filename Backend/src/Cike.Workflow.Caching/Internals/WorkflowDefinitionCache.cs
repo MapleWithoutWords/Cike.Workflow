@@ -8,7 +8,8 @@ namespace Cike.Workflow.Caching.Internals;
 /// 索引为读-改-写维护，与 BaseCacheService 的 id-list 同款取舍（同一定义并发写罕见）。
 /// 键格式与 BaseCacheService 一致使用裸字符串键，多级缓存客户端的 TypeName 前缀策略负责类型隔离。
 /// </summary>
-internal class WorkflowDefinitionCache(IMultilevelCacheClient multilevelCacheClient, ICurrentTenant currentTenant) : IWorkflowDefinitionCache
+internal class WorkflowDefinitionCache(IMultilevelCacheClient multilevelCacheClient, ICurrentTenant currentTenant)
+    : IWorkflowDefinitionCache, IScopedDependency
 {
     private string TenantPrefix => $"WorkflowDefinition:{currentTenant.Id.ToString()}";
 

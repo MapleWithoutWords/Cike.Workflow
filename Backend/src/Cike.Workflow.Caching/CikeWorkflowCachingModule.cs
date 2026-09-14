@@ -11,8 +11,8 @@ public class CikeWorkflowCachingModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
+        // 开放泛型无法按约定注册，手动补上；WorkflowDefinitionCache 等封闭实现走 IScopedDependency 约定注册
         context.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(ICacheService<>), typeof(BaseCacheService<>)));
-        context.Services.Replace(ServiceDescriptor.Scoped<IWorkflowDefinitionCache, WorkflowDefinitionCache>());
 
         await base.ConfigureServicesAsync(context);
     }
