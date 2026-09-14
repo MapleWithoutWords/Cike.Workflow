@@ -1,95 +1,95 @@
-<template>
-  <v-container class="fill-height d-flex flex-column justify-center" max-width="900">
-    <div>
-      <v-img
-        alt="Placeholder logo"
-        class="mb-4 font-weight-bold"
-        height="150"
-        src="@/assets/logo.png"
-      />
-
-      <div class="mb-8 text-center">
-        <div class="text-body-medium font-weight-light mb-n1">Welcome to</div>
-        <div class="text-display-medium font-weight-bold">Vuetify</div>
-      </div>
-
-      <v-row>
-        <v-col cols="12">
-          <v-card
-            class="py-4"
-            color="surface-variant"
-            image="https://cdn.vuetifyjs.com/docs/images/one/create/feature.png"
-            rounded="lg"
-            variant="tonal"
-          >
-            <template #prepend>
-              <v-avatar icon="mdi-rocket-launch-outline" size="60" variant="tonal" class="ml-2 mr-4" />
-            </template>
-
-            <template #image>
-              <v-img position="top right" />
-            </template>
-
-            <template #title>
-              <div class="my-title my-uppercase text-headline-medium font-weight-bold">Get started</div>
-            </template>
-
-            <template #subtitle>
-              <div class="text-body-large">
-                Change this page by updating <v-kbd>{{ `<HelloWorld />` }}</v-kbd> in <v-kbd>components/HelloWorld.vue</v-kbd>.
-              </div>
-            </template>
-          </v-card>
-        </v-col>
-
-        <v-col v-for="link in links" :key="link.href" cols="6">
-          <v-card
-            append-icon="mdi-open-in-new"
-            class="py-4"
-            color="surface-variant"
-            :href="link.href"
-            rel="noopener noreferrer"
-            rounded="lg"
-            :subtitle="link.subtitle"
-            target="_blank"
-            :title="link.title"
-            variant="tonal"
-          >
-            <template #prepend>
-              <v-avatar :icon="link.icon" size="60" variant="tonal" class="ml-2 mr-4" />
-            </template>
-          </v-card>
-        </v-col>
-      </v-row>
-    </div>
-  </v-container>
-</template>
-
 <script setup lang="ts">
-  const links = [
-    {
-      href: 'https://vuetifyjs.com/',
-      icon: 'mdi-text-box-outline',
-      subtitle: 'Learn about all things Vuetify in our documentation.',
-      title: 'Documentation',
-    },
-    {
-      href: 'https://vuetifyjs.com/introduction/why-vuetify/#feature-guides',
-      icon: 'mdi-star-circle-outline',
-      subtitle: 'Explore available framework Features.',
-      title: 'Features',
-    },
-    {
-      href: 'https://vuetifyjs.com/components/all',
-      icon: 'mdi-widgets-outline',
-      subtitle: 'Discover components in the API Explorer.',
-      title: 'Components',
-    },
-    {
-      href: 'https://discord.vuetifyjs.com',
-      icon: 'mdi-account-group-outline',
-      subtitle: 'Connect with Vuetify developers.',
-      title: 'Community',
-    },
-  ]
+import { ref } from 'vue'
+import heroImg from '../assets/hero.png'
+import viteLogo from '../assets/vite.svg'
+import vueLogo from '../assets/vue.svg'
+
+const count = ref(0)
 </script>
+
+<template>
+  <section id="center">
+    <div class="hero">
+      <img :src="heroImg" class="base" width="170" height="179" alt="" />
+      <img :src="vueLogo" class="framework" alt="Vue logo" />
+      <img :src="viteLogo" class="vite" alt="Vite logo" />
+    </div>
+    <div>
+      <h1>Get started</h1>
+      <p>Edit <code>src/App.vue</code> and save to test <code>HMR</code></p>
+    </div>
+    <button type="button" class="counter" @click="count++">
+      Count is {{ count }}
+    </button>
+  </section>
+
+  <div class="ticks"></div>
+
+  <section id="next-steps">
+    <div id="docs">
+      <svg class="icon" role="presentation" aria-hidden="true">
+        <use href="/icons.svg#documentation-icon"></use>
+      </svg>
+      <h2>Documentation</h2>
+      <p>Your questions, answered</p>
+      <ul>
+        <li>
+          <a href="https://vite.dev/" target="_blank">
+            <img class="logo" :src="viteLogo" alt="" />
+            Explore Vite
+          </a>
+        </li>
+        <li>
+          <a href="https://vuejs.org/" target="_blank">
+            <img class="button-icon" :src="vueLogo" alt="" />
+            Learn more
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div id="social">
+      <svg class="icon" role="presentation" aria-hidden="true">
+        <use href="/icons.svg#social-icon"></use>
+      </svg>
+      <h2>Connect with us</h2>
+      <p>Join the Vite community</p>
+      <ul>
+        <li>
+          <a href="https://github.com/vitejs/vite" target="_blank">
+            <svg class="button-icon" role="presentation" aria-hidden="true">
+              <use href="/icons.svg#github-icon"></use>
+            </svg>
+            GitHub
+          </a>
+        </li>
+        <li>
+          <a href="https://chat.vite.dev/" target="_blank">
+            <svg class="button-icon" role="presentation" aria-hidden="true">
+              <use href="/icons.svg#discord-icon"></use>
+            </svg>
+            Discord
+          </a>
+        </li>
+        <li>
+          <a href="https://x.com/vite_js" target="_blank">
+            <svg class="button-icon" role="presentation" aria-hidden="true">
+              <use href="/icons.svg#x-icon"></use>
+            </svg>
+            X.com
+          </a>
+        </li>
+        <li>
+          <a href="https://bsky.app/profile/vite.dev" target="_blank">
+            <svg class="button-icon" role="presentation" aria-hidden="true">
+              <use href="/icons.svg#bluesky-icon"></use>
+            </svg>
+            Bluesky
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="ticks"></div>
+  <section id="spacer"></section>
+</template>

@@ -1,9 +1,7 @@
-<template>
-  <v-app>
-    <DefaultLayout />
-  </v-app>
-</template>
-
-<script lang="ts" setup>
-  import DefaultLayout from '@/layouts/DefaultLayout.vue'
+<script setup lang="ts">
+import HelloWorld from './components/HelloWorld.vue'
 </script>
+
+<template>
+  <HelloWorld />
+</template>
