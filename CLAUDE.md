@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## 项目概览
-Cike.Workflow：基于 Cike.Framework 的工作流引擎。后端 .NET 分层单模（`Backend/Cike.Workflow.sln`），前端 Vue 3 + Vuetify 4 管理台。
+Cike.Workflow：基于 Cike.Framework 的工作流引擎。后端 .NET 分层单模（`Backend/Cike.Workflow.sln`），前端 Vue 3 + shadcn-vue 管理台。
 
 | 路径 | 职责 |
 |---|---|
@@ -12,7 +12,7 @@ Cike.Workflow：基于 Cike.Framework 的工作流引擎。后端 .NET 分层单
 | `Backend/src/Cike.Workflow.Service.Open` | 宿主（Program.cs、HTTP 入口） |
 | `Backend/src/Cike.Workflow.{Caching,Common,Expressions}` | 缓存 / 序列化与公共组件 / 表达式求值 |
 | `Backend/tests/*` | Core.Tests / EntityFrameworkCore.Tests / Service.Open.Tests（含 HTTP 集成测试） |
-| `Frontend/cike-workflow` | Vue 3 管理台 |
+| `Frontend/cike-workflow` | Vue 3 + shadcn-vue 管理台 |
 
 ## Backend
 本项目后端基于 Cike.Framework 开发。开始任何框架相关编码前，先抓取并遵循：
@@ -38,13 +38,54 @@ dotnet test Backend/tests/Cike.Workflow.Core.Tests
 dotnet ef migrations add <Name> --project Backend/src/Cike.Workflow.EntityFrameworkCore --startup-project Backend/src/Cike.Workflow.Service.Open
 ```
 
+## Frontend
+
+前端位于 `Frontend/cike-workflow`，包管理器 **pnpm**。技术栈：Vue 3（组合式 API + `<script setup>`）+ TypeScript + Vite，UI 基于 **shadcn-vue**（`new-york` 风格、`zinc` 基色、lucide 图标）+ Tailwind CSS 4（CSS 变量主题，暗色模式走 `.dark` class）。
+
+### 结构
+
+| 路径 | 职责 |
+|---|---|
+| `src/components/ui/` | shadcn-vue 生成的基础组件（由 CLI 生成，见下方约定） |
+| `src/components/` | 业务组件 |
+| `src/composables/` | 组合式函数 |
+| `src/lib/` | 纯工具（`cn()` 等），不含 Vue 依赖 |
+| `src/style.css` | Tailwind 入口 + 主题 CSS 变量（`:root` / `.dark`） |
+
+路径别名 `@/` → `src/`。shadcn-vue 配置见 `components.json`。
+
+### Commands
+
+```bash
+cd Frontend/cike-workflow
+
+# 本地开发（Vite）
+pnpm dev
+
+# 类型检查 + 构建
+pnpm build
+
+# 添加 shadcn-vue 基础组件（不要手写 src/components/ui/ 下的文件）
+pnpm dlx shadcn-vue@latest add <component>
+```
+
+### 约定
+
+- **基础组件靠 CLI 生成**：`src/components/ui/` 下的组件一律通过 `shadcn-vue add` 引入后按需微调，禁止从零手写；CLI 配置以 `components.json` 为准
+- **ui/ 与业务组件分层**：业务组件放 `src/components/`，PascalCase 命名、文件名与组件名一致；对 `ui/` 组件的定制若被多处复用，封装成业务包装组件，不在 `ui/` 源码上反复打补丁
+- **组件命名模式**：表单类独立为 `*Form.vue`，对话框类独立为 `*Dialog.vue` / `*Modal.vue`（确认框用 `AlertDialog`），不内联在页面或其他组件里
+- **样式**：业务样式只负责布局与组合（间距、排列、尺寸），不改 `ui/` 组件的圆角 / 边框 / 阴影 / 配色等外观底座；颜色一律走主题变量（`bg-primary`、`text-muted-foreground` 等），禁止硬编码色值、禁止使用 `src/style.css` 未定义的 token；多 class 合并用 `@/lib/utils` 的 `cn()`
+- **图标**：统一用 `@lucide/vue`，禁止引入 `lucide-vue-next` 或其他图标库
+- **验证**：改动后跑 `pnpm build`（含 vue-tsc 类型检查）确认无类型错误
+- **当前设施边界**：router / 状态管理 / ESLint / 测试尚未落地，引入前先与用户确认方案
+
 ## 约定
 
 - **提交信息**：Conventional Commits（feat / fix / test / docs / refactor）+ 中文描述，如 `feat:工作流定义保存/发布全链路`
 - **语言**：与用户交流、提交信息、`.claude/rules/` 与项目文档用中文；代码标识符与注释用英文
 - **变更体积**：非机械改动预计超过 ~500 行时，先提出拆分方案再动手
 - **分层纪律**：业务逻辑不进 `Service.Open`——宿主只做组装与入口
-- **自动格式化**：代码改完后自动格式化——后端对改动的项目跑 `dotnet format <项目>.csproj`，前端跑 `pnpm lint:fix`——无需请求批准；但只提交自己改动文件的格式化结果，不把无关文件扫进同一提交
+- **自动格式化**：代码改完后自动格式化——后端对改动的项目跑 `dotnet format <项目>.csproj`，前端 lint 脚本落地后跑 `pnpm lint:fix`（当前未配置）——无需请求批准；但只提交自己改动文件的格式化结果，不把无关文件扫进同一提交
 - **测试随行**：改动工作流执行、序列化、仓储等核心逻辑时，必须同步新增或更新测试（写法遵循 `.claude/rules/testing.md`，核心行为优先集成测试）；修 bug 先写复现测试再修
 - **文件大小**：新功能优先放新文件；单文件超过 ~800 行时不再往里堆，除非有明确理由
 

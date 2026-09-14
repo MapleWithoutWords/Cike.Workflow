@@ -38,6 +38,41 @@ public class FolderCommandHandler(
     }
 
     [LocalEventHandler]
+    public async Task MoveAsync(MoveFolderCommand command, CancellationToken cancellationToken = default)
+    {
+        var entity = await GetEntityAsync(command.Id, cancellationToken);
+
+        if (command.ParentId == entity.Id)
+            throw new UserFriendlyException("目录不能移动到自身，请检查后重试。");
+
+        if (command.ParentId != 0)
+        {
+            // 一次加载该工作空间的父子映射：目标必须存在于同工作空间，并沿父链上溯防环
+            var parentMap = await folderRepository.GetQueryable().AsNoTracking()
+                .Where(x => x.WorkspaceId == entity.WorkspaceId)
+                .Select(x => new { x.Id, x.ParentId })
+                .ToDictionaryAsync(x => x.Id, x => x.ParentId, cancellationToken);
+
+            if (!parentMap.TryGetValue(command.ParentId, out var cursor))
+                throw new UserFriendlyException("目标目录不存在或不属于该工作空间，请检查后重试。");
+
+            // 目标是待移动目录的子孙节点时移动会成环，逐级上溯命中即拒绝
+            while (cursor != 0)
+            {
+                if (cursor == entity.Id)
+                    throw new UserFriendlyException("目录不能移动到自身的子目录下，请检查后重试。");
+                cursor = parentMap.GetValueOrDefault(cursor);
+            }
+        }
+
+        await ValidateNameDuplicateAsync(entity.WorkspaceId, command.ParentId, entity.Name, entity.Id, cancellationToken);
+
+        // 路径由 ParentId 链推导（FolderCacheModel.BuildPath），子树随父链自然跟随，只更新本节点
+        entity.ParentId = command.ParentId;
+        await folderRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
+    }
+
+    [LocalEventHandler]
     public async Task DeleteAsync(DeleteFolderCommand command, CancellationToken cancellationToken = default)
     {
         var entity = await GetEntityAsync(command.Id, cancellationToken);

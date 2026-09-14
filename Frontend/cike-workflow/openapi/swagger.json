@@ -1,0 +1,1370 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Cike",
+    "version": "v1"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Cike.Workflow.Service.Open"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/Folders": {
+      "get": {
+        "tags": [
+          "FolderService"
+        ],
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FolderService"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddFolderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "FolderService"
+        ],
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFolderDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FolderService"
+        ],
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/List": {
+      "get": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "CreatedAt desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowDefinitionFolderItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/{id}": {
+      "get": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDefinitionDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/VersionList": {
+      "get": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "definitionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowDefinitionVersionItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/Save/{id}": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/Publish/{id}": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/Move/{id}": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowDefinitions/Rollback": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackWorkflowDefinitionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/Workspaces/PagedList": {
+      "get": {
+        "tags": [
+          "WorkspaceService"
+        ],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Sorting",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceItemDtoPagedResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/Workspaces": {
+      "get": {
+        "tags": [
+          "WorkspaceService"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "WorkspaceService"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWorkspaceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WorkspaceService"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "WorkspaceService"
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddFolderDto": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "folderId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkflowDefinitionType"
+          },
+          "usableAsActivity": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArgumentDefinition": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "isArray": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "defaultValue": {
+            "$ref": "#/components/schemas/Expression"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Expression": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FolderDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workspaceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderPathDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FolderItemDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WorkflowDefinitionFolderBaseDto"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FolderPathDto"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "FolderPathDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IActivity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customProperties": {
+            "type": "object",
+            "additionalProperties": { }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InputDefinition": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ArgumentDefinition"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "storageDriverType": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "MoveWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OutputDefinition": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ArgumentDefinition"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "PublishWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "publishedNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RollbackWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "definitionId": {
+            "type": "string"
+          },
+          "definitionVersionId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SaveWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "$ref": "#/components/schemas/IActivity"
+          },
+          "options": {
+            "$ref": "#/components/schemas/WorkflowDefinitionOptionsValueObject"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateFolderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateWorkflowDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkflowDefinitionType"
+          },
+          "usableAsActivity": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VariableDefinition": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "typeName": {
+            "type": "string"
+          },
+          "isArray": {
+            "type": "boolean"
+          },
+          "defaultValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "storageDriverType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDefinitionDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "definitionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkflowDefinitionType"
+          },
+          "usableAsActivity": {
+            "type": "boolean"
+          },
+          "materializerName": {
+            "type": "string"
+          },
+          "root": {
+            "$ref": "#/components/schemas/IActivity"
+          },
+          "options": {
+            "$ref": "#/components/schemas/WorkflowDefinitionOptionsValueObject"
+          },
+          "isReadonly": {
+            "type": "boolean"
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isLatest": {
+            "type": "boolean"
+          },
+          "isPublished": {
+            "type": "boolean"
+          },
+          "folderId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDefinitionFolderBaseDto": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "WorkflowDefinitionFolderBaseType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "description": "{\"Folder\":1,\"WorkflowDefinition\":2}",
+        "format": "int32"
+      },
+      "WorkflowDefinitionFolderItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkflowDefinitionFolderBaseType"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowDefinitionFolderBaseDto"
+              },
+              {
+                "$ref": "#/components/schemas/FolderItemDto"
+              },
+              {
+                "$ref": "#/components/schemas/WorkflowDefinitionItemDto"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDefinitionItemDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WorkflowDefinitionFolderBaseDto"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "definitionId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/WorkflowDefinitionType"
+              },
+              "usableAsActivity": {
+                "type": "boolean"
+              },
+              "version": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "isLatest": {
+                "type": "boolean"
+              },
+              "publishedVersion": {
+                "type": "integer",
+                "format": "int32",
+                "nullable": true
+              },
+              "isReadonly": {
+                "type": "boolean"
+              },
+              "isSystem": {
+                "type": "boolean"
+              },
+              "materializerName": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "WorkflowDefinitionOptionsValueObject": {
+        "type": "object",
+        "properties": {
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariableDefinition"
+            }
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputDefinition"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutputDefinition"
+            }
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customProperties": {
+            "type": "object",
+            "additionalProperties": { }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDefinitionType": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "description": "{\"Workflow\":1,\"AgentWorkflow\":2,\"Approval\":3}",
+        "format": "int32"
+      },
+      "WorkflowDefinitionVersionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isLatest": {
+            "type": "boolean"
+          },
+          "isPublished": {
+            "type": "boolean"
+          },
+          "publishedNote": {
+            "type": "string"
+          },
+          "publishedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkspaceItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkspaceItemDtoPagedResultDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceItemDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Specify the authorization token",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

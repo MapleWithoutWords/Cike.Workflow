@@ -69,7 +69,7 @@ public class WorkflowDefinitionCommandHandler(
 
         var latest = await GetLatestAsync(entity.DefinitionId, cancellationToken);
 
-        var data = activitySerializer.Serialize(command.Dto.Body);
+        var data = activitySerializer.Serialize(command.Dto.Root);
 
         if (!latest.IsPublished)
         {

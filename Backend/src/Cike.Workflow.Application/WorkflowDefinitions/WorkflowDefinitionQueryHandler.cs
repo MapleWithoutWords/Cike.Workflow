@@ -1,12 +1,16 @@
+using Cike.Workflow.Core.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
-public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> folderCacheService, IWorkflowDefinitionRepository workflowDefinitionRepository)
+public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> folderCacheService,
+    IActivitySerializer activitySerializer,
+    IWorkflowDefinitionRepository workflowDefinitionRepository)
 {
     [LocalEventHandler]
     public async Task GetListAsync(GetWorkflowDefinitionFolderListQuery query, CancellationToken cancellationToken = default)
     {
+        using var _ = workflowDefinitionRepository.BeginAsNoTracking();
         Expression<Func<FolderCacheModel, bool>> filter = e => e.WorkspaceId == query.WorkspaceId && e.ParentId == query.FolderId;
         if (query.Keyword.IsNullOrEmpty() == false)
         {
@@ -62,13 +66,16 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
     [LocalEventHandler]
     public async Task GetAsync(GetWorkflowDefinitionQuery query, CancellationToken cancellationToken)
     {
-        var entity = await workflowDefinitionRepository.FindAsync(query.Id, cancellationToken);
+        using var _ = workflowDefinitionRepository.BeginAsNoTracking();
+        var entity = await workflowDefinitionRepository.GetAsync(query.Id, cancellationToken);
         query.Result = entity.Adapt<WorkflowDefinitionDetailDto>();
+        query.Result.Root = activitySerializer.Deserialize<IActivity>(entity!.OriginalStringData);
     }
 
     [LocalEventHandler]
     public async Task GetVersionListAsync(GetWorkflowDefinitionVersionListQuery query, CancellationToken cancellationToken = default)
     {
+        using var _ = workflowDefinitionRepository.BeginAsNoTracking();
         var versions = await workflowDefinitionRepository.GetListAsync(
             x => x.DefinitionId == query.DefinitionId, "Version desc", cancellationToken);
 

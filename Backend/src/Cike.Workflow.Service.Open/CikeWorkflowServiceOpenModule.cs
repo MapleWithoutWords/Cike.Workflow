@@ -1,3 +1,5 @@
+using Cike.AspNetCore.MinimalAPIs.Options;
+
 namespace Cike.Service.Open;
 
 [DependsOn([
@@ -23,12 +25,23 @@ public class CikeWorkflowServiceOpenModule : CikeModule
         });
 
         await base.ConfigureServicesAsync(context);
+
+
+        context.Services.Configure<GlobalMinimalApiRouteOptions>(options =>
+        {
+            options.Prefix = "api";
+            options.Version = "v1";
+            options.EnabledAuthorization = false;
+        });
     }
 
     public override async Task InitializeAsync(ApplicationInitializationContext context)
     {
         var app = context.GetApplicationBuilder();
         var routeBuilder = context.GetEndpointRouteBuilder();
+#if DEBUG
+        context.GetApplicationBuilder().UseCikeSwaggerUI("CQRS.Sample");
+#endif
 
         //routeBuilder.MapHub<ChatHub>("/chathub");
         //var jsonOptions = context.ServiceProvider.GetRequiredService<IOptions<JsonOptions>>().Value;

@@ -4,7 +4,7 @@ public class SaveWorkflowDefinitionDtoValidator : AbstractValidator<SaveWorkflow
 {
     public SaveWorkflowDefinitionDtoValidator()
     {
-        RuleFor(x => x.Body)
+        RuleFor(x => x.Root)
             .NotNull().WithMessage("画布内容不能为空。");
     }
 }

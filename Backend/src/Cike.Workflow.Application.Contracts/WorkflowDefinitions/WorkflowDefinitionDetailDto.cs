@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.Activities.Abstracts;
+
 namespace Cike.Workflow.Application.Contracts.WorkflowDefinitions;
 
 public class WorkflowDefinitionDetailDto : AuditedEntityDto<long>
@@ -14,7 +16,7 @@ public class WorkflowDefinitionDetailDto : AuditedEntityDto<long>
 
     public string MaterializerName { get; set; } = null!;
 
-    public string OriginalStringData { get; set; } = null!;
+    public IActivity Root { get; set; } = null!;
 
     public WorkflowDefinitionOptionsValueObject Options { get; set; } = new();
 

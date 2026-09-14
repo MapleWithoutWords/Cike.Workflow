@@ -5,7 +5,17 @@
       "Bash(python -c ' *)",
       "WebSearch",
       "Bash(gh search *)",
-      "Bash(pnpm type-check *)"
+      "Bash(pnpm type-check *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://api.github.com/search/repositories?q=topic:shadcn-vue&sort=stars&order=desc&per_page=30\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/fantastic-admin/basic/HEAD/CLAUDE.md\" -o /tmp/fantastic-admin-claude.md)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/isbrandonw/shadcn-docs-ui-thing/HEAD/CLAUDE.md\" -o /tmp/isbrandonw-claude.md)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/fantastic-admin/basic/HEAD/CLAUDE.md\")",
+      "Bash(curl -s \"https://api.github.com/repos/fantastic-admin/basic\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/fantastic-admin/basic/main/AGENTS.md\" -o /tmp/fantastic-admin-agents.md)",
+      "Bash(gh api *)",
+      "Bash(pnpm dlx *)"
     ]
   }
 }

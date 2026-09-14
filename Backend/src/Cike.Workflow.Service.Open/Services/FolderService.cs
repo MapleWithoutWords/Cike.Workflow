@@ -42,6 +42,17 @@ public class FolderService : MinimalApiServiceBase
         return TypedResults.Ok();
     }
 
+    public async Task<Results<Ok, BadRequest>> MoveAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        MoveFolderDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new MoveFolderCommand(id, dto.ParentId);
+        await localEventBus.PublishAsync(command, cancellationToken);
+        return TypedResults.Ok();
+    }
+
     public async Task<Results<Ok, BadRequest>> DeleteAsync(
         [FromServices] ILocalEventBus localEventBus,
         long folderId,
