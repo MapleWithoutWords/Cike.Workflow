@@ -1,3 +1,4 @@
+using Cike.Caching;
 using Cike.Data.EFCore;
 using Cike.Workflow.Caching;
 using Cike.Workflow.Service.Open.Tests.Infrastructure;
@@ -49,6 +50,8 @@ public abstract class BaseIntegrationTest : IDisposable
                   services.Configure<CikeDbContextOptions>(options =>
                       options.Configure(context => context.DbContextOptionsBuilder.UseSqlite(_connection)));
                   services.Replace(ServiceDescriptor.Singleton(typeof(ICacheService<>), typeof(InMemoryCacheService<>)));
+                  // 定义运行时缓存的真实实现跑在此内存介质上（不依赖 Redis），键/索引/选取逻辑被真实执行
+                  services.Replace(ServiceDescriptor.Singleton<IMultilevelCacheClient, InMemoryMultilevelCacheClient>());
               });
           });
 

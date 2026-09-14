@@ -1,3 +1,4 @@
+using Cike.Caching;
 using Cike.Workflow.EntityFrameworkCore;
 
 namespace Cike.Workflow.EntityFrameworkCore.Tests.Infrastructure;
@@ -17,6 +18,8 @@ public class CikeWorkflowEfCoreTestModule : CikeModule
 
         // 缓存替身（Singleton，模拟 Redis 跨 Scope 可见性）
         context.Services.Replace(ServiceDescriptor.Singleton(typeof(ICacheService<>), typeof(InMemoryCacheService<>)));
+        // 定义运行时缓存的真实实现跑在此内存介质上（不依赖 Redis），键/索引/选取逻辑被真实执行
+        context.Services.Replace(ServiceDescriptor.Singleton<IMultilevelCacheClient, InMemoryMultilevelCacheClient>());
 
         // 测试基座不启用环境事务：生产由请求管道的事务中间件统一提交，测试没有该中间件，
         // 不关闭的话仓储 autoSave 写入停留在未提交事务里，Scope 销毁即回滚、跨 Scope 不可见

@@ -12,4 +12,9 @@
     <PackageReference Include="Cike.Auth" Version="$(CikeVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 定义缓存模型引用 Options 值对象与定义类型枚举；Domain.Shared 不反向引用 Caching，无环 -->
+    <ProjectReference Include="..\Cike.Workflow.Domain.Shared\Cike.Workflow.Domain.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

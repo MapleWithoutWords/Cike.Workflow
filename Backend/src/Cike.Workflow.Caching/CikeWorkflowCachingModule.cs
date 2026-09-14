@@ -12,6 +12,7 @@ public class CikeWorkflowCachingModule : CikeModule
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
         context.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(ICacheService<>), typeof(BaseCacheService<>)));
+        context.Services.Replace(ServiceDescriptor.Scoped<IWorkflowDefinitionCache, WorkflowDefinitionCache>());
 
         await base.ConfigureServicesAsync(context);
     }
