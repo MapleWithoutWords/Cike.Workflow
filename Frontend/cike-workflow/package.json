@@ -11,11 +11,15 @@
   "dependencies": {
     "@lucide/vue": "^1.46.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "geist": "^1.7.2",
+    "radix-vue": "^1.9.17",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3",
-    "vue": "^3.5.42"
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
