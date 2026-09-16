@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Cike.EntityFrameworkCore.Repositories;
 
-public class ActivityInstanceExecutionRecordRepository(CikeWorkflowDbContenxt context, IPayloadSerializer payloadSerializer, ILogger<ActivityInstanceExecutionRecordRepository> logger)
-    : SerializedEfCoreRepository<CikeWorkflowDbContenxt, ActivityInstanceExecutionRecord>(context), IActivityInstanceExecutionRecordRepository, IScopedDependency
+public class ActivityInstanceExecutionRecordRepository(CikeWorkflowDbContext context, IPayloadSerializer payloadSerializer, ILogger<ActivityInstanceExecutionRecordRepository> logger)
+    : SerializedEfCoreRepository<CikeWorkflowDbContext, ActivityInstanceExecutionRecord>(context), IActivityInstanceExecutionRecordRepository, IScopedDependency
 {
     protected override ValueTask OnSaveAsync(ActivityInstanceExecutionRecord entity, CancellationToken cancellationToken)
     {

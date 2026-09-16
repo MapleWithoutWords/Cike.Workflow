@@ -40,7 +40,7 @@ public sealed class CikeWorkflowEfCoreTestHost : IAsyncDisposable
         // 建表
         using (var scope = _serviceProvider.CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
             await dbContext.Database.EnsureCreatedAsync();
         }
     }
@@ -60,7 +60,7 @@ public sealed class CikeWorkflowEfCoreTestHost : IAsyncDisposable
     public async Task SeedAsync<TEntity>(Action<TEntity>? configure, CancellationToken cancellationToken = default) where TEntity : class, new()
     {
         using var scope = CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var entity = new TEntity();
         configure?.Invoke(entity);
         dbContext.Add(entity);

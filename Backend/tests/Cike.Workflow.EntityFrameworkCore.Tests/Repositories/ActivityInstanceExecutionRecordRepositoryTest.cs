@@ -32,7 +32,7 @@ public class ActivityInstanceExecutionRecordRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<ActivityInstanceExecutionRecord>().FirstOrDefaultAsync(e => e.Id == id);
 
         // 空集合写 null 语义：所有影子属性均为 null
@@ -62,7 +62,7 @@ public class ActivityInstanceExecutionRecordRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<ActivityInstanceExecutionRecord>().FirstOrDefaultAsync(e => e.Id == id);
 
         Assert.That(GetShadow(tracked!, "SerializedActivityState", dbContext), Does.Contain("phase"));
@@ -97,14 +97,14 @@ public class ActivityInstanceExecutionRecordRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<ActivityInstanceExecutionRecord>().FirstOrDefaultAsync(e => e.Id == id);
 
         // 迁移修复项：Update 路径同样执行序列化
         Assert.That(GetShadow(tracked!, "SerializedOutputs", dbContext), Does.Contain("after"));
     }
 
-    private static string? GetShadow(ActivityInstanceExecutionRecord entity, string propertyName, CikeWorkflowDbContenxt dbContext)
+    private static string? GetShadow(ActivityInstanceExecutionRecord entity, string propertyName, CikeWorkflowDbContext dbContext)
         => (string?)dbContext.Entry(entity).Property(propertyName).CurrentValue;
 
     [Test]
@@ -121,7 +121,7 @@ public class ActivityInstanceExecutionRecordRepositoryTest : RepositoryTestBase
         long id;
         using (var scope = CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
             var tracked = await dbContext.Set<ActivityInstanceExecutionRecord>().FirstAsync(e => e.ActivityId == "activity-corrupt");
             dbContext.Entry(tracked).Property("SerializedActivityState").CurrentValue = "{corrupted-json";
             await dbContext.SaveChangesAsync();

@@ -22,9 +22,9 @@ namespace Cike.EntityFrameworkCore.Repositories;
 /// 对"发布是显式操作 + 已发布行不可变"的场景风险可控。
 /// </para>
 /// </summary>
-public class WorkflowDefinitionRepository(CikeWorkflowDbContenxt context, IPayloadSerializer payloadSerializer,
+public class WorkflowDefinitionRepository(CikeWorkflowDbContext context, IPayloadSerializer payloadSerializer,
     ILogger<WorkflowDefinitionRepository> logger, IWorkflowDefinitionCache workflowDefinitionCache)
-    : SerializedEfCoreRepository<CikeWorkflowDbContenxt, WorkflowDefinition>(context), IWorkflowDefinitionRepository, IScopedDependency
+    : SerializedEfCoreRepository<CikeWorkflowDbContext, WorkflowDefinition>(context), IWorkflowDefinitionRepository, IScopedDependency
 {
     public override async Task InsertManyAsync(IEnumerable<WorkflowDefinition> entities, bool autoSave = true, CancellationToken cancellationToken = default)
     {

@@ -33,7 +33,7 @@ public class BookmarkRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<BookmarkEntity>().FirstOrDefaultAsync(e => e.Id == id);
 
         var payloadJson = (string?)dbContext.Entry(tracked!).Property("SerializedPayload").CurrentValue;
@@ -57,7 +57,7 @@ public class BookmarkRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<BookmarkEntity>().FirstOrDefaultAsync(e => e.Id == id);
 
         Assert.That(dbContext.Entry(tracked!).Property("SerializedPayload").CurrentValue, Is.Null);
@@ -87,7 +87,7 @@ public class BookmarkRepositoryTest : RepositoryTestBase
         }
 
         using var verifyScope = CreateScope();
-        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = verifyScope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var tracked = await dbContext.Set<BookmarkEntity>().FirstOrDefaultAsync(e => e.Id == id);
         var payloadJson = (string?)dbContext.Entry(tracked!).Property("SerializedPayload").CurrentValue;
 

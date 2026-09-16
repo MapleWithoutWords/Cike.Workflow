@@ -1,6 +1,6 @@
 namespace Cike.EntityFrameworkCore;
 
-public class CikeWorkflowDbContenxt : CikeDbContext<CikeWorkflowDbContenxt>
+public class CikeWorkflowDbContext : CikeDbContext<CikeWorkflowDbContext>
 {
     public DbSet<Folder> Folders { get; set; }
 
@@ -14,7 +14,7 @@ public class CikeWorkflowDbContenxt : CikeDbContext<CikeWorkflowDbContenxt>
 
     public DbSet<BookmarkQueueItem> BookmarkQueueItems { get; set; }
 
-    public CikeWorkflowDbContenxt(DbContextOptions<CikeWorkflowDbContenxt> options, IServiceProvider serviceProvider) : base(options, serviceProvider)
+    public CikeWorkflowDbContext(DbContextOptions<CikeWorkflowDbContext> options, IServiceProvider serviceProvider) : base(options, serviceProvider)
     {
     }
 

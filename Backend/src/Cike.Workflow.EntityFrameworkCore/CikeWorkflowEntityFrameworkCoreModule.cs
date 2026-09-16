@@ -11,7 +11,7 @@ public class CikeWorkflowEntityFrameworkCoreModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
-        context.Services.AddCikeDbContext<CikeWorkflowDbContenxt>();
+        context.Services.AddCikeDbContext<CikeWorkflowDbContext>();
         await base.ConfigureServicesAsync(context);
     }
 }

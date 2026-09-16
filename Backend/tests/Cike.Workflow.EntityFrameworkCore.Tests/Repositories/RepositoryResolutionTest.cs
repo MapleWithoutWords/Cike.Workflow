@@ -39,6 +39,6 @@ public class RepositoryResolutionTest : RepositoryTestBase
 
         var repository = scope.ServiceProvider.GetRequiredService<IRepository<BookmarkQueueItem, long>>();
 
-        Assert.That(repository, Is.InstanceOf<EfCoreRepository<CikeWorkflowDbContenxt, BookmarkQueueItem, long>>());
+        Assert.That(repository, Is.InstanceOf<EfCoreRepository<CikeWorkflowDbContext, BookmarkQueueItem, long>>());
     }
 }

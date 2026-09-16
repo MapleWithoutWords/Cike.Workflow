@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Cike.EntityFrameworkCore.Repositories;
 
-public class WorkflowInstanceRepository(CikeWorkflowDbContenxt context, IWorkflowStateSerializer workflowStateSerializer, ILogger<WorkflowInstanceRepository> logger)
-    : SerializedEfCoreRepository<CikeWorkflowDbContenxt, WorkflowInstance>(context), IWorkflowInstanceRepository, IScopedDependency
+public class WorkflowInstanceRepository(CikeWorkflowDbContext context, IWorkflowStateSerializer workflowStateSerializer, ILogger<WorkflowInstanceRepository> logger)
+    : SerializedEfCoreRepository<CikeWorkflowDbContext, WorkflowInstance>(context), IWorkflowInstanceRepository, IScopedDependency
 {
     protected override ValueTask OnSaveAsync(WorkflowInstance entity, CancellationToken cancellationToken)
     {

@@ -20,7 +20,7 @@ public class WorkflowDefinitionRepositoryTest : RepositoryTestBase
     private async Task<string?> GetRawSerializedOptionsAsync(long id)
     {
         using var scope = CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var entity = await dbContext.Set<WorkflowDefinition>().FirstOrDefaultAsync(e => e.Id == id);
         return entity == null ? null : (string?)dbContext.Entry(entity).Property("SerializedOptions").CurrentValue;
     }
@@ -106,7 +106,7 @@ public class WorkflowDefinitionRepositoryTest : RepositoryTestBase
         long id;
         using (var scope = CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
             var tracked = await dbContext.Set<WorkflowDefinition>().FirstAsync(e => e.DefinitionId == "WF_corrupt");
             dbContext.Entry(tracked).Property("SerializedOptions").CurrentValue = "{corrupted-json";
             await dbContext.SaveChangesAsync();

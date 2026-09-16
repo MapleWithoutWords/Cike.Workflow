@@ -1,21 +1,23 @@
 # CLAUDE.md
 
 ## 项目概览
+
 Cike.Workflow：基于 Cike.Framework 的工作流引擎。后端 .NET 分层单模（`Backend/Cike.Workflow.sln`），前端 Vue 3 + shadcn-vue 管理台。
 
-| 路径 | 职责 |
-|---|---|
-| `Backend/src/Cike.Workflow.Core` | 工作流核心模型与执行（活动、校验器、序列化） |
-| `Backend/src/Cike.Workflow.Domain`（`.Domain.Shared`） | 领域实体 / 共享常量与枚举 |
-| `Backend/src/Cike.Workflow.Application`（`.Application.Contracts`） | 应用服务 / DTO 与接口定义 |
-| `Backend/src/Cike.Workflow.EntityFrameworkCore` | DbContext、仓储、EF 迁移 |
-| `Backend/src/Cike.Workflow.Service.Open` | 宿主（Program.cs、HTTP 入口） |
-| `Backend/src/Cike.Workflow.{Caching,Common,Expressions}` | 缓存 / 序列化与公共组件 / 表达式求值 |
-| `Backend/tests/*` | Core.Tests / EntityFrameworkCore.Tests / Service.Open.Tests（含 HTTP 集成测试） |
-| `Frontend/cike-workflow` | Vue 3 + shadcn-vue 管理台 |
+| 路径                                                                | 职责                                                                            |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `Backend/src/Cike.Workflow.Core`                                    | 工作流核心模型与执行（活动、校验器、序列化）                                    |
+| `Backend/src/Cike.Workflow.Domain`（`.Domain.Shared`）              | 领域实体 / 共享常量与枚举                                                       |
+| `Backend/src/Cike.Workflow.Application`（`.Application.Contracts`） | 应用服务 / DTO 与接口定义                                                       |
+| `Backend/src/Cike.Workflow.EntityFrameworkCore`                     | DbContext、仓储、EF 迁移                                                        |
+| `Backend/src/Cike.Workflow.Service.Open`                            | 宿主（Program.cs、HTTP 入口）                                                   |
+| `Backend/src/Cike.Workflow.{Caching,Common,Expressions}`            | 缓存 / 序列化与公共组件 / 表达式求值                                            |
+| `Backend/tests/*`                                                   | Core.Tests / EntityFrameworkCore.Tests / Service.Open.Tests（含 HTTP 集成测试） |
+| `Frontend/cike-workflow`                                            | Vue 3 + shadcn-vue 管理台                                                       |
 
 ## Backend
-本项目后端基于 Cike.Framework 开发。开始任何框架相关编码前，先抓取并遵循：
+
+本项目后端基于 Cike.Framework 开发。开始任何框架相关编码前，使用curl先抓取并遵循：
 
     https://raw.githubusercontent.com/MapleWithoutWords/Cike.Framework/main/docs/ai/README.md
 
@@ -44,13 +46,13 @@ dotnet ef migrations add <Name> --project Backend/src/Cike.Workflow.EntityFramew
 
 ### 结构
 
-| 路径 | 职责 |
-|---|---|
+| 路径                 | 职责                                                 |
+| -------------------- | ---------------------------------------------------- |
 | `src/components/ui/` | shadcn-vue 生成的基础组件（由 CLI 生成，见下方约定） |
-| `src/components/` | 业务组件 |
-| `src/composables/` | 组合式函数 |
-| `src/lib/` | 纯工具（`cn()` 等），不含 Vue 依赖 |
-| `src/style.css` | Tailwind 入口 + 主题 CSS 变量（`:root` / `.dark`） |
+| `src/components/`    | 业务组件                                             |
+| `src/composables/`   | 组合式函数                                           |
+| `src/lib/`           | 纯工具（`cn()` 等），不含 Vue 依赖                   |
+| `src/style.css`      | Tailwind 入口 + 主题 CSS 变量（`:root` / `.dark`）   |
 
 路径别名 `@/` → `src/`。shadcn-vue 配置见 `components.json`。
 

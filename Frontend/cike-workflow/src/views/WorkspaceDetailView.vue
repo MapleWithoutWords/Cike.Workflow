@@ -1,10 +1,24 @@
 <script setup lang="ts">
+import { ref, onMounted } from "vue"
 import { RouterLink, useRoute } from "vue-router"
-import { useWorkspaceContext } from "@/composables/useWorkspaceContext"
+import { getApiV1Workspaces } from "@/api"
+import type { WorkspaceItemDto } from "@/api"
+import { setWorkspaceName } from "@/composables/useWorkspaceName"
 import { cn } from "@/lib/utils"
 
 const route = useRoute()
-const { workspaceId, workspaceName } = useWorkspaceContext()
+const workspaceId = route.params.workspaceId as string
+
+const workspace = ref<WorkspaceItemDto | null>(null)
+
+onMounted(async () => {
+  const { data } = await getApiV1Workspaces({ query: { workspaceId } })
+  workspace.value = data ?? null
+  // 写入共享状态供面包屑显示空间名称
+  if (data?.name) {
+    setWorkspaceName(workspaceId, data.name)
+  }
+})
 
 const tabs = [
   { label: "工作流定义", routeName: "definitions" },
@@ -24,7 +38,7 @@ function isTabActive(routeName: string) {
     <!-- Workspace Header -->
     <div>
       <h1 class="text-xl font-semibold tracking-tight">
-        {{ workspaceName || "空间" }}
+        {{ workspace?.name || "空间" }}
       </h1>
     </div>
 

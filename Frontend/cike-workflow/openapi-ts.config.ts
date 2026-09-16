@@ -12,6 +12,7 @@ export default defineConfig({
     },
     {
       name: '@hey-api/typescript',
+      fileName: 'types.ts',
       $resolvers: {
         number(ctx) {
           // 后端全局注册 LongToStringConverter：long(Int64) 在 JSON 中序列化为字符串，
@@ -23,6 +24,9 @@ export default defineConfig({
         },
       },
     },
-    '@hey-api/sdk',
+    {
+      name: '@hey-api/sdk',
+      fileName: 'sdk.ts',
+    },
   ],
 })

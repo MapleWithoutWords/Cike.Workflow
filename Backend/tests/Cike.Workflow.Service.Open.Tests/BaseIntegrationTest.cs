@@ -58,7 +58,7 @@ public abstract class BaseIntegrationTest : IDisposable
         // 建表（模型驱动，含最新索引定义）
         using (var scope = _app.Services.CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
             dbContext.Database.EnsureCreated();
         }
 

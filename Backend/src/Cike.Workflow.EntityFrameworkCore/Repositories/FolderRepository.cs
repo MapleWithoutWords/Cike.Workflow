@@ -1,4 +1,4 @@
 namespace Cike.EntityFrameworkCore.Repositories;
 
-public class FolderRepository(CikeWorkflowDbContenxt context, ICacheService<FolderCacheModel> cacheService)
-    : CachedEfCoreRepository<CikeWorkflowDbContenxt, Folder, FolderCacheModel>(context, cacheService), IFolderRepository, IScopedDependency;
+public class FolderRepository(CikeWorkflowDbContext context, ICacheService<FolderCacheModel> cacheService)
+    : CachedEfCoreRepository<CikeWorkflowDbContext, Folder, FolderCacheModel>(context, cacheService), IFolderRepository, IScopedDependency;

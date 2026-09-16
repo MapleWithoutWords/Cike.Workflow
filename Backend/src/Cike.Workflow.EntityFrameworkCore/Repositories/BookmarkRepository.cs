@@ -3,8 +3,8 @@ using System.Linq.Dynamic.Core;
 
 namespace Cike.EntityFrameworkCore.Repositories;
 
-public class BookmarkRepository(CikeWorkflowDbContenxt context, IPayloadSerializer payloadSerializer)
-    : SerializedEfCoreRepository<CikeWorkflowDbContenxt, BookmarkEntity>(context), IBookmarkRepository, IScopedDependency
+public class BookmarkRepository(CikeWorkflowDbContext context, IPayloadSerializer payloadSerializer)
+    : SerializedEfCoreRepository<CikeWorkflowDbContext, BookmarkEntity>(context), IBookmarkRepository, IScopedDependency
 {
     /// <summary>框架的无排序列表查询与迁移前的列表行为对齐：结果同样反序列化。</summary>
     public override Task<List<BookmarkEntity>> GetListAsync(Expression<Func<BookmarkEntity, bool>> predicate, CancellationToken cancellationToken = default)

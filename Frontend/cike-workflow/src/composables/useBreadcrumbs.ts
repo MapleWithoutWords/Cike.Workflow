@@ -1,6 +1,6 @@
 import { computed } from "vue"
 import { useRoute } from "vue-router"
-import { getWorkspaceName } from "@/mock/workspaces"
+import { getWorkspaceName } from "@/composables/useWorkspaceName"
 
 export interface BreadcrumbItem {
   label: string
@@ -24,14 +24,13 @@ export function useBreadcrumbs() {
     crumbs.push({ label: "空间管理", to: "/workspaces" })
 
     const workspaceId = route.params.workspaceId as string | undefined
-    const workspaceName =
-      (route.meta.workspaceName as string) || getWorkspaceName(workspaceId)
+    const workspaceName = getWorkspaceName(workspaceId)
 
     if (!workspaceId) return crumbs
 
     // 空间层级（可切换节点由 AppBreadcrumb 单独处理）
     crumbs.push({
-      label: workspaceName,
+      label: workspaceName || workspaceId,
       to: `/workspaces/${workspaceId}/definitions`,
     })
 

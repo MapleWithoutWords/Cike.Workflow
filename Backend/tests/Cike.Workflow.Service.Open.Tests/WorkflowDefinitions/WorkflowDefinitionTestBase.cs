@@ -107,7 +107,7 @@ public abstract class WorkflowDefinitionTestBase : BaseIntegrationTest
     protected async Task SeedDefinitionAsync(string definitionId, Action<WorkflowDefinition> configure)
     {
         using var scope = _rootServices.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContenxt>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
         var entities = await dbContext.WorkflowDefinitions.Where(x => x.DefinitionId == definitionId).ToListAsync();
         foreach (var entity in entities)
             configure(entity);
