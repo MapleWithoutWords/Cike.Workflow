@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cike.Workflow.Domain.Shared.ValueObjects;
 
-public class ResumeBookmarkOptions
+public class ResumeBookmarkOptionsValueObject
 {
     /// <summary>
     /// The input to provide to the workflow.

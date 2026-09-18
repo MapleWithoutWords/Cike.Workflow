@@ -1,11 +1,6 @@
-using Cike.Core.DependencyInjection;
-using Cike.Workflow.Common.Serialization;
-using Cike.Workflow.Expressions.Extensions;
-using Cike.Workflow.Expressions.Internals;
-
 namespace Cike.Workflow.Expressions.LiteralExpressions;
 
-public class LiteralExpressionHandler : IExpressionHandler, IScopedDependency
+public class LiteralExpressionHandler : IExpressionHandler
 {
     private readonly ISerializationTypeRegistry _serializationTypeRegistry;
 

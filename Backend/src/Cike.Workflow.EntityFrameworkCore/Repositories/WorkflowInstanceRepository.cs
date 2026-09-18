@@ -1,6 +1,8 @@
 using Cike.Workflow.Core.Runners.Models;
 using Cike.Workflow.Core.Serialization;
+using Cike.Workflow.Domain.Filters;
 using Microsoft.Extensions.Logging;
+using System.Linq.Dynamic.Core;
 
 namespace Cike.EntityFrameworkCore.Repositories;
 
@@ -31,5 +33,28 @@ public class WorkflowInstanceRepository(CikeWorkflowDbContext context, IWorkflow
         }
 
         return ValueTask.CompletedTask;
+    }
+
+    public async ValueTask<WorkflowInstance?> FindAsync(WorkflowInstanceFilter filter, CancellationToken cancellationToken = default)
+    {
+        var list = await FindManyAsync(filter, cancellationToken);
+        return list.FirstOrDefault();
+    }
+
+    public async ValueTask<IEnumerable<WorkflowInstance>> FindManyAsync(WorkflowInstanceFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = filter.Apply(GetQueryable());
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task<(long Total, List<WorkflowInstance> Items)> GetPagedListAsync(WorkflowInstanceFilter filter, string? sorting, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = filter.Apply(GetQueryable()).AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(sorting))
+            query = query.OrderBy(sorting);
+
+        var total = await query.LongCountAsync(cancellationToken);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (total, items);
     }
 }

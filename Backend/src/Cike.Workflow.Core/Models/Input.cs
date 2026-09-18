@@ -1,4 +1,5 @@
 using Cike.Workflow.Expressions.LiteralExpressions;
+using System.Runtime.CompilerServices;
 
 namespace Cike.Workflow.Core.Models;
 
@@ -64,5 +65,10 @@ public class Input<T> : Input
     {
         var value = context.Get(this);
         return value != null ? value : defaultValue != null ? defaultValue.Invoke() : default;
+    }
+
+    public T Get(ActivityExecutionContext context, [CallerArgumentExpression("input")] string? inputName = default)
+    {
+        return context.Get(this) ?? throw new Exception($"{inputName} is required.");
     }
 }

@@ -14,6 +14,8 @@ public class CikeWorkflowDbContext : CikeDbContext<CikeWorkflowDbContext>
 
     public DbSet<BookmarkQueueItem> BookmarkQueueItems { get; set; }
 
+    public DbSet<TriggerEntity> Triggers { get; set; }
+
     public CikeWorkflowDbContext(DbContextOptions<CikeWorkflowDbContext> options, IServiceProvider serviceProvider) : base(options, serviceProvider)
     {
     }

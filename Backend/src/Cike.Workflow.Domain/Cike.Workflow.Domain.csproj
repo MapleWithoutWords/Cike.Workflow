@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Cike.Data.Domain" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.Caching" Version="$(CikeVersion)" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.4" />
   </ItemGroup>
 
   <ItemGroup>

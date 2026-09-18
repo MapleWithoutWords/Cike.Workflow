@@ -19,7 +19,7 @@ public class CikeWorkflowExpressionModule : CikeModule
         {
             Type = "Literal",
             DisplayName = "Literal",
-            HandlerFactory = serviceProvider => serviceProvider.GetRequiredService<LiteralExpressionHandler>()
+            HandlerFactory = serviceProvider => ActivatorUtilities.GetServiceOrCreateInstance<LiteralExpressionHandler>(serviceProvider)
         });
 
         await base.ConfigureServicesAsync(context);

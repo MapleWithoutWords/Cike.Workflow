@@ -1,4 +1,16 @@
 global using Cike.Core.Modularity;
 global using Cike.Domain;
+global using Cike.Uow;
 global using Cike.Workflow.Application.Contracts;
 global using Cike.Workflow.Caching;
+global using Cike.Workflow.Core.Helpers;
+global using Cike.Workflow.Domain.Data;
+global using Cike.Workflow.Domain.Data.Entities;
+global using Cike.Workflow.Domain.Shared.ValueObjects;
+global using Cike.Workflow.Runtime.Bookmarks;
+global using Cike.Workflow.Runtime.Models;
+global using Microsoft.Extensions.Logging;
+global using Cike.Workflow.Runtime.Triggers.Models;
+global using Cike.Workflow.Runtime.WorkflowDefintions;
+global using Cike.Workflow.Core.Stimulus;
+global using Cike.Workflow.Core.Contexts;

@@ -1,0 +1,41 @@
+using Cike.AspNetCore.MinimalAPIs.EndpointFilters;
+using Cike.Contracts.EntityDtos;
+using Cike.EventBus.Local;
+using Cike.Workflow.Application.Contracts.WorkflowInstances;
+using Cike.Workflow.Application.WorkflowInstances.Queries;
+using Cike.Workflow.Domain.Filters;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Cike.Workflow.Service.Open.Services;
+
+[AutoValidation]
+public class WorkflowInstanceService : MinimalApiServiceBase
+{
+    /// <summary>
+    /// 分页查询工作流实例。过滤条件含集合与时间戳过滤，走 POST body；
+    /// 分页参数走查询串。Sorting 为空时按创建时间倒序。
+    /// </summary>
+    public async Task<Results<Ok<PagedResultDto<WorkflowInstanceItemDto>>, BadRequest>> PostPagedListAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        WorkflowInstanceFilter? filter,
+        [AsParameters] PagedAndSortedResultRequest pageDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(pageDto.Sorting))
+            pageDto.Sorting = "CreatedAt desc";
+        var query = new GetPagedWorkflowInstanceListQuery(filter ?? new WorkflowInstanceFilter(), pageDto);
+        await localEventBus.PublishAsync(query, cancellationToken);
+        return TypedResults.Ok(query.Result);
+    }
+
+    public async Task<Results<Ok<WorkflowInstanceDetailDto>, BadRequest>> GetAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetWorkflowInstanceQuery(id);
+        await localEventBus.PublishAsync(query, cancellationToken);
+        return TypedResults.Ok(query.Result);
+    }
+}

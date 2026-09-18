@@ -592,5 +592,10 @@ public class WorkflowExecutionContext : IExecutionContext
         foreach (var item in itemsToRemove)
             RemoveActivityExecutionContext(item);
     }
+
+    public void ClearCompletedActivityExecutionContexts()
+    {
+        RemoveActivityExecutionContexts(x => x is { IsCompleted: true, ParentActivityExecutionContext: not null });
+    }
     #endregion
 }

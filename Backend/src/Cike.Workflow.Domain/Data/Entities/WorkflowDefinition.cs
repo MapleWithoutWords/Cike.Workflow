@@ -1,4 +1,5 @@
 using Cike.Data;
+using Cike.Workflow.Common.Versions;
 using Cike.Workflow.Core.Models;
 using Cike.Workflow.Core.Variables;
 using Cike.Workflow.Domain.Shared.Enums;
@@ -6,7 +7,7 @@ using Cike.Workflow.Domain.Shared.ValueObjects;
 
 namespace Cike.Workflow.Domain.Data.Entities;
 
-public class WorkflowDefinition : FullAuditedAggregateRoot<long>, IMultiTenant
+public class WorkflowDefinition : FullAuditedAggregateRoot<long>, IMultiTenant, IVersion
 {
     public WorkflowDefinition()
     {

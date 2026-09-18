@@ -78,6 +78,7 @@ pnpm dlx shadcn-vue@latest add <component>
 - **组件命名模式**：表单类独立为 `*Form.vue`，对话框类独立为 `*Dialog.vue` / `*Modal.vue`（确认框用 `AlertDialog`），不内联在页面或其他组件里
 - **样式**：业务样式只负责布局与组合（间距、排列、尺寸），不改 `ui/` 组件的圆角 / 边框 / 阴影 / 配色等外观底座；颜色一律走主题变量（`bg-primary`、`text-muted-foreground` 等），禁止硬编码色值、禁止使用 `src/style.css` 未定义的 token；多 class 合并用 `@/lib/utils` 的 `cn()`
 - **图标**：统一用 `@lucide/vue`，禁止引入 `lucide-vue-next` 或其他图标库
+- **工作流设计器**：图编辑引擎统一用 **AntV X6 3.x**（`@antv/x6` + `@antv/x6-vue-shape`），Vue SFC 通过 `x6-vue-shape` 的 `register()` 注册为节点 shape；官方插件按需引入（3.x 起 `History` / `Clipboard` / `Keyboard` / `Selection` / `MiniMap` / `Snapline` / `Stencil` / `Dnd` / `Export` / `Scroller` / `Transform` 已从主包统一导出，不再需要装 `@antv/x6-plugin-*` 子包）；禁止引入 vue-flow / react-flow / bpmn-js / LogicFlow 等替代图编辑库
 - **验证**：改动后跑 `pnpm build`（含 vue-tsc 类型检查）确认无类型错误
 - **当前设施边界**：router / 状态管理 / ESLint / 测试尚未落地，引入前先与用户确认方案
 

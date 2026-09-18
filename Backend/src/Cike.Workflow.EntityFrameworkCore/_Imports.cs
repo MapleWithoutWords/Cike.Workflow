@@ -1,5 +1,7 @@
 global using Cike.Core.DependencyInjection;
 global using Cike.Core.Modularity;
+global using Cike.Workflow.Common.Extensions;
+global using Cike.Workflow.Common.Versions;
 global using Cike.Data;
 global using Cike.Data.EFCore;
 global using Cike.Data.EFCore.MySql;

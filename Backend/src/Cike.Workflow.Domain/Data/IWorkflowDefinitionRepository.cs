@@ -1,12 +1,31 @@
 using System.Linq.Expressions;
+using Cike.Workflow.Common.Versions;
 
 namespace Cike.Workflow.Domain.Data;
 
 public interface IWorkflowDefinitionRepository : IRepository<WorkflowDefinition, long>
 {
     /// <summary>
-    /// 带排序的列表查询（兼容迁移前的 Store 签名，排序经 System.Linq.Dynamic.Core 解析）。
-    /// 注意：与迁移前一致，本方法不反序列化影子属性。
+    /// 按定义 Id + <see cref="VersionOptions"/> 寻址单条版本行：版本过滤在数据库端完成，
+    /// Version 降序取首（与缓存解析同源语义）；返回实体已经 <c>FindAsync</c> 还原影子属性 Options。
+    /// 未命中返回 null。
     /// </summary>
-    Task<List<WorkflowDefinition>> GetListAsync(Expression<Func<WorkflowDefinition, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default);
+    Task<WorkflowDefinition?> FindWorkflowDefinitionAsync(string definitionId, VersionOptions versionOptions, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 批量取各定义已发布的最高版本号（数据库端 GroupBy Max）：未发布草稿要展示"当前已发布版本"时用。
+    /// </summary>
+    Task<Dictionary<string, int>> GetPublishedVersionMapAsync(IReadOnlyCollection<string> definitionIds, CancellationToken cancellationToken = default);
+
+    /// <summary>按版本行 Id 批量取行名称（数据库端投影）。</summary>
+    Task<Dictionary<long, string>> GetNamesByIdsAsync(IReadOnlyCollection<long> versionIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 移动某定义的全部版本行到目标目录：数据库端 ExecuteUpdate 批量更新，
+    /// 随后重读受影响行 write-through 同步运行时缓存。
+    /// </summary>
+    Task MoveAsync(string definitionId, long folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>删除某定义的全部版本行（软删 + 按版本清理运行时缓存）。</summary>
+    Task DeleteVersionsAsync(string definitionId, CancellationToken cancellationToken = default);
 }

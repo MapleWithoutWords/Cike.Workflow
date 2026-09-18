@@ -4,7 +4,7 @@ namespace Cike.Workflow.EntityFrameworkCore.Tests.Repositories;
 
 /// <summary>
 /// WorkflowDefinition 仓储：影子属性（SerializedOptions）序列化 round-trip——
-/// 插入写 JSON、更新写新值 JSON（迁移修复项）、单查还原、损坏 JSON 容错、排序兼容重载。
+/// 插入写 JSON、更新写新值 JSON（迁移修复项）、单查还原、损坏 JSON 容错。
 /// </summary>
 public class WorkflowDefinitionRepositoryTest : RepositoryTestBase
 {
@@ -118,31 +118,5 @@ public class WorkflowDefinitionRepositoryTest : RepositoryTestBase
 
         Assert.That(restored, Is.Not.Null);
         Assert.That(restored!.Options, Is.Not.Null);
-    }
-
-    [Test]
-    public async Task GetListAsync_WithExplicitSorting_SortsByGivenExpression()
-    {
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 2; e.DefinitionId = "WF_sort_1"; e.Name = "s1"; e.Description = "d"; e.Version = 1; e.CreatedAt = new DateTime(2024, 1, 1); });
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 2; e.DefinitionId = "WF_sort_2"; e.Name = "s2"; e.Description = "d"; e.Version = 3; e.CreatedAt = new DateTime(2024, 1, 2); });
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 2; e.DefinitionId = "WF_sort_3"; e.Name = "s3"; e.Description = "d"; e.Version = 2; e.CreatedAt = new DateTime(2024, 1, 3); });
-
-        var versions = await WithScopeAsync(sp => sp.GetRequiredService<IWorkflowDefinitionRepository>()
-            .GetListAsync(e => e.WorkspaceId == 2, "Version desc"));
-
-        Assert.That(versions.Select(e => e.Version), Is.EqualTo(new[] { 3, 2, 1 }));
-    }
-
-    [Test]
-    public async Task GetListAsync_WithDefaultSorting_SortsByCreatedAtDesc()
-    {
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 3; e.DefinitionId = "WF_defsort_1"; e.Name = "d1"; e.Description = "d"; e.CreatedAt = new DateTime(2024, 1, 1); });
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 3; e.DefinitionId = "WF_defsort_2"; e.Name = "d2"; e.Description = "d"; e.CreatedAt = new DateTime(2024, 1, 2); });
-        await Host.SeedAsync<WorkflowDefinition>(e => { e.WorkspaceId = 3; e.DefinitionId = "WF_defsort_3"; e.Name = "d3"; e.Description = "d"; e.CreatedAt = new DateTime(2024, 1, 3); });
-
-        var items = await WithScopeAsync(sp => sp.GetRequiredService<IWorkflowDefinitionRepository>()
-            .GetListAsync(e => e.WorkspaceId == 3));
-
-        Assert.That(items.Select(e => e.Name), Is.EqualTo(new[] { "d3", "d2", "d1" }));
     }
 }

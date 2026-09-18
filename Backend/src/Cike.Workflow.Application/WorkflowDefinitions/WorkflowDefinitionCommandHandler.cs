@@ -1,3 +1,4 @@
+using Cike.Workflow.Common.Versions;
 using Cike.Workflow.Core.Activities.FlowchartActivity;
 using Cike.Workflow.Core.Serialization;
 using Cike.Workflow.Core.Validation;
@@ -20,13 +21,11 @@ public class WorkflowDefinitionCommandHandler(
     {
         var dto = command.Dto;
 
-        if (!await workspaceRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
+        if (!await workspaceRepository.AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("所属工作空间不存在，请检查后重试。");
 
         if (dto.FolderId != 0
-            && !await folderRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.Id == dto.FolderId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
+            && !await folderRepository.AnyAsync(x => x.Id == dto.FolderId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("目录不属于该工作空间，请检查后重试。");
 
         if (dto.DefinitionId.IsNullOrEmpty())
@@ -98,11 +97,8 @@ public class WorkflowDefinitionCommandHandler(
         if (entity.IsSystem)
             throw new UserFriendlyException("系统内置工作流不允许删除。");
 
-        var versions = await workflowDefinitionRepository.GetQueryable()
-            .Where(x => x.DefinitionId == entity.DefinitionId)
-            .ToListAsync(cancellationToken);
-
-        await workflowDefinitionRepository.DeleteManyAsync(versions, cancellationToken: cancellationToken);
+        // 仓储内跟踪物化后批量软删（软删 + 按版本清理运行时缓存都在仓储覆写口完成）
+        await workflowDefinitionRepository.DeleteVersionsAsync(entity.DefinitionId, cancellationToken);
     }
 
     [LocalEventHandler]
@@ -144,31 +140,13 @@ public class WorkflowDefinitionCommandHandler(
 
         if (command.FolderId != 0)
         {
-            var folderExists = await folderRepository.GetQueryable().AsNoTracking()
-                .AnyAsync(x => x.Id == command.FolderId && x.WorkspaceId == entity.WorkspaceId, cancellationToken);
+            var folderExists = await folderRepository.AnyAsync(x => x.Id == command.FolderId && x.WorkspaceId == entity.WorkspaceId, cancellationToken);
             if (!folderExists)
                 throw new UserFriendlyException("目标目录不存在或不属于该工作空间，请检查后重试。");
         }
 
-        // 该定义的所有版本行一起移动（移动不改内容，IsReadonly 不拦截）。
-        // 经 FindAsync 逐行取回：UpdateManyAsync 的 OnSaveAsync 会按实体 Options 重写影子属性，
-        // 必须先经 OnLoadAsync 还原，否则原始 Options 被默认空值覆盖。
-        var versionIds = await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .Where(x => x.DefinitionId == entity.DefinitionId)
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
-        var versions = new List<WorkflowDefinition>();
-        foreach (var versionId in versionIds)
-        {
-            var version = await workflowDefinitionRepository.FindAsync(versionId, cancellationToken);
-            if (version != null)
-            {
-                version.FolderId = command.FolderId;
-                versions.Add(version);
-            }
-        }
-
-        await workflowDefinitionRepository.UpdateManyAsync(versions, cancellationToken: cancellationToken);
+        // 该定义的所有版本行一起移动（移动不改内容，IsReadonly 不拦截）：数据库端批量更新，不物化实体
+        await workflowDefinitionRepository.MoveAsync(entity.DefinitionId, command.FolderId, cancellationToken);
     }
 
     [LocalEventHandler]
@@ -210,17 +188,14 @@ public class WorkflowDefinitionCommandHandler(
 
     private async Task ValidateDuplicateAsync(long workspaceId, string name, string? definitionId, string? excludeDefinitionId, CancellationToken cancellationToken = default)
     {
-        var duplicates = await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .Where(x => x.IsLatest
-                        && (definitionId != null && x.DefinitionId == definitionId
-                            || x.WorkspaceId == workspaceId && x.Name == name
-                               && (excludeDefinitionId == null || x.DefinitionId != excludeDefinitionId)))
-            .Select(x => new { x.DefinitionId, x.Name })
-            .ToListAsync(cancellationToken);
-
-        if (definitionId != null && duplicates.Any(x => x.DefinitionId == definitionId))
+        if (definitionId != null
+            && await workflowDefinitionRepository.AnyAsync(x => x.IsLatest && x.DefinitionId == definitionId, cancellationToken))
             throw new UserFriendlyException("工作流编号已存在，请使用其他编号。");
-        if (duplicates.Any(x => x.Name == name))
+
+        var nameExists = await workflowDefinitionRepository.AnyAsync(x => x.IsLatest
+            && x.WorkspaceId == workspaceId && x.Name == name
+            && (excludeDefinitionId == null || x.DefinitionId != excludeDefinitionId), cancellationToken);
+        if (nameExists)
             throw new UserFriendlyException("工作流名称在该工作空间内已存在，请使用其他名称。");
     }
 
@@ -253,15 +228,8 @@ public class WorkflowDefinitionCommandHandler(
 
     private async Task<WorkflowDefinition> GetLatestAsync(string definitionId, CancellationToken cancellationToken = default)
     {
-        // 经 FindAsync 取回，确保影子属性（SerializedOptions）反序列化还原
-        var latestId = await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .Where(x => x.DefinitionId == definitionId && x.IsLatest)
-            .Select(x => (long?)x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return latestId == null
-            ? throw new UserFriendlyException("工作流定义不存在，请检查后重试。")
-            : await workflowDefinitionRepository.FindAsync(latestId.Value, cancellationToken)
-              ?? throw new UserFriendlyException("工作流定义不存在，请检查后重试。");
+        // 经 FindWorkflowDefinitionAsync（内部 FindAsync）取回，确保影子属性（SerializedOptions）反序列化还原
+        return await workflowDefinitionRepository.FindWorkflowDefinitionAsync(definitionId, VersionOptions.Latest, cancellationToken)
+            ?? throw new UserFriendlyException("工作流定义不存在，请检查后重试。");
     }
 }

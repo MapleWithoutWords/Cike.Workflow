@@ -9,6 +9,7 @@ public class EntitiyConfiguration :
     IEntityTypeConfiguration<WorkflowInstance>,
     IEntityTypeConfiguration<ActivityInstanceExecutionRecord>,
     IEntityTypeConfiguration<BookmarkEntity>,
+    IEntityTypeConfiguration<TriggerEntity>,
     IEntityTypeConfiguration<BookmarkQueueItem>
 {
     public void Configure(EntityTypeBuilder<Workspace> builder)
@@ -157,7 +158,7 @@ public class EntitiyConfiguration :
         builder.Property(e => e.Id).ValueGeneratedNever();
 
         builder.Ignore(x => x.Options);
-        builder.Property(x => x.SerializedOptions);
+        builder.Property<string>("SerializedOptions").HasColumnType("json");
         builder.Property(e => e.CorrelationId).HasMaxLength(128).HasDefaultValue(string.Empty);
         builder.Property(e => e.ActivityTypeName).HasMaxLength(256).HasDefaultValue(string.Empty);
 
@@ -168,5 +169,30 @@ public class EntitiyConfiguration :
         builder.HasIndex(x => x.ActivityInstanceId);
         builder.HasIndex(x => x.ActivityTypeName);
         builder.HasIndex(x => x.CreatedAt);
+    }
+
+    public void Configure(EntityTypeBuilder<TriggerEntity> builder)
+    {
+        builder.Property(e => e.Id).ValueGeneratedNever();
+
+        builder.Ignore(x => x.Payload);
+        builder.Property<string>("SerializedPayload").HasColumnType("json");
+        builder.Property(e => e.WorkflowDefinitionId).HasMaxLength(128);
+        builder.Property(e => e.Name).HasMaxLength(128);
+        builder.Property(e => e.ActivityId).HasMaxLength(128);
+
+        builder.HasIndex(x => x.WorkflowDefinitionId);
+        builder.HasIndex(x => x.WorkflowDefinitionVersionId);
+        builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.Hash);
+        builder.HasIndex(x => x.TenantId);
+
+        builder.HasIndex(x => new
+        {
+            x.WorkflowDefinitionId,
+            x.Hash,
+            x.ActivityId,
+            x.TenantId,
+        }).IsUnique();
     }
 }

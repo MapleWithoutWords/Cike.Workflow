@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cike.Workflow.Core\Cike.Workflow.Core.csproj" />
+    <ProjectReference Include="..\..\src\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Cike.Workflow.Runtime\Cike.Workflow.Runtime.csproj" />
   </ItemGroup>
 
   <ItemGroup>

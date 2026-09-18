@@ -8,7 +8,7 @@ using System.Linq.Dynamic.Core;
 namespace Cike.EntityFrameworkCore.Repositories;
 
 /// <summary>
-/// 工作流定义仓储：影子属性序列化 + 运行时缓存 write-through（写库成功后同步条目与按定义索引）。
+/// 工作流定义仓储：影子属性序列化 + 运行时缓存 write-through（写库成功后同步定义条目与行 Id 影射）。
 /// <para>
 /// 两条纪律：
 /// ① 经本仓储 Update 进缓存的实体，其 <c>Options</c> 必须是已还原对象图的行——取行须经
@@ -60,10 +60,62 @@ public class WorkflowDefinitionRepository(CikeWorkflowDbContext context, IPayloa
         }
     }
 
-    /// <summary>与迁移前一致：列表查询不反序列化影子属性，仅排序。</summary>
-    public async Task<List<WorkflowDefinition>> GetListAsync(Expression<Func<WorkflowDefinition, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default)
+    /// <summary>版本过滤下推数据库（WithVersion 与缓存解析同源），命中行再经 FindAsync 取回以还原影子属性 Options。</summary>
+    public async Task<WorkflowDefinition?> FindWorkflowDefinitionAsync(string definitionId, VersionOptions versionOptions, CancellationToken cancellationToken = default)
     {
-        return await GetQueryable().AsNoTracking().Where(filter).OrderBy(sorting).ToListAsync(cancellationToken);
+        var rowId = await GetQueryable().AsNoTracking()
+            .Where(e => e.DefinitionId == definitionId)
+            .WithVersion(versionOptions)
+            .OrderByDescending(e => e.Version)
+            .Select(e => e.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (rowId == 0)
+            return null;
+
+        return await FindAsync(rowId, cancellationToken);
+    }
+
+    public async Task<Dictionary<string, int>> GetPublishedVersionMapAsync(IReadOnlyCollection<string> definitionIds, CancellationToken cancellationToken = default)
+    {
+        return await GetQueryable().AsNoTracking()
+            .Where(x => x.IsPublished && definitionIds.Contains(x.DefinitionId))
+            .GroupBy(x => x.DefinitionId)
+            .Select(g => new { g.Key, Version = g.Max(x => x.Version) })
+            .ToDictionaryAsync(x => x.Key, x => x.Version, cancellationToken);
+    }
+
+    public async Task<Dictionary<long, string>> GetNamesByIdsAsync(IReadOnlyCollection<long> versionIds, CancellationToken cancellationToken = default)
+    {
+        return await GetQueryable().AsNoTracking()
+            .Where(x => versionIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+    }
+
+    public async Task MoveAsync(string definitionId, long folderId, CancellationToken cancellationToken = default)
+    {
+        // 数据库端 ExecuteUpdate 批量更新，不物化实体
+        await GetQueryable()
+            .Where(x => x.DefinitionId == definitionId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FolderId, folderId), cancellationToken);
+
+        // 同步运行时缓存：重读受影响行（跟踪物化 + OnLoadAsync 还原 Options，纪律①），write-through 刷新旧条目
+        var versions = await GetQueryable()
+            .Where(x => x.DefinitionId == definitionId)
+            .ToListAsync(cancellationToken);
+        foreach (var version in versions)
+            await OnLoadAsync(version, cancellationToken);
+        await SetCacheAsync(versions, cancellationToken);
+    }
+
+    public async Task DeleteVersionsAsync(string definitionId, CancellationToken cancellationToken = default)
+    {
+        // 跟踪物化（同键实体经身份解析合并，不冲突）后走 DeleteManyAsync 覆写口：软删 + 按版本清理缓存
+        var versions = await GetQueryable()
+            .Where(x => x.DefinitionId == definitionId)
+            .ToListAsync(cancellationToken);
+
+        await DeleteManyAsync(versions, cancellationToken: cancellationToken);
     }
 
     protected override ValueTask OnSaveAsync(WorkflowDefinition entity, CancellationToken cancellationToken)

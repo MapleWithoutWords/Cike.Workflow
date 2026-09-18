@@ -47,4 +47,36 @@ public class ActivityInstanceExecutionRecordRepository(CikeWorkflowDbContext con
 
         return ValueTask.CompletedTask;
     }
+
+    public async ValueTask SaveManyAsync(IEnumerable<ActivityInstanceExecutionRecord> entities, CancellationToken cancellationToken = default)
+    {
+        var existsIds = await GetQueryable().AsNoTracking().Where(e => entities.Select(x => x.Id).Contains(e.Id)).Select(e => e.Id).ToListAsync(cancellationToken);
+        foreach (var item in entities)
+        {
+            await OnSaveAsync(item, cancellationToken);
+            if (existsIds.Contains(item.Id))
+            {
+                context.Update(item);
+            }
+            else
+            {
+                await context.AddAsync(item, cancellationToken);
+            }
+        }
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<ActivityInstanceExecutionRecord>> FindByWorkflowInstanceAsync(long workflowInstanceId, CancellationToken cancellationToken = default)
+    {
+        // 保持跟踪读取：影子列的还原依赖跟踪条目上的 Entry 读值
+        var records = await GetQueryable()
+            .Where(x => x.WorkflowInstanceId == workflowInstanceId)
+            .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var record in records)
+            await OnLoadAsync(record, cancellationToken);
+
+        return records;
+    }
 }

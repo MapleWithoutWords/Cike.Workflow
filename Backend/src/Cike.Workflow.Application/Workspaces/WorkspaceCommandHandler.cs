@@ -43,10 +43,8 @@ public class WorkspaceCommandHandler(
     {
         var entity = await GetEntityAsync(command.Id, cancellationToken);
 
-        var hasContent = await folderRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken)
-        || await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken);
+        var hasContent = await folderRepository.AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken)
+        || await workflowDefinitionRepository.AnyAsync(x => x.WorkspaceId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该工作空间下存在目录或工作流，请先删除后再移除工作空间。");
 
@@ -58,15 +56,11 @@ public class WorkspaceCommandHandler(
     /// </summary>
     private async Task ValidateDuplicateAsync(string name, string? code, long? excludeId, CancellationToken cancellationToken = default)
     {
-        var duplicates = await workspaceRepository.GetQueryable().AsNoTracking()
-            .Where(x => (x.Name == name && (excludeId == null || x.Id != excludeId))
-                        || (code != null && x.Code == code))
-            .Select(x => new { x.Name, x.Code })
-            .ToListAsync(cancellationToken);
-
-        if (duplicates.Any(x => x.Name == name))
+        var nameExists = await workspaceRepository.AnyAsync(x => x.Name == name && (excludeId == null || x.Id != excludeId), cancellationToken);
+        if (nameExists)
             throw new UserFriendlyException("工作空间名称已存在，请使用其他名称。");
-        if (code != null && duplicates.Any(x => x.Code == code))
+
+        if (code != null && await workspaceRepository.AnyAsync(x => x.Code == code, cancellationToken))
             throw new UserFriendlyException("工作空间编号已存在，请使用其他编号。");
     }
 

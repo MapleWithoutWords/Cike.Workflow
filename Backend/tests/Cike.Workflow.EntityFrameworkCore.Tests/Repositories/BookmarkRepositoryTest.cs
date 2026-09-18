@@ -130,7 +130,7 @@ public class BookmarkRepositoryTest : RepositoryTestBase
         }
 
         var items = await WithScopeAsync(sp => sp.GetRequiredService<IBookmarkRepository>()
-            .GetListAsync(e => e.Name == "list"));
+            .GetListAsync(e => e.Name == "list", "Id asc"));
 
         Assert.That(items, Has.Count.EqualTo(1));
         Assert.That(items[0].Payload, Is.Not.Null);
@@ -146,7 +146,7 @@ public class BookmarkRepositoryTest : RepositoryTestBase
         await Host.SeedAsync<BookmarkEntity>(e => { e.Name = "sort-3"; e.Hash = "h3"; e.WorkflowInstanceId = 7; e.ActivityInstanceId = 3; e.CorrelationId = "c3"; e.CreatedAt = new DateTime(2024, 1, 3); });
 
         var items = await WithScopeAsync(sp => sp.GetRequiredService<IBookmarkRepository>()
-            .GetListAsync(e => e.WorkflowInstanceId == 7));
+            .GetListAsync(e => e.WorkflowInstanceId == 7, "Id asc"));
 
         Assert.That(items.Select(e => e.Name), Is.EqualTo(new[] { "sort-3", "sort-2", "sort-1" }));
     }

@@ -22,7 +22,5 @@ public class BookmarkQueueItem : AuditedEntity<long>
 
     public string ActivityTypeName { get; set; } = string.Empty;
 
-    public ResumeBookmarkOptions? Options { get; set; }
-
-    public string? SerializedOptions { get; set; }
+    public ResumeBookmarkOptionsValueObject? Options { get; set; }
 }

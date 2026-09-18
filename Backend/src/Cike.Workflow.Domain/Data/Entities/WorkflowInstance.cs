@@ -28,6 +28,7 @@ public class WorkflowInstance : FullAuditedAggregateRoot<long>, IMultiTenant
     public WorkflowStatus Status { get; set; }
 
     public DateTime FinishedAt { get; set; }
+    public bool IsSystem { get; set; }
 
     public WorkflowState WorkflowState { get; set; } = null!;
 }

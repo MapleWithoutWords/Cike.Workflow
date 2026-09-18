@@ -1,0 +1,51 @@
+using System.Linq.Expressions;
+using Cike.UniversalId.ULong;
+using Cike.Uow;
+using Cike.Workflow.Core.Runners.Models;
+using Cike.Workflow.Domain.Data;
+using Cike.Workflow.Domain.Data.Entities;
+using Cike.Workflow.Domain.Managers;
+using Cike.Workflow.Domain.Managers.Mappers;
+using NSubstitute;
+using NSubstitute.ReceivedExtensions;
+
+namespace Cike.Workflow.Core.Tests.Domain.Managers;
+
+[TestFixture]
+public class WorkflowInstanceManagerTest
+{
+    private IWorkflowInstanceRepository _repository = null!;
+    private WorkflowInstanceManager _manager = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _repository = Substitute.For<IWorkflowInstanceRepository>();
+        var factory = new WorkflowInstanceFactory(Substitute.For<ISnowflakeIdGenerator>());
+        _manager = new WorkflowInstanceManager(_repository, factory, Substitute.For<IUnitOfWork>(), new WorkflowStateMapper());
+    }
+
+    [Test]
+    public async Task SaveAsync_WhenInstanceExists_DispatchesUpdate()
+    {
+        _repository.AnyAsync(Arg.Any<Expression<Func<WorkflowInstance, bool>>>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await _manager.SaveAsync(new WorkflowState { Id = 42 }, CancellationToken.None);
+
+        await _repository.Received(1).UpdateAsync(Arg.Any<WorkflowInstance>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        await _repository.DidNotReceive().InsertAsync(Arg.Any<WorkflowInstance>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task SaveAsync_WhenInstanceNotExists_DispatchesInsert()
+    {
+        _repository.AnyAsync(Arg.Any<Expression<Func<WorkflowInstance, bool>>>(), Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        await _manager.SaveAsync(new WorkflowState { Id = 42 }, CancellationToken.None);
+
+        await _repository.Received(1).InsertAsync(Arg.Any<WorkflowInstance>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        await _repository.DidNotReceive().UpdateAsync(Arg.Any<WorkflowInstance>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+}

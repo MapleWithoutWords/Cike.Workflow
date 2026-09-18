@@ -1,4 +1,6 @@
-using Cike.AspNetCore.MinimalAPIs.Options;
+using Cike.Locks.Distributed;
+using Cike.Locks.DistributedRedis;
+using Cike.Workflow.Http;
 
 namespace Cike.Service.Open;
 
@@ -7,6 +9,12 @@ namespace Cike.Service.Open;
     typeof(CikeWorkflowEntityFrameworkCoreModule),
     typeof(CikeAspNetCoreMinimalApiModule),
     typeof(CikeFluentValidationModule),
+
+    typeof(CikeWorkflowExpressionLiquidModule),
+    typeof(CikeWorkflowExpressionJavascriptModule),
+    typeof(CikeWorkflowHttpModule),
+
+    typeof(CikeLockDistributedRedisModule),
     ])]
 public class CikeWorkflowServiceOpenModule : CikeModule
 {
@@ -23,6 +31,9 @@ public class CikeWorkflowServiceOpenModule : CikeModule
         {
             options.SerializerOptions.Converters.Add(new ActivityJsonConverter(context.Services.GetSingletonInstance<IActivityRegistry>()));
         });
+
+        // 工作流实例互斥锁（一实例同时只在一个节点运行）
+        context.Services.Configure<CikeRedisDistributedLockOptions>(context.Services.GetConfiguration().GetSection("CikeRedisDistributedLock"));
 
         await base.ConfigureServicesAsync(context);
 

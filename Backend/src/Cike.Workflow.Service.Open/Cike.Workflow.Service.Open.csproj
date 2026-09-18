@@ -16,12 +16,16 @@
   <ItemGroup>
     <PackageReference Include="Cike.AspNetCore.MinimalAPIs" Version="$(CikeVersion)" />
     <PackageReference Include="Cike.AspNetCore.Swagger" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Locks.DistributedRedis" Version="$(CikeVersion)" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftPackageVersion)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cike.Workflow.Application\Cike.Workflow.Application.csproj" />
     <ProjectReference Include="..\Cike.Workflow.EntityFrameworkCore\Cike.Workflow.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Expression.Javascript\Cike.Workflow.Expression.Javascript.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Expression.Liquid\Cike.Workflow.Expression.Liquid.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Http\Cike.Workflow.Http.csproj" />
   </ItemGroup>
 
 </Project>

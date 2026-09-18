@@ -10,6 +10,11 @@ public abstract class AutoCompleteActivity : Activity
 
 public abstract class AutoCompleteActivity<T> : AutoCompleteActivity, IActivityWithResult<T>
 {
+    protected AutoCompleteActivity() : base()
+    {
+
+    }
+
     protected AutoCompleteActivity(MemoryBlockReference? output) : base()
     {
         if (output != null) Result = new Output<T>(output);

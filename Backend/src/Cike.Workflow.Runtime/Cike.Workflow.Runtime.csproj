@@ -7,9 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cike.Locks" Version="$(CikeVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Cike.Workflow.Application.Contracts\Cike.Workflow.Application.Contracts.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Caching\Cike.Workflow.Caching.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Cike.Workflow.Core.Tests" />
   </ItemGroup>
 
 </Project>

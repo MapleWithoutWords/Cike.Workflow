@@ -1,16 +1,20 @@
 using Cike.Contracts.EntityDtos;
 using Cike.Data;
+using Cike.Workflow.Common.Versions;
 using Cike.Workflow.Domain.Shared.Enums;
 
 namespace Cike.Workflow.Domain.Shared.CacheModels;
 
 /// <summary>
 /// 工作流定义运行时缓存模型：携带实体全部标量字段 + OptionsPayload（IPayloadSerializer 序列化的
-/// Options JSON）+ OriginalStringData 画布全文，供 WorkflowRuntime 按 DefinitionId + Version 直接取用；
+/// Options JSON）+ OriginalStringData 画布全文，供 WorkflowRuntime 按
+/// <see cref="Cike.Workflow.Core.Models.WorkflowDefinitionHandle"/> 寻址取用；
 /// Options 消费方用 IPayloadSerializer 反序列化（与 DB 影子列同一链路）。
 /// 与 <see cref="FolderCacheModel"/> 同目录同风格；不缓存物化后的 WorkflowActivity。
+/// 实现 <see cref="IVersion"/> 以复用 <see cref="Cike.Workflow.Common.Extensions.IVersionExtensions"/>
+/// 的版本解析（与 DB 查询同源语义）。
 /// </summary>
-public class WorkflowDefinitionCacheModel : FullAuditedEntityDto<long>, IMultiTenant
+public class WorkflowDefinitionCacheModel : FullAuditedEntityDto<long>, IMultiTenant, IVersion
 {
     public long TenantId { get; set; }
 

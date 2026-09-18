@@ -1,5 +1,4 @@
 using Cike.Workflow.Core.Serialization;
-using Microsoft.EntityFrameworkCore;
 
 namespace Cike.Workflow.Application.WorkflowDefinitions;
 
@@ -27,11 +26,7 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
 
         var draftDefinitionIds = latestWorkflows.Where(x => !x.IsPublished).Select(x => x.DefinitionId).ToList();
         var publishedVersionMap = draftDefinitionIds.Count > 0
-            ? await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-                .Where(x => draftDefinitionIds.Contains(x.DefinitionId) && x.IsPublished)
-                .GroupBy(x => x.DefinitionId)
-                .Select(g => new { DefinitionId = g.Key, Version = g.Max(x => x.Version) })
-                .ToDictionaryAsync(x => x.DefinitionId, x => x.Version, cancellationToken)
+            ? await workflowDefinitionRepository.GetPublishedVersionMapAsync(draftDefinitionIds, cancellationToken)
             : new Dictionary<string, int>();
 
         query.Result = new List<WorkflowDefinitionFolderItemDto>();

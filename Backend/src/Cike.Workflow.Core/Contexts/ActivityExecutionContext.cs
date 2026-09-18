@@ -524,6 +524,38 @@ public class ActivityExecutionContext : IExecutionContext
 
     public Variable SetVariable(string name, object? value, Action<MemoryBlock>? configure = null) =>
         ExpressionExecutionContext.SetVariable(name, value, configure);
+
+
+    public IDictionary<string, object> GetInputs()
+    {
+        return this.ActivityState!;
+    }
+
+    public IDictionary<string, object> GetOutputs()
+    {
+        var activity = this.Activity;
+        var expressionExecutionContext = this.ExpressionExecutionContext;
+        var activityDescriptor = this.ActivityDescriptor;
+        var outputDescriptors = activityDescriptor.Outputs;
+
+        var outputs = outputDescriptors.ToDictionary(x => x.Name, x =>
+        {
+            if (x.IsSerializable == false)
+                return "(not serializable)";
+
+            var cachedValue = expressionExecutionContext.GetOutput(activity.Id, x.Name);
+
+            if (cachedValue != null)
+                return cachedValue;
+
+            if (x.ValueGetter(activity) is Output output && this.TryGet(output.MemoryBlockReference, out var outputValue))
+                return outputValue!;
+
+            return null!;
+        });
+
+        return outputs;
+    }
     #endregion
 
     public T GetRequiredService<T>() where T : notnull => WorkflowExecutionContext.GetRequiredService<T>();

@@ -12,13 +12,17 @@
     <PackageReference Include="Cike.FluentValidation" Version="$(CikeVersion)" />
     <PackageReference Include="Mapster" Version="7.4.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Cike.Workflow.Application.Contracts\Cike.Workflow.Application.Contracts.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Caching\Cike.Workflow.Caching.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Domain\Cike.Workflow.Domain.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Runtime\Cike.Workflow.Runtime.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="WorkflowInstances\Validators\" />
+    <Folder Include="WorkflowInstances\Queries\" />
   </ItemGroup>
 
 </Project>

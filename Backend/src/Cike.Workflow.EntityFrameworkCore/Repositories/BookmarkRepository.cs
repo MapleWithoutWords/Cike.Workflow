@@ -1,4 +1,6 @@
 using Cike.Workflow.Core.Serialization;
+using Cike.Workflow.Runtime.Bookmarks.Models;
+using Org.BouncyCastle.Ocsp;
 using System.Linq.Dynamic.Core;
 
 namespace Cike.EntityFrameworkCore.Repositories;
@@ -6,19 +8,24 @@ namespace Cike.EntityFrameworkCore.Repositories;
 public class BookmarkRepository(CikeWorkflowDbContext context, IPayloadSerializer payloadSerializer)
     : SerializedEfCoreRepository<CikeWorkflowDbContext, BookmarkEntity>(context), IBookmarkRepository, IScopedDependency
 {
-    /// <summary>框架的无排序列表查询与迁移前的列表行为对齐：结果同样反序列化。</summary>
-    public override Task<List<BookmarkEntity>> GetListAsync(Expression<Func<BookmarkEntity, bool>> predicate, CancellationToken cancellationToken = default)
-        => GetListAsync(predicate, "CreatedAt desc", cancellationToken);
-
-    public async Task<List<BookmarkEntity>> GetListAsync(Expression<Func<BookmarkEntity, bool>> filter, string sorting = "CreatedAt desc", CancellationToken cancellationToken = default)
+    public override async Task<List<BookmarkEntity>> ToListAsync(IQueryable<BookmarkEntity> query, CancellationToken cancellationToken = default)
     {
-        // 跟踪查询：无跟踪实体不携带影子属性值，Entry(...).CurrentValue 只会读到 null
-        var result = await GetQueryable().Where(filter).OrderBy(sorting).ToListAsync(cancellationToken);
+        var result = await base.ToListAsync(query, cancellationToken);
         foreach (var item in result)
         {
             await OnLoadAsync(item, cancellationToken);
         }
         return result;
+    }
+
+    public override async Task<(long Total, List<BookmarkEntity> Items)> ToPagedListAsync(IQueryable<BookmarkEntity> query, IPagedAndSortedRequest request, CancellationToken cancellationToken = default)
+    {
+        var pageResult = await base.ToPagedListAsync(query, request, cancellationToken);
+        foreach (var item in pageResult.Items)
+        {
+            await OnLoadAsync(item, cancellationToken);
+        }
+        return pageResult;
     }
 
     protected override ValueTask OnSaveAsync(BookmarkEntity entity, CancellationToken cancellationToken)
@@ -39,5 +46,39 @@ public class BookmarkRepository(CikeWorkflowDbContext context, IPayloadSerialize
         entity.Metadata = !string.IsNullOrEmpty(metadataJson) ? payloadSerializer.Deserialize<Dictionary<string, string>>(metadataJson) : null;
 
         return default;
+    }
+
+    public async ValueTask<BookmarkEntity?> FindAsync(BookmarkFilter filter, CancellationToken cancellationToken = default)
+    {
+        var list = await FindManyAsync(filter, cancellationToken);
+        return list.FirstOrDefault();
+    }
+
+    public async ValueTask<IEnumerable<BookmarkEntity>> FindManyAsync(BookmarkFilter filter, CancellationToken cancellationToken = default)
+    {
+        return await ToListAsync(filter.Apply(GetQueryable()), cancellationToken);
+    }
+
+    public async ValueTask DeleteManyAsync(BookmarkFilter filter, CancellationToken cancellationToken = default)
+    {
+        await filter.Apply(GetQueryable()).ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async ValueTask SaveAsync(IEnumerable<BookmarkEntity> entities, CancellationToken cancellationToken = default)
+    {
+        var exeistBookmarks = await GetQueryable().Where(e => entities.Select(x => x.Id).Contains(e.Id)).Select(e => e.Id).ToListAsync(cancellationToken);
+        foreach (var item in entities)
+        {
+            await OnSaveAsync(item, cancellationToken);
+            if (exeistBookmarks.Contains(item.Id))
+            {
+                context.Bookmarks.Update(item);
+            }
+            else
+            {
+                await context.Bookmarks.AddAsync(item, cancellationToken);
+            }
+        }
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

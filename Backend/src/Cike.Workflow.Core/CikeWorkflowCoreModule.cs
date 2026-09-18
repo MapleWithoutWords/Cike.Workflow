@@ -1,3 +1,4 @@
+using Cike.Core.Hashers;
 using Cike.EventBus.Local.LocalEventMiddlewares;
 using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.ActivityDescriptors.Internals;
@@ -33,6 +34,9 @@ public class CikeWorkflowCoreModule : CikeModule
 
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ExceptionRunActivityInstanceMiddleware), ServiceLifetime.Transient));
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ActivityInstanceExecutionLogMiddleware), ServiceLifetime.Transient));
+
+        // Cike.Core 自身无模块类、约定扫描不覆盖，IHasher 需手动注册（framework-core.md 反模式节；实测 1.0.60023 同样行为）
+        context.Services.AddSingleton<IHasher, Hasher>();
         await base.ConfigureServicesAsync(context);
     }
 

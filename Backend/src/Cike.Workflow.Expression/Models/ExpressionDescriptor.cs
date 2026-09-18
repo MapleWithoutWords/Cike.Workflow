@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Cike.Workflow.Expressions.Models;
 
@@ -24,5 +25,6 @@ public class ExpressionDescriptor
     /// <summary>
     /// Gets or sets the expression handler factory.
     /// </summary>
+    [JsonIgnore]
     public Func<IServiceProvider, IExpressionHandler> HandlerFactory { get; set; } = default!;
 }

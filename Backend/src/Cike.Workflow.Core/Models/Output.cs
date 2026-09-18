@@ -15,6 +15,20 @@ public class Output : Argument
         var genericType = GetType();
         return Variable.ParseValue(genericType, value);
     }
+
+    public Type? GetTargetType(ActivityExecutionContext context)
+    {
+        var memoryBlockReference = this.MemoryBlockReference;
+
+        if (memoryBlockReference is null)
+            return null;
+
+        if (!context.ExpressionExecutionContext.TryGetBlock(memoryBlockReference, out var memoryBlock))
+            return null;
+
+        var parsedContentVariableType = (memoryBlock.Metadata as VariableBlockMetadata)?.Variable.GetType();
+        return parsedContentVariableType?.GenericTypeArguments.FirstOrDefault();
+    }
 }
 
 public class Output<T> : Output

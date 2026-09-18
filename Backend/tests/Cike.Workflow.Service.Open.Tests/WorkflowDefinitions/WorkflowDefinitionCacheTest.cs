@@ -1,5 +1,8 @@
 using Cike.Workflow.Caching;
+using Cike.Workflow.Common.Versions;
+using Cike.Workflow.Core.Models;
 using Cike.Workflow.Core.Serialization;
+using Cike.Workflow.Domain.Shared.CacheModels;
 using Cike.Workflow.Domain.Shared.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
@@ -9,12 +12,23 @@ namespace Cike.Workflow.Service.Open.Tests.WorkflowDefinitions;
 /// <summary>
 /// 票1（示踪弹）：定义运行时缓存 write-through 与按版本读取最小闭环。
 /// 写侧全部经真实 HTTP 端点驱动；断言侧解析缓存真实实现（内存介质为 InMemoryMultilevelCacheClient），
-/// 键设计 / 索引维护 / 版本覆盖等逻辑被真实执行。
+/// 条目设计 / 行 Id 影射 / 版本覆盖与 handle 解析等逻辑被真实执行。
 /// </summary>
 internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
 {
     /// <summary>缓存真实实现（Scoped），从测试宿主 Scope 解析。</summary>
     private IWorkflowDefinitionCache Cache => serviceProvider.GetRequiredService<IWorkflowDefinitionCache>();
+
+    // ── 读口助手：原三读口语义映射到唯一 handle 读口 ─────────────────────
+
+    private Task<WorkflowDefinitionCacheModel?> GetAsync(string definitionId, int version)
+        => Cache.GetAsync(WorkflowDefinitionHandle.ByDefinitionId(definitionId, VersionOptions.SpecificVersion(version)));
+
+    private Task<WorkflowDefinitionCacheModel?> GetLatestAsync(string definitionId)
+        => Cache.GetAsync(WorkflowDefinitionHandle.ByDefinitionId(definitionId, VersionOptions.Latest));
+
+    private Task<WorkflowDefinitionCacheModel?> GetLatestPublishedAsync(string definitionId)
+        => Cache.GetAsync(WorkflowDefinitionHandle.ByDefinitionId(definitionId, VersionOptions.Published));
 
     private async Task<(string DefinitionId, long RowId)> PrepareAsync()
     {
@@ -32,7 +46,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
 
-        var cached = await Cache.GetAsync(definitionId, 1);
+        var cached = await GetAsync(definitionId, 1);
 
         Assert.That(cached, Is.Not.Null);
         Assert.That(cached!.Id, Is.EqualTo(rowId));
@@ -55,13 +69,13 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
 
         await EnsureSuccessAsync(await PostSaveAsync(rowId, new { root = CreateValidCanvas("cache1") }));
 
-        var cached = await Cache.GetAsync(definitionId, 1);
+        var cached = await GetAsync(definitionId, 1);
         Assert.That(cached, Is.Not.Null);
         Assert.That(cached!.OriginalStringData, Does.Contain("cache1_start"));
 
         // 再次保存：仍覆盖同一版本条目，不产生新键
         await EnsureSuccessAsync(await PostSaveAsync(rowId, new { root = CreateValidCanvas("cache2") }));
-        cached = await Cache.GetAsync(definitionId, 1);
+        cached = await GetAsync(definitionId, 1);
         Assert.That(cached!.OriginalStringData, Does.Contain("cache2_start"));
         Assert.That(cached.OriginalStringData, Does.Not.Contain("cache1_start"));
     }
@@ -80,7 +94,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
             },
         }));
 
-        var cached = await Cache.GetAsync(definitionId, 1);
+        var cached = await GetAsync(definitionId, 1);
 
         // 缓存模型只存不透明 OptionsPayload；用与影子列同一序列化器还原（项目 polymorphic/Type 转换器链路）
         var options = serviceProvider.GetRequiredService<IPayloadSerializer>()
@@ -107,7 +121,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
             },
         }));
 
-        var cached = await Cache.GetAsync(definitionId, 1);
+        var cached = await GetAsync(definitionId, 1);
         var options = serviceProvider.GetRequiredService<IPayloadSerializer>()
             .Deserialize<WorkflowDefinitionOptionsValueObject>(cached!.OptionsPayload);
 
@@ -127,7 +141,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         var response = await CreateClient().DeleteAsync($"/api/v1/WorkflowDefinitions/{rowId}");
         await EnsureSuccessAsync(response);
 
-        Assert.That(await Cache.GetAsync(definitionId, 1), Is.Null);
+        Assert.That(await GetAsync(definitionId, 1), Is.Null);
     }
 
     // ── 票2：派生读口与失效矩阵 ─────────────────────────────────────────
@@ -162,7 +176,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         });
         await EnsureSuccessAsync(response);
 
-        var cached = await Cache.GetAsync(definitionId, 1);
+        var cached = await GetAsync(definitionId, 1);
         Assert.That(cached!.Name, Is.EqualTo(newName));
     }
 
@@ -171,13 +185,13 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
     {
         var (definitionId, _) = await PreparePublishedAsync();
 
-        var published = await Cache.GetLatestPublishedAsync(definitionId);
+        var published = await GetLatestPublishedAsync(definitionId);
 
         Assert.That(published, Is.Not.Null);
         Assert.That(published!.Version, Is.EqualTo(1));
         Assert.That(published.IsPublished, Is.True);
         Assert.That(published.OriginalStringData, Does.Contain("pub1_start"));
-        Assert.That(await Cache.GetLatestAsync(definitionId), Is.Not.Null);
+        Assert.That(await GetLatestAsync(definitionId), Is.Not.Null);
     }
 
     [Test]
@@ -188,19 +202,19 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         var save = await PostSaveAsync(v1RowId, new { root = CreateValidCanvas("draft2") });
         await EnsureSuccessAsync(save);
 
-        var latest = await Cache.GetLatestAsync(definitionId);
+        var latest = await GetLatestAsync(definitionId);
         Assert.That(latest!.Version, Is.EqualTo(2));
         Assert.That(latest.IsLatest, Is.True);
         Assert.That(latest.IsPublished, Is.False);
         Assert.That(latest.OriginalStringData, Does.Contain("draft2_start"));
 
         // 已发布指针不受草稿影响
-        var published = await Cache.GetLatestPublishedAsync(definitionId);
+        var published = await GetLatestPublishedAsync(definitionId);
         Assert.That(published!.Version, Is.EqualTo(1));
         Assert.That(published.IsLatest, Is.False);
 
         // v1 行缓存条目被更新（IsLatest 转移），但内容不变
-        var v1 = await Cache.GetAsync(definitionId, 1);
+        var v1 = await GetAsync(definitionId, 1);
         Assert.That(v1!.IsLatest, Is.False);
         Assert.That(v1.OriginalStringData, Does.Contain("pub1_start"));
     }
@@ -213,7 +227,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         var draftId = await ReadLongAsync(save);
         await EnsureSuccessAsync(await PostPublishAsync(draftId));
 
-        var published = await Cache.GetLatestPublishedAsync(definitionId);
+        var published = await GetLatestPublishedAsync(definitionId);
 
         Assert.That(published!.Version, Is.EqualTo(2));
         Assert.That(published.OriginalStringData, Does.Contain("pub2_start"));
@@ -228,7 +242,7 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
 
         await EnsureSuccessAsync(await PostRollbackAsync(definitionId, v1RowId));
 
-        var latest = await Cache.GetLatestAsync(definitionId);
+        var latest = await GetLatestAsync(definitionId);
         Assert.That(latest!.Version, Is.EqualTo(2));
         // 回滚用 v1 画布内容覆盖 v2 草稿
         Assert.That(latest.OriginalStringData, Does.Contain("pub1_start"));
@@ -247,11 +261,11 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         // 回滚到 v1 → 生成 v3 草稿
         await EnsureSuccessAsync(await PostRollbackAsync(definitionId, v1RowId));
 
-        var latest = await Cache.GetLatestAsync(definitionId);
+        var latest = await GetLatestAsync(definitionId);
         Assert.That(latest!.Version, Is.EqualTo(3));
         Assert.That(latest.IsPublished, Is.False);
         Assert.That(latest.OriginalStringData, Does.Contain("pub1_start"));
-        var published = await Cache.GetLatestPublishedAsync(definitionId);
+        var published = await GetLatestPublishedAsync(definitionId);
         Assert.That(published!.Version, Is.EqualTo(2));
     }
 
@@ -271,12 +285,12 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
 
         foreach (var version in new[] { 1, 2 })
         {
-            var row = await Cache.GetAsync(definitionId, version);
+            var row = await GetAsync(definitionId, version);
             Assert.That(row!.FolderId, Is.EqualTo(targetFolderId));
         }
         // 移动不改内容
-        Assert.That((await Cache.GetAsync(definitionId, 1))!.OriginalStringData, Does.Contain("pub1_start"));
-        Assert.That((await Cache.GetAsync(definitionId, 2))!.OriginalStringData, Does.Contain("mv2_start"));
+        Assert.That((await GetAsync(definitionId, 1))!.OriginalStringData, Does.Contain("pub1_start"));
+        Assert.That((await GetAsync(definitionId, 2))!.OriginalStringData, Does.Contain("mv2_start"));
     }
 
     [Test]
@@ -289,9 +303,9 @@ internal class WorkflowDefinitionCacheTest : WorkflowDefinitionTestBase
         // 删除按行：先删草稿再删已发布（Delete 命令连带全部版本行，任一行入参都会删全量）
         await EnsureSuccessAsync(await CreateClient().DeleteAsync($"/api/v1/WorkflowDefinitions/{v2RowId}"));
 
-        Assert.That(await Cache.GetAsync(definitionId, 1), Is.Null);
-        Assert.That(await Cache.GetAsync(definitionId, 2), Is.Null);
-        Assert.That(await Cache.GetLatestAsync(definitionId), Is.Null);
-        Assert.That(await Cache.GetLatestPublishedAsync(definitionId), Is.Null);
+        Assert.That(await GetAsync(definitionId, 1), Is.Null);
+        Assert.That(await GetAsync(definitionId, 2), Is.Null);
+        Assert.That(await GetLatestAsync(definitionId), Is.Null);
+        Assert.That(await GetLatestPublishedAsync(definitionId), Is.Null);
     }
 }

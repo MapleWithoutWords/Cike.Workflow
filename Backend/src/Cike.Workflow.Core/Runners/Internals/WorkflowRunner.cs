@@ -15,6 +15,7 @@ public class WorkflowRunner(
     IWorkflowGraphBuilder workflowGraphBuilder,
     ISnowflakeIdGenerator identityGenerator,
     ILocalEventBus localEventBus,
+    ICommitStateHandler commitStateHandler,
     ILogger<WorkflowRunner> logger)
     : IWorkflowRunner, IScopedDependency
 {
@@ -183,7 +184,7 @@ public class WorkflowRunner(
         var result = workflow.ResultVariable?.Get(workflowExecutionContext.MemoryRegister);
         var activityExecutionContexts = workflowExecutionContext.ActivityExecutionContexts.ToList();
         var journal = new Journal(activityExecutionContexts);
-        //await commitStateHandler.CommitAsync(workflowExecutionContext, workflowState, cancellationToken);
+        await commitStateHandler.CommitAsync(workflowExecutionContext, workflowState, cancellationToken);
         return new(workflowExecutionContext, workflowState, workflowExecutionContext.Workflow, result, journal);
     }
 }

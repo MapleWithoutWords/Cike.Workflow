@@ -1,0 +1,19 @@
+namespace Cike.Workflow.Expression.Javascript.ObjectConverters;
+
+/// <summary>
+/// Converts a byte array to a <see cref="JsValue"/> instance representing a Uint8Array.
+/// </summary>
+internal class ByteArrayConverter : IObjectConverter
+{
+    public bool TryConvert(Engine engine, object value, [NotNullWhen(true)] out JsValue? result)
+    {
+        if (value is byte[] bytes)
+        {
+            result = engine.Intrinsics.ArrayBuffer.Construct(bytes);
+            return true;
+        }
+
+        result = JsValue.Null;
+        return false;
+    }
+}

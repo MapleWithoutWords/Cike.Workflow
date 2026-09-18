@@ -10,13 +10,11 @@ public class FolderCommandHandler(
     {
         var dto = command.Dto;
 
-        if (!await workspaceRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
+        if (!await workspaceRepository.AnyAsync(x => x.Id == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("所属工作空间不存在，请检查后重试。");
 
         if (dto.ParentId != 0
-            && !await folderRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.Id == dto.ParentId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
+            && !await folderRepository.AnyAsync(x => x.Id == dto.ParentId && x.WorkspaceId == dto.WorkspaceId, cancellationToken))
             throw new UserFriendlyException("上级目录不存在，请检查后重试。");
 
         await ValidateNameDuplicateAsync(dto.WorkspaceId, dto.ParentId, dto.Name, null, cancellationToken);
@@ -48,10 +46,7 @@ public class FolderCommandHandler(
         if (command.ParentId != 0)
         {
             // 一次加载该工作空间的父子映射：目标必须存在于同工作空间，并沿父链上溯防环
-            var parentMap = await folderRepository.GetQueryable().AsNoTracking()
-                .Where(x => x.WorkspaceId == entity.WorkspaceId)
-                .Select(x => new { x.Id, x.ParentId })
-                .ToDictionaryAsync(x => x.Id, x => x.ParentId, cancellationToken);
+            var parentMap = await folderRepository.GetParentMapAsync(entity.WorkspaceId, cancellationToken);
 
             if (!parentMap.TryGetValue(command.ParentId, out var cursor))
                 throw new UserFriendlyException("目标目录不存在或不属于该工作空间，请检查后重试。");
@@ -77,10 +72,8 @@ public class FolderCommandHandler(
     {
         var entity = await GetEntityAsync(command.Id, cancellationToken);
 
-        var hasContent = await folderRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.ParentId == command.Id, cancellationToken)
-        || await workflowDefinitionRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.FolderId == command.Id, cancellationToken);
+        var hasContent = await folderRepository.AnyAsync(x => x.ParentId == command.Id, cancellationToken)
+        || await workflowDefinitionRepository.AnyAsync(x => x.FolderId == command.Id, cancellationToken);
         if (hasContent)
             throw new UserFriendlyException("该目录下存在子目录或工作流，请先删除后再移除目录。");
 
@@ -89,8 +82,7 @@ public class FolderCommandHandler(
 
     private async Task ValidateNameDuplicateAsync(long workspaceId, long parentId, string name, long? excludeId, CancellationToken cancellationToken = default)
     {
-        var nameExists = await folderRepository.GetQueryable().AsNoTracking()
-            .AnyAsync(x => x.WorkspaceId == workspaceId && x.ParentId == parentId && x.Name == name
+        var nameExists = await folderRepository.AnyAsync(x => x.WorkspaceId == workspaceId && x.ParentId == parentId && x.Name == name
                            && (excludeId == null || x.Id != excludeId), cancellationToken);
         if (nameExists)
             throw new UserFriendlyException("同级目录下已存在同名目录，请使用其他名称。");
