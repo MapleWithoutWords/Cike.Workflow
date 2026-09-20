@@ -162,6 +162,18 @@ describe("projection", () => {
     expect(getOutPortsOf(generic)).toEqual(["Done"]);
   });
 
+  it("StartHasNoInPort_EndHasNoOutPort", () => {
+    const flowchart = new Flowchart();
+    flowchart.activities = [new Start(), new End()];
+    const projection = projectFlowchart(flowchart);
+    const start = projection.nodes.find((n) => n.data.typeShort === "Start")!;
+    const end = projection.nodes.find((n) => n.data.typeShort === "End")!;
+    expect(start.data.inPorts).toEqual([]);
+    expect(start.data.outPorts).toEqual(["Done"]);
+    expect(end.data.outPorts).toEqual([]);
+    expect(end.data.inPorts).toEqual(["In"]);
+  });
+
   it("ProjectOrderedChain_VerticalWithVisualEdges", () => {
     const children = [new Start(), new End()];
     const projection = projectOrderedChain(children);

@@ -52,9 +52,10 @@ export interface CanvasProjection {
 const EMPTY_PROJECTION: CanvasProjection = { nodes: [], edges: [] };
 
 export function getOutPortsOf(activity: IActivity): string[] {
+  // Only fall back to a default outcome for non-instances (e.g. plain wire
+  // objects); a real activity's declared ports are trusted as-is (End = none).
   if (typeof (activity as Activity).getOutPorts !== "function") return ["Done"];
-  const ports = (activity as Activity).getOutPorts();
-  return ports.length > 0 ? ports.map((port) => port.name) : ["Done"];
+  return (activity as Activity).getOutPorts().map((port) => port.name);
 }
 
 export function getInPortsOf(activity: IActivity): string[] {
