@@ -70,6 +70,26 @@ function isWireActivity(value: unknown): value is WireActivity {
   );
 }
 
+/**
+ * Backend may serialize an Input's `expression` as null (e.g. default/empty
+ * values). Restore a usable default so both dedicated and generic property
+ * forms can read/edit `expression.value` without crashing.
+ */
+function normalizeInputValue(value: unknown): unknown {
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "memoryBlockReference" in value
+  ) {
+    const input = value as { expression?: unknown };
+    if (input.expression == null || typeof input.expression !== "object") {
+      input.expression = { type: "Literal", value: null };
+    }
+  }
+  return value;
+}
+
 function fromWireConnections(raw: unknown): ActivityConnection[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => {
@@ -119,7 +139,7 @@ export function fromWireActivity(json: WireActivity): Activity {
       continue;
     }
     if (declaredFields.has(key)) {
-      Object.assign(activity, { [key]: value });
+      Object.assign(activity, { [key]: normalizeInputValue(value) });
       continue;
     }
     extra[key] = value;

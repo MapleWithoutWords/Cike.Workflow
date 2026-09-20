@@ -138,6 +138,7 @@ onMounted(() => {
 })
 
 watch(() => props.projection, renderProjection)
+watch(() => props.selectedId, renderProjection)
 watch(() => props.entryKey, () => applyViewport())
 
 onBeforeUnmount(() => {
@@ -178,7 +179,7 @@ function renderProjection(): void {
       id: node.id,
       x: node.x,
       y: node.y,
-      data: node.data,
+      data: { ...node.data, selected: node.id === props.selectedId },
       ports: {
         items: [
           ...node.data.inPorts.map((port) => ({ id: port, group: "in" })),

@@ -232,4 +232,14 @@ describe("chain", () => {
     expect(canDrillInto(container)).toBe(true);
     expect(isChainContainer(container as GenericActivity)).toBe(false);
   });
+
+  it("FromWire_NullInputExpression_NormalizedToLiteral", () => {
+    const activity = fromWireActivity({
+      type: "Cike.If",
+      id: "if-1",
+      condition: { expression: null, memoryBlockReference: { id: "m1" } },
+    }) as unknown as { condition: { expression: { type: string; value: unknown } } };
+    expect(activity.condition.expression).not.toBeNull();
+    expect(activity.condition.expression.type).toBe("Literal");
+  });
 });
