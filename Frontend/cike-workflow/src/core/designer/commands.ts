@@ -80,6 +80,28 @@ export function makeMoveNodeCommand(
   };
 }
 
+export function makeAddNodeCommand(
+  parent: NodeContainer,
+  activity: IActivity,
+  position: DesignerNodeMeta,
+): DesignerCommand {
+  return {
+    label: "新增节点",
+    apply: () => {
+      parent.activities.push(activity);
+      setNodePosition(activity, position);
+    },
+    undo: () => {
+      const at = parent.activities.indexOf(activity);
+      if (at >= 0) parent.activities.splice(at, 1);
+    },
+    redo: () => {
+      parent.activities.push(activity);
+      setNodePosition(activity, position);
+    },
+  };
+}
+
 export function makeRemoveNodeCommand(parent: NodeContainer, childId: string): (DesignerCommand & { removedConnectionCount: number }) | null {
   const childIndex = parent.activities.findIndex((child) => child.id === childId);
   if (childIndex < 0) return null;

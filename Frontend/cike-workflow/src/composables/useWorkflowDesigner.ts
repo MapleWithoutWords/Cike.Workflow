@@ -1,5 +1,6 @@
 import { computed, ref, shallowRef } from "vue"
 import {
+  getApiV1CommonsActivityDescriptors,
   getApiV1WorkflowDefinitionsById,
   postApiV1WorkflowDefinitionsSaveById,
 } from "@/api/generated"
@@ -8,13 +9,15 @@ import { Activity as ActivityClass } from "@/core/abstracts/Activity"
 import { Flowchart } from "@/core/activities/Flowchart"
 import {
   CommandStack,
+  makeAddNodeCommand,
   makeMoveNodeCommand,
   makeRemoveNodeCommand,
   type DesignerCommand,
 } from "@/core/designer/commands"
+import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
-import { activityShortName } from "@/core/designer/registry"
+import { activityShortName, resolveActivityClass } from "@/core/designer/registry"
 import { fromWireActivity, toWireActivity, type WireActivity } from "@/core/designer/serialization"
 import { getCanvasState, setCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
 
@@ -42,6 +45,7 @@ export function useWorkflowDesigner() {
   const canUndo = ref(false)
   const canRedo = ref(false)
   const commandStack = new CommandStack()
+  const paletteGroups = shallowRef<PaletteGroup[]>([])
 
   const currentEntry = computed<DrillEntry | null>(() => drillStack.value[drillStack.value.length - 1] ?? null)
 
@@ -98,6 +102,7 @@ export function useWorkflowDesigner() {
       selectedActivityId.value = null
       commandStack.clear()
       refreshUndoFlags()
+      void loadPalette()
     } finally {
       loading.value = false
     }
@@ -169,6 +174,27 @@ export function useWorkflowDesigner() {
     setCanvasState(entry.activity, state)
   }
 
+  async function loadPalette(): Promise<void> {
+    try {
+      const { data } = await getApiV1CommonsActivityDescriptors({})
+      paletteGroups.value = buildPaletteGroups((data ?? []) as never)
+    } catch {
+      paletteGroups.value = []
+    }
+  }
+
+  /** Adds a node of the given wire type; point is canvas-local. */
+  function addNode(typeName: string, point: { x: number; y: number }): void {
+    const Ctor = resolveActivityClass(typeName)
+    if (!Ctor) return
+    const entry = currentEntry.value
+    if (!entry || entry.chainChildren) return
+    const activity = new Ctor()
+    const container = entry.activity as unknown as { activities: IActivity[] }
+    executeCommand(makeAddNodeCommand(container as never, activity, { x: Math.round(point.x), y: Math.round(point.y) }))
+    selectedActivityId.value = activity.id
+  }
+
   function getViewport(): DesignerCanvasMeta | null {
     const entry = currentEntry.value
     if (!entry) return null
@@ -217,6 +243,8 @@ export function useWorkflowDesigner() {
     lastSavedAt,
     canUndo,
     canRedo,
+    paletteGroups,
+    addNode,
     load,
     drillInto,
     popTo,

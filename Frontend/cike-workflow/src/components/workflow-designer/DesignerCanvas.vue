@@ -19,12 +19,20 @@ const emit = defineEmits<{
   nodeDblclick: [activityId: string]
   nodeMoved: [payload: { id: string; x: number; y: number; from: { x: number; y: number } | null }]
   viewportChanged: [state: DesignerCanvasMeta]
+  dropActivity: [payload: { typeName: string; x: number; y: number }]
 }>()
 
 const containerRef = ref<HTMLDivElement>()
 let graph: Graph | null = null
 /** Positions captured on node:mousedown for move-command undo. */
 const dragOrigins = new Map<string, { x: number; y: number } | null>()
+
+function onDrop(event: DragEvent): void {
+  const typeName = event.dataTransfer?.getData("cike-activity-type")
+  if (!typeName || !graph) return
+  const point = graph.clientToLocal(event.clientX, event.clientY)
+  emit("dropActivity", { typeName, x: point.x, y: point.y })
+}
 
 onMounted(() => {
   registerDesignerShapes()
@@ -81,6 +89,20 @@ function applyViewport(): void {
   }
 }
 
+/** Canvas-local coordinate of the current viewport center. */
+function viewportCenter(): { x: number; y: number } {
+  if (!graph) return { x: 0, y: 0 }
+  const size = graph.transform.getComputedSize()
+  const translation = graph.translate()
+  const zoom = graph.zoom()
+  return {
+    x: (size.width / 2 - translation.tx) / zoom,
+    y: (size.height / 2 - translation.ty) / zoom,
+  }
+}
+
+defineExpose({ viewportCenter })
+
 function renderProjection(): void {
   if (!graph) return
   const cells: Record<string, unknown>[] = []
@@ -121,7 +143,7 @@ function renderProjection(): void {
 </script>
 
 <template>
-  <div ref="containerRef" class="canvas-surface h-full w-full">
+  <div ref="containerRef" class="canvas-surface h-full w-full" @dragover.prevent @drop="onDrop">
     <!-- Theme-aware edge/port styling: SVG presentation attributes cannot use
          CSS variables, so colors are applied through currentColor + CSS. -->
     <style scoped>

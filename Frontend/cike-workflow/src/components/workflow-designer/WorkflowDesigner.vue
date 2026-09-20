@@ -21,6 +21,8 @@ import PropertyPanel from "./PropertyPanel.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
 
+const canvasRef = ref<InstanceType<typeof DesignerCanvas> | null>(null)
+
 const selectedForPanel = computed(() => {
   const activity = props.designer.selectedActivity.value
   if (!activity) return null
@@ -53,6 +55,10 @@ function confirmRemove(): void {
 function drillById(activityId: string): void {
   const activity = props.designer.currentChildren.value.find((child) => child.id === activityId)
   if (activity) props.designer.drillInto(activity)
+}
+
+function addAtCenter(typeName: string): void {
+  props.designer.addNode(typeName, canvasRef.value?.viewportCenter() ?? { x: 80, y: 80 })
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -103,9 +109,10 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       </div>
     </header>
     <div class="flex min-h-0 flex-1">
-      <ActivityPalette />
+      <ActivityPalette :groups="designer.paletteGroups.value" @add="(typeName: string) => addAtCenter(typeName)" />
       <div class="relative min-w-0 flex-1">
         <DesignerCanvas
+          ref="canvasRef"
           :projection="designer.projection.value"
           :interactive="true"
           :selected-id="designer.selectedActivityId.value"
@@ -115,6 +122,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
           @node-dblclick="(id: string) => drillById(id)"
           @node-moved="(payload) => designer.moveNode(payload)"
           @viewport-changed="(state) => designer.saveViewport(state)"
+          @drop-activity="(payload) => designer.addNode(payload.typeName, { x: payload.x, y: payload.y })"
         />
         <div
           v-if="designer.loadError.value || designer.saveError.value"

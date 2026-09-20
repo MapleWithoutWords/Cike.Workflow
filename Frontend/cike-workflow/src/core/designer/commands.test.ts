@@ -5,7 +5,7 @@ import { End } from "../activities/End";
 import { If } from "../activities/If";
 import { ActivityEndpoint } from "../models/ActivityEndpoint";
 import { ActivityConnection } from "../models/ActivityConnection";
-import { CommandStack, makeMoveNodeCommand, makeRemoveNodeCommand } from "./commands";
+import { CommandStack, makeMoveNodeCommand, makeRemoveNodeCommand, makeAddNodeCommand } from "./commands";
 import { getNodePosition } from "./metadata";
 
 function makeFlowchart(): { flowchart: Flowchart; start: Start; decision: If; end: End } {
@@ -79,5 +79,24 @@ describe("RemoveNodeCommand", () => {
   it("Remove_UnknownChild_ReturnsNull", () => {
     const { flowchart } = makeFlowchart();
     expect(makeRemoveNodeCommand(flowchart, "nope")).toBeNull();
+  });
+});
+
+describe("AddNodeCommand", () => {
+  it("Add_AppendsWithPosition_UndoRemoves", () => {
+    const { flowchart, end } = makeFlowchart();
+    const fresh = new Start();
+    const command = makeAddNodeCommand(flowchart, fresh, { x: 400, y: 200 });
+    command.apply();
+    expect(flowchart.activities.length).toBe(4);
+    expect(getNodePosition(flowchart.activities[3])).toEqual({ x: 400, y: 200 });
+    command.undo();
+    expect(flowchart.activities.length).toBe(3);
+    expect(flowchart.activities).not.toContain(fresh);
+    expect(flowchart.connections.length).toBe(2);
+    command.redo?.();
+    expect(flowchart.activities.length).toBe(4);
+    command.undo();
+    void end;
   });
 });
