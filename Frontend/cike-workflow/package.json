@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "test": "vitest run",
     "preview": "vite preview",
     "api:pull": "node scripts/pull-swagger.mjs",
     "api:gen": "openapi-ts",

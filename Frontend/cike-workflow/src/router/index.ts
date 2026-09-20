@@ -36,12 +36,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "定义详情" },
       },
       {
-        path: "definitions/:definitionId/edit",
-        name: "definition-designer",
-        component: () => import("@/views/WorkflowDesignerView.vue"),
-        meta: { title: "工作流设计器" },
-      },
-      {
         path: "instances",
         name: "instances",
         component: () => import("@/views/InstancesView.vue"),
