@@ -238,6 +238,13 @@ defineExpose({ viewportCenter, removeCellById })
   stroke: var(--border);
   fill: var(--background);
 }
+/* Entry port: its single-element markup renders the circle itself as
+   .x6-port-body (no inner circle), so target it via the group's port class.
+   Solid primary fill makes it a clear connection anchor. */
+.canvas-surface :deep(.x6-port-in .x6-port-body) {
+  fill: var(--primary);
+  stroke: var(--primary);
+}
 .canvas-surface :deep(.x6-port-body text) {
   fill: var(--muted-foreground);
   font-size: 10px;
