@@ -54,7 +54,7 @@ export class GenericActivity extends Activity {
     this.raw = raw;
   }
 
-  override getPorts() {
+  override getOutPorts() {
     // Unknown activities render with a single default outcome so they can
     // still participate in the canvas execution flow.
     return [{ name: "Done", displayName: "Done" }];

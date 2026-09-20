@@ -80,7 +80,11 @@ onMounted(() => {
       highlight: true,
       connectionPoint: "boundary",
       connector: { name: "rounded", args: { radius: 8 } },
-      validateConnection: ({ sourceCell, targetCell }) => sourceCell !== targetCell,
+      validateConnection: ({ sourceCell, targetCell, targetPort }) => {
+        if (!sourceCell || !targetCell || sourceCell === targetCell) return false
+        const target = props.projection.nodes.find((node) => node.id === String(targetCell.id))
+        return !!targetPort && !!target && target.data.inPorts.includes(String(targetPort))
+      },
       createEdge: () =>
         graph!.createEdge({
           shape: "edge",
@@ -165,6 +169,8 @@ function viewportCenter(): { x: number; y: number } {
 
 function renderProjection(): void {
   if (!graph) return
+  // Target-node → first entry port, so edges land on the model-declared in port.
+  const inPortByNode = new Map(props.projection.nodes.map((node) => [node.id, node.data.inPorts[0]]))
   const cells: Record<string, unknown>[] = []
   for (const node of props.projection.nodes) {
     cells.push({
@@ -174,21 +180,25 @@ function renderProjection(): void {
       y: node.y,
       data: node.data,
       ports: {
-        items: node.data.ports.map((port) => ({
-          id: port,
-          group: "out",
-          attrs: { label: { text: port, x: 9, y: 3 } },
-        })),
+        items: [
+          ...node.data.inPorts.map((port) => ({ id: port, group: "in" })),
+          ...node.data.outPorts.map((port) => ({
+            id: port,
+            group: "out",
+            attrs: { label: { text: port, x: 9, y: 3 } },
+          })),
+        ],
       },
     })
   }
   for (const edge of props.projection.edges) {
+    const targetInPort = inPortByNode.get(edge.target)
     cells.push({
       shape: "edge",
       id: edge.id,
       zIndex: 0,
       source: edge.sourcePort ? { cell: edge.source, port: edge.sourcePort } : { cell: edge.source },
-      target: { cell: edge.target },
+      target: targetInPort ? { cell: edge.target, port: targetInPort } : { cell: edge.target },
       connector: { name: "rounded", args: { radius: 8 } },
       attrs: {
         line: {

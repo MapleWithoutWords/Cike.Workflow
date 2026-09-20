@@ -26,6 +26,14 @@ export function registerDesignerShapes(): void {
     height: NODE_HEIGHT,
     ports: {
       groups: {
+        in: {
+          position: { name: "left" },
+          markup: [{ tagName: "circle", selector: "dot" }],
+          attrs: {
+            // 'passive': can be a connection target only, never initiates a drag.
+            dot: { magnet: "passive", r: 5 },
+          },
+        },
         out: {
           position: { name: "right" },
           markup: [

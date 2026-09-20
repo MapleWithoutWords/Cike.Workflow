@@ -18,7 +18,10 @@ export interface DesignerNodeData {
   /** Short type name, e.g. "If". */
   typeShort: string;
   name: string;
-  ports: string[];
+  /** Entry port names (connection targets). */
+  inPorts: string[];
+  /** Outcome port names (connection sources). */
+  outPorts: string[];
   /** True when the type has no frontend mirror (renders as generic node). */
   isGeneric: boolean;
   /** True when double-click drills into a nested level. */
@@ -48,10 +51,15 @@ export interface CanvasProjection {
 
 const EMPTY_PROJECTION: CanvasProjection = { nodes: [], edges: [] };
 
-export function getPortsOf(activity: IActivity): string[] {
-  if (typeof (activity as Activity).getPorts !== "function") return ["Done"];
-  const ports = (activity as Activity).getPorts();
+export function getOutPortsOf(activity: IActivity): string[] {
+  if (typeof (activity as Activity).getOutPorts !== "function") return ["Done"];
+  const ports = (activity as Activity).getOutPorts();
   return ports.length > 0 ? ports.map((port) => port.name) : ["Done"];
+}
+
+export function getInPortsOf(activity: IActivity): string[] {
+  if (typeof (activity as Activity).getInPorts !== "function") return ["In"];
+  return (activity as Activity).getInPorts().map((port) => port.name);
 }
 
 export function canDrillInto(activity: IActivity): boolean {
@@ -97,7 +105,8 @@ export function projectCanvas(source: CanvasSource): CanvasProjection {
         type: activity.type,
         typeShort: activityShortName(activity.type),
         name: activity.name ?? activityShortName(activity.type),
-        ports: getPortsOf(activity),
+        inPorts: getInPortsOf(activity),
+        outPorts: getOutPortsOf(activity),
         isGeneric: resolveActivityClass(activity.type) === null,
         canDrill: canDrillInto(activity),
       },
@@ -130,7 +139,8 @@ export function projectOrderedChain(children: IActivity[]): CanvasProjection {
       type: activity.type,
       typeShort: activityShortName(activity.type),
       name: activity.name ?? activityShortName(activity.type),
-      ports: getPortsOf(activity),
+      inPorts: getInPortsOf(activity),
+      outPorts: getOutPortsOf(activity),
       isGeneric: resolveActivityClass(activity.type) === null,
       canDrill: canDrillInto(activity),
     },

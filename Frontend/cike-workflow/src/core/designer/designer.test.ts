@@ -9,7 +9,7 @@ import { ActivityConnection } from "../models/ActivityConnection";
 import { computeAutoLayout } from "./layout";
 import { getNodePosition, setNodePosition } from "./metadata";
 import { fromWireActivity, toWireActivity, GenericActivity, type WireActivity } from "./serialization";
-import { canDrillInto, getPortsOf, projectFlowchart, projectOrderedChain } from "./projection";
+import { canDrillInto, getOutPortsOf, projectFlowchart, projectOrderedChain } from "./projection";
 import { ensureDrillTarget, isChainContainer } from "./drill";
 
 function makeFlowchartWire(): WireActivity {
@@ -140,7 +140,8 @@ describe("projection", () => {
     expect(projection.nodes.length).toBe(4);
     const ifNode = projection.nodes.find((n) => n.data.typeShort === "If")!;
     expect(ifNode.x).toBe(500);
-    expect(ifNode.data.ports).toEqual(["True", "False"]);
+    expect(ifNode.data.outPorts).toEqual(["True", "False"]);
+    expect(ifNode.data.inPorts).toEqual(["In"]);
     const startNode = projection.nodes.find((n) => n.data.typeShort === "Start")!;
     expect(startNode.x).toBeLessThan(ifNode.x);
     expect(projection.edges.length).toBe(3);
@@ -158,7 +159,7 @@ describe("projection", () => {
 
   it("GetPortsOf_UnknownInstance_FallsBackToDone", () => {
     const generic = new GenericActivity("Cike.Mystery", {});
-    expect(getPortsOf(generic)).toEqual(["Done"]);
+    expect(getOutPortsOf(generic)).toEqual(["Done"]);
   });
 
   it("ProjectOrderedChain_VerticalWithVisualEdges", () => {

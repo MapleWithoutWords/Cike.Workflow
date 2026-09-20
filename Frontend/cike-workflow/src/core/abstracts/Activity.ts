@@ -28,7 +28,13 @@ export abstract class Activity implements IActivity {
     this.type = `Cike.${this.constructor.name}`;
   }
 
-  getPorts(): ActivityPort[] {
+  /** Entry ports (connection targets). Most activities have a single entry. */
+  getInPorts(): ActivityPort[] {
+    return [{ name: "In", displayName: "In" }];
+  }
+
+  /** Outcome ports (connection sources), e.g. Done, or True/False for If. */
+  getOutPorts(): ActivityPort[] {
     return [{ name: "Done", displayName: "Done" }];
   }
 }

@@ -26,7 +26,7 @@ export class Switch extends Activity {
   );
   cases: SwitchCase[] = [];
 
-  override getPorts(): ActivityPort[] {
+  override getOutPorts(): ActivityPort[] {
     return this.cases
       .map((c) => new ActivityPort(c.label, c.label))
       .concat(new ActivityPort("Default", "Default"));
