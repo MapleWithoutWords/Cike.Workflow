@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiV1FoldersData, DeleteApiV1FoldersErrors, DeleteApiV1FoldersResponses, DeleteApiV1WorkflowDefinitionsByIdData, DeleteApiV1WorkflowDefinitionsByIdErrors, DeleteApiV1WorkflowDefinitionsByIdResponses, DeleteApiV1WorkspacesData, DeleteApiV1WorkspacesErrors, DeleteApiV1WorkspacesResponses, GetApiV1FoldersData, GetApiV1FoldersErrors, GetApiV1FoldersResponses, GetApiV1WorkflowDefinitionsByIdData, GetApiV1WorkflowDefinitionsByIdErrors, GetApiV1WorkflowDefinitionsByIdResponses, GetApiV1WorkflowDefinitionsListData, GetApiV1WorkflowDefinitionsListErrors, GetApiV1WorkflowDefinitionsListResponses, GetApiV1WorkflowDefinitionsVersionListData, GetApiV1WorkflowDefinitionsVersionListErrors, GetApiV1WorkflowDefinitionsVersionListResponses, GetApiV1WorkspacesData, GetApiV1WorkspacesErrors, GetApiV1WorkspacesPagedListData, GetApiV1WorkspacesPagedListErrors, GetApiV1WorkspacesPagedListResponses, GetApiV1WorkspacesResponses, GetData, GetResponses, PostApiV1FoldersData, PostApiV1FoldersErrors, PostApiV1FoldersResponses, PostApiV1WorkflowDefinitionsData, PostApiV1WorkflowDefinitionsErrors, PostApiV1WorkflowDefinitionsMoveByIdData, PostApiV1WorkflowDefinitionsMoveByIdErrors, PostApiV1WorkflowDefinitionsMoveByIdResponses, PostApiV1WorkflowDefinitionsPublishByIdData, PostApiV1WorkflowDefinitionsPublishByIdErrors, PostApiV1WorkflowDefinitionsPublishByIdResponses, PostApiV1WorkflowDefinitionsResponses, PostApiV1WorkflowDefinitionsRollbackData, PostApiV1WorkflowDefinitionsRollbackErrors, PostApiV1WorkflowDefinitionsRollbackResponses, PostApiV1WorkflowDefinitionsSaveByIdData, PostApiV1WorkflowDefinitionsSaveByIdErrors, PostApiV1WorkflowDefinitionsSaveByIdResponses, PostApiV1WorkspacesData, PostApiV1WorkspacesErrors, PostApiV1WorkspacesResponses, PutApiV1FoldersData, PutApiV1FoldersErrors, PutApiV1FoldersResponses, PutApiV1WorkflowDefinitionsByIdData, PutApiV1WorkflowDefinitionsByIdErrors, PutApiV1WorkflowDefinitionsByIdResponses, PutApiV1WorkspacesData, PutApiV1WorkspacesErrors, PutApiV1WorkspacesResponses } from './types.gen';
+import type { DeleteApiV1FoldersData, DeleteApiV1FoldersErrors, DeleteApiV1FoldersResponses, DeleteApiV1WorkflowDefinitionsByIdData, DeleteApiV1WorkflowDefinitionsByIdErrors, DeleteApiV1WorkflowDefinitionsByIdResponses, DeleteApiV1WorkspacesData, DeleteApiV1WorkspacesErrors, DeleteApiV1WorkspacesResponses, GetApiV1CommonsActivityDescriptorsData, GetApiV1CommonsActivityDescriptorsErrors, GetApiV1CommonsActivityDescriptorsResponses, GetApiV1CommonsExpressionDescriptorsData, GetApiV1CommonsExpressionDescriptorsErrors, GetApiV1CommonsExpressionDescriptorsResponses, GetApiV1FoldersData, GetApiV1FoldersErrors, GetApiV1FoldersResponses, GetApiV1WorkflowDefinitionsByIdData, GetApiV1WorkflowDefinitionsByIdErrors, GetApiV1WorkflowDefinitionsByIdResponses, GetApiV1WorkflowDefinitionsListData, GetApiV1WorkflowDefinitionsListErrors, GetApiV1WorkflowDefinitionsListResponses, GetApiV1WorkflowDefinitionsVersionListData, GetApiV1WorkflowDefinitionsVersionListErrors, GetApiV1WorkflowDefinitionsVersionListResponses, GetApiV1WorkflowInstancesByIdData, GetApiV1WorkflowInstancesByIdErrors, GetApiV1WorkflowInstancesByIdResponses, GetApiV1WorkspacesData, GetApiV1WorkspacesErrors, GetApiV1WorkspacesPagedListData, GetApiV1WorkspacesPagedListErrors, GetApiV1WorkspacesPagedListResponses, GetApiV1WorkspacesResponses, GetData, GetResponses, PostApiV1FoldersData, PostApiV1FoldersErrors, PostApiV1FoldersMoveByIdData, PostApiV1FoldersMoveByIdErrors, PostApiV1FoldersMoveByIdResponses, PostApiV1FoldersResponses, PostApiV1WorkflowDefinitionsData, PostApiV1WorkflowDefinitionsErrors, PostApiV1WorkflowDefinitionsMoveByIdData, PostApiV1WorkflowDefinitionsMoveByIdErrors, PostApiV1WorkflowDefinitionsMoveByIdResponses, PostApiV1WorkflowDefinitionsPublishByIdData, PostApiV1WorkflowDefinitionsPublishByIdErrors, PostApiV1WorkflowDefinitionsPublishByIdResponses, PostApiV1WorkflowDefinitionsResponses, PostApiV1WorkflowDefinitionsRollbackData, PostApiV1WorkflowDefinitionsRollbackErrors, PostApiV1WorkflowDefinitionsRollbackResponses, PostApiV1WorkflowDefinitionsSaveByIdData, PostApiV1WorkflowDefinitionsSaveByIdErrors, PostApiV1WorkflowDefinitionsSaveByIdResponses, PostApiV1WorkflowInstancesPagedListData, PostApiV1WorkflowInstancesPagedListErrors, PostApiV1WorkflowInstancesPagedListResponses, PostApiV1WorkspacesData, PostApiV1WorkspacesErrors, PostApiV1WorkspacesResponses, PutApiV1FoldersData, PutApiV1FoldersErrors, PutApiV1FoldersResponses, PutApiV1WorkflowDefinitionsByIdData, PutApiV1WorkflowDefinitionsByIdErrors, PutApiV1WorkflowDefinitionsByIdResponses, PutApiV1WorkspacesData, PutApiV1WorkspacesErrors, PutApiV1WorkspacesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -22,6 +22,20 @@ export const get = <ThrowOnError extends boolean = false>(options?: Options<GetD
     responseType: 'text',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/',
+    ...options
+});
+
+export const getApiV1CommonsExpressionDescriptors = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1CommonsExpressionDescriptorsData, ThrowOnError>): RequestResult<GetApiV1CommonsExpressionDescriptorsResponses, GetApiV1CommonsExpressionDescriptorsErrors, ThrowOnError> => (options?.client ?? client).get<GetApiV1CommonsExpressionDescriptorsResponses, GetApiV1CommonsExpressionDescriptorsErrors, ThrowOnError>({
+    responseType: 'json',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/Commons/ExpressionDescriptors',
+    ...options
+});
+
+export const getApiV1CommonsActivityDescriptors = <ThrowOnError extends boolean = false>(options?: Options<GetApiV1CommonsActivityDescriptorsData, ThrowOnError>): RequestResult<GetApiV1CommonsActivityDescriptorsResponses, GetApiV1CommonsActivityDescriptorsErrors, ThrowOnError> => (options?.client ?? client).get<GetApiV1CommonsActivityDescriptorsResponses, GetApiV1CommonsActivityDescriptorsErrors, ThrowOnError>({
+    responseType: 'json',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/Commons/ActivityDescriptors',
     ...options
 });
 
@@ -52,6 +66,16 @@ export const postApiV1Folders = <ThrowOnError extends boolean = false>(options: 
 export const putApiV1Folders = <ThrowOnError extends boolean = false>(options: Options<PutApiV1FoldersData, ThrowOnError>): RequestResult<PutApiV1FoldersResponses, PutApiV1FoldersErrors, ThrowOnError> => (options.client ?? client).put<PutApiV1FoldersResponses, PutApiV1FoldersErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/Folders',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const postApiV1FoldersMoveById = <ThrowOnError extends boolean = false>(options: Options<PostApiV1FoldersMoveByIdData, ThrowOnError>): RequestResult<PostApiV1FoldersMoveByIdResponses, PostApiV1FoldersMoveByIdErrors, ThrowOnError> => (options.client ?? client).post<PostApiV1FoldersMoveByIdResponses, PostApiV1FoldersMoveByIdErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/Folders/Move/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -146,6 +170,24 @@ export const postApiV1WorkflowDefinitionsRollback = <ThrowOnError extends boolea
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+export const postApiV1WorkflowInstancesPagedList = <ThrowOnError extends boolean = false>(options: Options<PostApiV1WorkflowInstancesPagedListData, ThrowOnError>): RequestResult<PostApiV1WorkflowInstancesPagedListResponses, PostApiV1WorkflowInstancesPagedListErrors, ThrowOnError> => (options.client ?? client).post<PostApiV1WorkflowInstancesPagedListResponses, PostApiV1WorkflowInstancesPagedListErrors, ThrowOnError>({
+    responseType: 'json',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/WorkflowInstances/PagedList',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getApiV1WorkflowInstancesById = <ThrowOnError extends boolean = false>(options: Options<GetApiV1WorkflowInstancesByIdData, ThrowOnError>): RequestResult<GetApiV1WorkflowInstancesByIdResponses, GetApiV1WorkflowInstancesByIdErrors, ThrowOnError> => (options.client ?? client).get<GetApiV1WorkflowInstancesByIdResponses, GetApiV1WorkflowInstancesByIdErrors, ThrowOnError>({
+    responseType: 'json',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/WorkflowInstances/{id}',
+    ...options
 });
 
 export const getApiV1WorkspacesPagedList = <ThrowOnError extends boolean = false>(options: Options<GetApiV1WorkspacesPagedListData, ThrowOnError>): RequestResult<GetApiV1WorkspacesPagedListResponses, GetApiV1WorkspacesPagedListErrors, ThrowOnError> => (options.client ?? client).get<GetApiV1WorkspacesPagedListResponses, GetApiV1WorkspacesPagedListErrors, ThrowOnError>({

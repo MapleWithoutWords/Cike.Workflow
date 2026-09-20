@@ -24,6 +24,56 @@
         }
       }
     },
+    "/api/v1/Commons/ExpressionDescriptors": {
+      "get": {
+        "tags": [
+          "CommonService"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExpressionDescriptor"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/Commons/ActivityDescriptors": {
+      "get": {
+        "tags": [
+          "CommonService"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityDescriptor"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/Folders": {
       "get": {
         "tags": [
@@ -136,6 +186,42 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/Folders/Move/{id}": {
+      "post": {
+        "tags": [
+          "FolderService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveFolderDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -506,6 +592,97 @@
         }
       }
     },
+    "/api/v1/WorkflowInstances/PagedList": {
+      "post": {
+        "tags": [
+          "WorkflowInstanceService"
+        ],
+        "parameters": [
+          {
+            "name": "Page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Sorting",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowInstanceFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowInstanceItemDtoPagedResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowInstances/{id}": {
+      "get": {
+        "tags": [
+          "WorkflowInstanceService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowInstanceDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/Workspaces/PagedList": {
       "get": {
         "tags": [
@@ -687,6 +864,319 @@
   },
   "components": {
     "schemas": {
+      "ActivityDescriptor": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "typeName": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "category": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InputDescriptor"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutputDescriptor"
+            }
+          },
+          "isContainer": {
+            "type": "boolean"
+          },
+          "isBrowsable": {
+            "type": "boolean"
+          },
+          "isStart": {
+            "type": "boolean"
+          },
+          "isTerminal": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivityExecutionContextState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "callStackDepth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentContextId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "scheduledActivityNodeId": {
+            "type": "string"
+          },
+          "ownerActivityNodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "activityState": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "dynamicVariables": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Variable"
+                },
+                {
+                  "$ref": "#/components/schemas/Variable`1"
+                }
+              ]
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/ActivityStatus"
+          },
+          "isExecuting": {
+            "type": "boolean"
+          },
+          "faultCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivityIncident": {
+        "type": "object",
+        "properties": {
+          "activityId": {
+            "type": "string"
+          },
+          "activityNodeId": {
+            "type": "string"
+          },
+          "activityInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "exception": {
+            "$ref": "#/components/schemas/ExceptionState"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivityInstanceExecutionRecordDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workflowInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activityId": {
+            "type": "string"
+          },
+          "activityNodeId": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "activityTypeVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityName": {
+            "type": "string"
+          },
+          "activityState": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "outputs": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "exception": {
+            "$ref": "#/components/schemas/ExceptionState"
+          },
+          "hasBookmarks": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ActivityStatus"
+          },
+          "aggregateFaultCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "schedulingActivityExecutionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "schedulingActivityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "schedulingWorkflowInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "callStackDepth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ActivityStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "description": "{\"Pending\":0,\"Running\":1,\"Completed\":2,\"Canceled\":3,\"Faulted\":4}",
+        "format": "int32"
+      },
+      "ActivityWorkItemState": {
+        "type": "object",
+        "properties": {
+          "activityNodeId": {
+            "type": "string"
+          },
+          "ownerContextId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Variable"
+                },
+                {
+                  "$ref": "#/components/schemas/Variable`1"
+                }
+              ]
+            },
+            "nullable": true
+          },
+          "existingActivityExecutionContextId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "additionalProperties": false
+      },
       "AddFolderDto": {
         "type": "object",
         "properties": {
@@ -774,6 +1264,100 @@
         },
         "additionalProperties": false
       },
+      "Bookmark": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "payload": {
+            "nullable": true
+          },
+          "activityId": {
+            "type": "string"
+          },
+          "activityNodeId": {
+            "type": "string"
+          },
+          "activityInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "autoBurn": {
+            "type": "boolean"
+          },
+          "callbackMethodName": {
+            "type": "string",
+            "nullable": true
+          },
+          "autoComplete": {
+            "type": "boolean"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompletionCallbackState": {
+        "type": "object",
+        "properties": {
+          "ownerInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "childNodeId": {
+            "type": "string"
+          },
+          "methodName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExceptionState": {
+        "type": "object",
+        "properties": {
+          "typeName": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stackTrace": {
+            "type": "string",
+            "nullable": true
+          },
+          "innerException": {
+            "$ref": "#/components/schemas/ExceptionState"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "Expression": {
         "type": "object",
         "properties": {
@@ -782,6 +1366,18 @@
           },
           "value": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExpressionDescriptor": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -889,11 +1485,11 @@
           },
           "customProperties": {
             "type": "object",
-            "additionalProperties": { }
+            "additionalProperties": {}
           },
           "metadata": {
             "type": "object",
-            "additionalProperties": { }
+            "additionalProperties": {}
           }
         },
         "additionalProperties": false
@@ -915,6 +1511,45 @@
           }
         ]
       },
+      "InputDescriptor": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PropertyDescriptor"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "uiComponentName": {
+                "type": "string"
+              },
+              "defaultValue": {
+                "nullable": true
+              },
+              "isReadOnly": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "isWrapped": {
+                "type": "boolean"
+              },
+              "autoEvaluate": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "MoveFolderDto": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "MoveWorkflowDefinitionDto": {
         "type": "object",
         "properties": {
@@ -935,6 +1570,44 @@
             "additionalProperties": false
           }
         ]
+      },
+      "OutputDescriptor": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PropertyDescriptor"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "PropertyDescriptor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "clrName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSerializable": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isBrowsable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "PublishWorkflowDefinitionDto": {
         "type": "object",
@@ -970,6 +1643,40 @@
           }
         },
         "additionalProperties": false
+      },
+      "TimestampFilter": {
+        "required": [
+          "column",
+          "operator",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "string"
+          },
+          "operator": {
+            "$ref": "#/components/schemas/TimestampFilterOperator"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TimestampFilterOperator": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "description": "{\"Is\":0,\"IsNot\":1,\"LessThan\":2,\"GreaterThan\":3,\"LessThanOrEqual\":4,\"GreaterThanOrEqual\":5}",
+        "format": "int32"
       },
       "UpdateFolderDto": {
         "type": "object",
@@ -1010,6 +1717,25 @@
         },
         "additionalProperties": false
       },
+      "Variable": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "nullable": true
+          },
+          "storageDriverType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "VariableDefinition": {
         "type": "object",
         "properties": {
@@ -1035,6 +1761,17 @@
           }
         },
         "additionalProperties": false
+      },
+      "Variable`1": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Variable"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
       },
       "WorkflowDefinitionDetailDto": {
         "type": "object",
@@ -1239,7 +1976,7 @@
           },
           "customProperties": {
             "type": "object",
-            "additionalProperties": { }
+            "additionalProperties": {}
           }
         },
         "additionalProperties": false
@@ -1300,6 +2037,362 @@
           }
         },
         "additionalProperties": false
+      },
+      "WorkflowInstanceDetailDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/WorkflowInstanceItemDto"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "workflowState": {
+                "$ref": "#/components/schemas/WorkflowState"
+              },
+              "activityInstances": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ActivityInstanceExecutionRecordDto"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "WorkflowInstanceFilter": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          },
+          "searchTerm": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "definitionVersionId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "definitionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "definitionVersionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "parentWorkflowInstanceIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "workflowStatus": {
+            "$ref": "#/components/schemas/WorkflowStatus"
+          },
+          "workflowStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStatus"
+            },
+            "nullable": true
+          },
+          "workflowMainStatus": {
+            "$ref": "#/components/schemas/WorkflowMainStatus"
+          },
+          "workflowMainStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowMainStatus"
+            },
+            "nullable": true
+          },
+          "isExecuting": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hasIncidents": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "beforeLastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timestampFilters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimestampFilter"
+            },
+            "nullable": true
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowInstanceItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "definitionId": {
+            "type": "string"
+          },
+          "definitionVersionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "definitionName": {
+            "type": "string"
+          },
+          "parentWorkflowInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "isExecuting": {
+            "type": "boolean"
+          },
+          "incidentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkflowStatus"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowInstanceItemDtoPagedResultDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/WorkflowInstanceItemDto"
+                },
+                {
+                  "$ref": "#/components/schemas/WorkflowInstanceDetailDto"
+                }
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowMainStatus": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "description": "{\"Running\":0,\"Finished\":1}",
+        "format": "int32"
+      },
+      "WorkflowState": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "definitionId": {
+            "type": "string"
+          },
+          "definitionVersionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "definitionVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parentWorkflowInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkflowStatus"
+          },
+          "isExecuting": {
+            "type": "boolean"
+          },
+          "bookmarks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bookmark"
+            }
+          },
+          "incidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityIncident"
+            }
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "completionCallbacks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompletionCallbackState"
+            }
+          },
+          "activityExecutionContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityExecutionContextState"
+            }
+          },
+          "scheduledActivities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityWorkItemState"
+            }
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "type": "integer",
+        "description": "{\"Pending\":0,\"Executing\":1,\"Suspended\":2,\"Finished\":3,\"Cancelled\":4,\"Faulted\":5,\"Interrupted\":6}",
+        "format": "int32"
       },
       "WorkspaceItemDto": {
         "type": "object",
@@ -1364,7 +2457,7 @@
   },
   "security": [
     {
-      "Bearer": [ ]
+      "Bearer": []
     }
   ]
 }

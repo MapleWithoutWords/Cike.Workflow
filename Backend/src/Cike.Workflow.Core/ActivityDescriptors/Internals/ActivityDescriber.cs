@@ -39,6 +39,8 @@ internal class ActivityDescriber : IActivityDescriber
             IsContainer = typeof(ContainerActivity).IsAssignableFrom(activityType),
             IsStart = isStart,
             IsTerminal = isTerminal,
+            Category = activityAttr?.Category ?? "其它",
+            IsBrowsable = activityType.GetCustomAttribute<BrowsableAttribute>()?.Browsable ?? true,
         };
 
         // If the activity has a default output, set its IsSerializable property to the value of the OutputAttribute.IsSerializable property.
@@ -82,7 +84,7 @@ internal class ActivityDescriber : IActivityDescriber
         var typeArgs = propertyInfo.PropertyType.GenericTypeArguments;
         var wrappedPropertyType = typeArgs.Any() ? typeArgs[0] : typeof(object);
 
-        return Task.FromResult(new OutputDescriptor((outputAttribute?.Name ?? propertyInfo.Name).Pascalize(), propertyInfo.Name, outputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title), wrappedPropertyType, propertyInfo.GetValue, propertyInfo.SetValue, outputAttribute?.IsSerializable));
+        return Task.FromResult(new OutputDescriptor((outputAttribute?.Name ?? propertyInfo.Name).Pascalize(), propertyInfo.Name, outputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title), wrappedPropertyType, propertyInfo.GetValue, propertyInfo.SetValue, descriptionAttribute?.Description ?? outputAttribute?.Description, outputAttribute?.IsBrowsable ?? true, outputAttribute?.IsSerializable));
     }
 
     private async Task<InputDescriptor> DescribeInputPropertyAsync(PropertyInfo propertyInfo, CancellationToken cancellationToken = default)
@@ -102,8 +104,11 @@ internal class ActivityDescriber : IActivityDescriber
             wrappedPropertyType,
             propertyInfo.GetValue,
             propertyInfo.SetValue,
+            inputAttribute?.UIComponentName ?? "text-field",
             isWrappedProperty,
             inputAttribute?.DisplayName ?? propertyInfo.Name.Humanize(LetterCasing.Title),
+            inputAttribute?.Description,
+            inputAttribute?.DefaultValue,
             inputAttribute?.IsSerializable ?? true,
             autoEvaluate
         );

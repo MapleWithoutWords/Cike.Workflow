@@ -4,6 +4,109 @@ export type ClientOptions = {
     baseURL: `${string}://${string}` | (string & {});
 };
 
+export type ActivityDescriptor = {
+    tenantId?: string;
+    typeName?: string;
+    namespace?: string;
+    name?: string;
+    version?: number;
+    category?: string;
+    displayName?: string | null;
+    description?: string | null;
+    inputs?: Array<InputDescriptor>;
+    outputs?: Array<OutputDescriptor>;
+    isContainer?: boolean;
+    isBrowsable?: boolean;
+    isStart?: boolean;
+    isTerminal?: boolean;
+};
+
+export type ActivityExecutionContextState = {
+    id?: string;
+    callStackDepth?: number;
+    parentContextId?: string | null;
+    scheduledActivityNodeId?: string;
+    ownerActivityNodeId?: string | null;
+    properties?: {
+        [key: string]: unknown;
+    };
+    metadata?: {
+        [key: string]: unknown;
+    };
+    activityState?: {
+        [key: string]: unknown;
+    } | null;
+    dynamicVariables?: Array<Variable | Variable1>;
+    status?: ActivityStatus;
+    isExecuting?: boolean;
+    faultCount?: number;
+    createdAt?: string;
+    finishedAt?: string | null;
+};
+
+export type ActivityIncident = {
+    activityId?: string;
+    activityNodeId?: string;
+    activityInstanceId?: string | null;
+    activityType?: string;
+    message?: string;
+    exception?: ExceptionState;
+    timestamp?: string;
+};
+
+export type ActivityInstanceExecutionRecordDto = {
+    id?: string;
+    createdAt?: string;
+    createdBy?: string;
+    updatedAt?: string;
+    updatedBy?: string;
+    workflowInstanceId?: string;
+    activityId?: string;
+    activityNodeId?: string;
+    activityType?: string;
+    activityTypeVersion?: number;
+    activityName?: string;
+    activityState?: {
+        [key: string]: unknown;
+    } | null;
+    payload?: {
+        [key: string]: unknown;
+    } | null;
+    outputs?: {
+        [key: string]: unknown;
+    } | null;
+    properties?: {
+        [key: string]: unknown;
+    } | null;
+    metadata?: {
+        [key: string]: unknown;
+    } | null;
+    exception?: ExceptionState;
+    hasBookmarks?: boolean;
+    status?: ActivityStatus;
+    aggregateFaultCount?: number;
+    finishedAt?: string;
+    schedulingActivityExecutionId?: string;
+    schedulingActivityId?: string | null;
+    schedulingWorkflowInstanceId?: string;
+    callStackDepth?: number | null;
+};
+
+/**
+ * {"Pending":0,"Running":1,"Completed":2,"Canceled":3,"Faulted":4}
+ */
+export type ActivityStatus = 0 | 1 | 2 | 3 | 4;
+
+export type ActivityWorkItemState = {
+    activityNodeId?: string;
+    ownerContextId?: string | null;
+    variables?: Array<Variable | Variable1> | null;
+    existingActivityExecutionContextId?: string | null;
+    input?: {
+        [key: string]: unknown;
+    };
+};
+
 export type AddFolderDto = {
     workspaceId?: string;
     name?: string;
@@ -35,9 +138,47 @@ export type ArgumentDefinition = {
     defaultValue?: Expression;
 };
 
+export type Bookmark = {
+    id?: string;
+    name?: string;
+    hash?: string;
+    payload?: unknown;
+    activityId?: string;
+    activityNodeId?: string;
+    activityInstanceId?: string | null;
+    createdAt?: string;
+    autoBurn?: boolean;
+    callbackMethodName?: string | null;
+    autoComplete?: boolean;
+    metadata?: {
+        [key: string]: string;
+    } | null;
+};
+
+export type CompletionCallbackState = {
+    ownerInstanceId?: string;
+    childNodeId?: string;
+    methodName?: string | null;
+};
+
+export type ExceptionState = {
+    typeName?: string;
+    message?: string;
+    stackTrace?: string | null;
+    innerException?: ExceptionState;
+    metadata?: {
+        [key: string]: string;
+    } | null;
+};
+
 export type Expression = {
     type?: string;
     value?: unknown;
+};
+
+export type ExpressionDescriptor = {
+    type?: string;
+    displayName?: string;
 };
 
 export type FolderDetailDto = {
@@ -81,11 +222,34 @@ export type InputDefinition = ArgumentDefinition & {
     storageDriverType?: string | null;
 };
 
+export type InputDescriptor = PropertyDescriptor & {
+    uiComponentName?: string;
+    defaultValue?: unknown;
+    isReadOnly?: boolean | null;
+    isWrapped?: boolean;
+    autoEvaluate?: boolean;
+};
+
+export type MoveFolderDto = {
+    parentId?: string;
+};
+
 export type MoveWorkflowDefinitionDto = {
     folderId?: string;
 };
 
 export type OutputDefinition = ArgumentDefinition & {};
+
+export type OutputDescriptor = PropertyDescriptor & {};
+
+export type PropertyDescriptor = {
+    name?: string;
+    clrName?: string;
+    displayName?: string | null;
+    description?: string | null;
+    isSerializable?: boolean | null;
+    isBrowsable?: boolean;
+};
 
 export type PublishWorkflowDefinitionDto = {
     publishedNote?: string | null;
@@ -100,6 +264,17 @@ export type SaveWorkflowDefinitionDto = {
     root?: IActivity;
     options?: WorkflowDefinitionOptionsValueObject;
 };
+
+export type TimestampFilter = {
+    column: string;
+    operator: TimestampFilterOperator;
+    timestamp: string;
+};
+
+/**
+ * {"Is":0,"IsNot":1,"LessThan":2,"GreaterThan":3,"LessThanOrEqual":4,"GreaterThanOrEqual":5}
+ */
+export type TimestampFilterOperator = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type UpdateFolderDto = {
     name?: string;
@@ -117,6 +292,13 @@ export type UpdateWorkspaceDto = {
     description?: string;
 };
 
+export type Variable = {
+    id?: string;
+    name?: string;
+    value?: unknown;
+    storageDriverType?: string | null;
+};
+
 export type VariableDefinition = {
     id?: string;
     name?: string;
@@ -125,6 +307,8 @@ export type VariableDefinition = {
     defaultValue?: string | null;
     storageDriverType?: string | null;
 };
+
+export type Variable1 = Variable & {};
 
 export type WorkflowDefinitionDetailDto = {
     id?: string;
@@ -210,6 +394,100 @@ export type WorkflowDefinitionVersionItemDto = {
     publishedAt?: string;
 };
 
+export type WorkflowInstanceDetailDto = WorkflowInstanceItemDto & {
+    workflowState?: WorkflowState;
+    activityInstances?: Array<ActivityInstanceExecutionRecordDto>;
+};
+
+export type WorkflowInstanceFilter = {
+    id?: string | null;
+    ids?: Array<string> | null;
+    searchTerm?: string | null;
+    name?: string | null;
+    definitionId?: string | null;
+    definitionVersionId?: string | null;
+    definitionIds?: Array<string> | null;
+    definitionVersionIds?: Array<string> | null;
+    version?: number | null;
+    parentWorkflowInstanceIds?: Array<string> | null;
+    correlationId?: string | null;
+    correlationIds?: Array<string> | null;
+    workflowStatus?: WorkflowStatus;
+    workflowStatuses?: Array<WorkflowStatus> | null;
+    workflowMainStatus?: WorkflowMainStatus;
+    workflowMainStatuses?: Array<WorkflowMainStatus> | null;
+    isExecuting?: boolean | null;
+    hasIncidents?: boolean | null;
+    isSystem?: boolean | null;
+    beforeLastUpdated?: string | null;
+    timestampFilters?: Array<TimestampFilter> | null;
+    names?: Array<string> | null;
+};
+
+export type WorkflowInstanceItemDto = {
+    id?: string;
+    createdAt?: string;
+    createdBy?: string;
+    updatedAt?: string;
+    updatedBy?: string;
+    definitionId?: string;
+    definitionVersionId?: string;
+    version?: number;
+    definitionName?: string;
+    parentWorkflowInstanceId?: string;
+    name?: string;
+    correlationId?: string;
+    isExecuting?: boolean;
+    incidentCount?: number;
+    status?: WorkflowStatus;
+    finishedAt?: string;
+};
+
+export type WorkflowInstanceItemDtoPagedResultDto = {
+    total?: string;
+    items?: Array<WorkflowInstanceItemDto | WorkflowInstanceDetailDto>;
+};
+
+/**
+ * {"Running":0,"Finished":1}
+ */
+export type WorkflowMainStatus = 0 | 1;
+
+export type WorkflowState = {
+    id?: string;
+    definitionId?: string;
+    definitionVersionId?: string;
+    definitionVersion?: number;
+    parentWorkflowInstanceId?: string | null;
+    correlationId?: string | null;
+    name?: string | null;
+    status?: WorkflowStatus;
+    isExecuting?: boolean;
+    bookmarks?: Array<Bookmark>;
+    incidents?: Array<ActivityIncident>;
+    isSystem?: boolean;
+    completionCallbacks?: Array<CompletionCallbackState>;
+    activityExecutionContexts?: Array<ActivityExecutionContextState>;
+    scheduledActivities?: Array<ActivityWorkItemState>;
+    input?: {
+        [key: string]: unknown;
+    };
+    output?: {
+        [key: string]: unknown;
+    };
+    properties?: {
+        [key: string]: unknown;
+    };
+    createdAt?: string;
+    updatedAt?: string;
+    finishedAt?: string | null;
+};
+
+/**
+ * {"Pending":0,"Executing":1,"Suspended":2,"Finished":3,"Cancelled":4,"Faulted":5,"Interrupted":6}
+ */
+export type WorkflowStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 export type WorkspaceItemDto = {
     id?: string;
     createdAt?: string;
@@ -241,6 +519,52 @@ export type GetResponses = {
 };
 
 export type GetResponse = GetResponses[keyof GetResponses];
+
+export type GetApiV1CommonsExpressionDescriptorsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/Commons/ExpressionDescriptors';
+};
+
+export type GetApiV1CommonsExpressionDescriptorsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1CommonsExpressionDescriptorsResponses = {
+    /**
+     * OK
+     */
+    200: Array<ExpressionDescriptor>;
+};
+
+export type GetApiV1CommonsExpressionDescriptorsResponse = GetApiV1CommonsExpressionDescriptorsResponses[keyof GetApiV1CommonsExpressionDescriptorsResponses];
+
+export type GetApiV1CommonsActivityDescriptorsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/Commons/ActivityDescriptors';
+};
+
+export type GetApiV1CommonsActivityDescriptorsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1CommonsActivityDescriptorsResponses = {
+    /**
+     * OK
+     */
+    200: Array<ActivityDescriptor>;
+};
+
+export type GetApiV1CommonsActivityDescriptorsResponse = GetApiV1CommonsActivityDescriptorsResponses[keyof GetApiV1CommonsActivityDescriptorsResponses];
 
 export type DeleteApiV1FoldersData = {
     body?: never;
@@ -330,6 +654,29 @@ export type PutApiV1FoldersErrors = {
 };
 
 export type PutApiV1FoldersResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PostApiV1FoldersMoveByIdData = {
+    body: MoveFolderDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/Folders/Move/{id}';
+};
+
+export type PostApiV1FoldersMoveByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PostApiV1FoldersMoveByIdResponses = {
     /**
      * OK
      */
@@ -574,6 +921,58 @@ export type PostApiV1WorkflowDefinitionsRollbackResponses = {
      */
     200: unknown;
 };
+
+export type PostApiV1WorkflowInstancesPagedListData = {
+    body?: WorkflowInstanceFilter;
+    path?: never;
+    query: {
+        Page: number;
+        PageSize: number;
+        Sorting?: string;
+    };
+    url: '/api/v1/WorkflowInstances/PagedList';
+};
+
+export type PostApiV1WorkflowInstancesPagedListErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PostApiV1WorkflowInstancesPagedListResponses = {
+    /**
+     * OK
+     */
+    200: WorkflowInstanceItemDtoPagedResultDto;
+};
+
+export type PostApiV1WorkflowInstancesPagedListResponse = PostApiV1WorkflowInstancesPagedListResponses[keyof PostApiV1WorkflowInstancesPagedListResponses];
+
+export type GetApiV1WorkflowInstancesByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/WorkflowInstances/{id}';
+};
+
+export type GetApiV1WorkflowInstancesByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1WorkflowInstancesByIdResponses = {
+    /**
+     * OK
+     */
+    200: WorkflowInstanceDetailDto;
+};
+
+export type GetApiV1WorkflowInstancesByIdResponse = GetApiV1WorkflowInstancesByIdResponses[keyof GetApiV1WorkflowInstancesByIdResponses];
 
 export type GetApiV1WorkspacesPagedListData = {
     body?: never;

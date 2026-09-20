@@ -14,6 +14,8 @@ public class OutputDescriptor : PropertyDescriptor
         Type type,
         Func<IActivity, object?> valueGetter,
         Action<IActivity, object?> valueSetter,
+        string? description = default,
+        bool? isBrowsable = true,
         bool? isSerializable = default)
     {
         Name = name;
@@ -22,6 +24,8 @@ public class OutputDescriptor : PropertyDescriptor
         Type = type;
         ValueGetter = valueGetter;
         ValueSetter = valueSetter;
+        Description = description;
+        IsBrowsable = isBrowsable ?? true;
         IsSerializable = isSerializable;
     }
 }

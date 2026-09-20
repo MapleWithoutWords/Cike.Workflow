@@ -12,12 +12,16 @@ public abstract class PropertyDescriptor
 
     public string ClrName { get; set; } = null!;
 
-    [JsonPropertyName("typeName")]
+    [JsonIgnore]
     public Type Type { get; set; } = null!;
 
     public string? DisplayName { get; set; }
 
+    public string? Description { get; set; }
+
     public bool? IsSerializable { get; set; }
+
+    public bool IsBrowsable { get; set; } = true;
 
     [JsonIgnore]
     public Func<IActivity, object?> ValueGetter { get; set; } = null!;

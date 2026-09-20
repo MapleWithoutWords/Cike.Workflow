@@ -6,6 +6,7 @@ namespace Cike.Workflow.Core.Activities;
 ///  Write a line of text to the console.
 /// </summary>
 [Activity("Cike", "Console", "Write a line of text to the console.")]
+[Browsable(false)]
 public class WriteLine : AutoCompleteActivity
 {
     /// <inheritdoc />

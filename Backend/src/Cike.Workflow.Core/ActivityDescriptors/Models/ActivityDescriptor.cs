@@ -14,6 +14,7 @@ public class ActivityDescriptor
 
     public string TypeName { get; set; } = null!;
 
+    [JsonIgnore]
     public Type ClrType { get; set; } = null!;
 
     public string Namespace { get; set; } = null!;
@@ -33,6 +34,8 @@ public class ActivityDescriptor
     public ICollection<OutputDescriptor> Outputs { get; init; } = new List<OutputDescriptor>();
 
     public bool IsContainer { get; set; }
+
+    public bool IsBrowsable { get; set; } = true;
 
     public bool IsStart { get; set; }
 

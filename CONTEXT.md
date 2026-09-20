@@ -1,0 +1,48 @@
+# Cike.Workflow
+
+工作流引擎的领域术语表。定义以 Cike.Workflow.Core 中的模型为准，设计器（前端）与文档共用这套语言。
+
+## Language
+
+**工作流定义（Workflow Definition）**:
+一条可版本化的工作流，其内容是一棵活动树；同一 DefinitionId 下多个版本行，草稿与已发布版本并存。
+
+**活动（Activity）**:
+工作流中的一个节点，树上的最小组成单元。每个活动有类型（Type）、版本与唯一 Id。
+_Avoid_: 节点属性、步骤（在需要强调画布语义时可用"节点"）
+
+**画布根（Flowchart）**:
+定义内容树的根活动，必须是 Flowchart 类型；其执行语义是按连线在子活动间流转令牌。
+_Avoid_: 工作流（Workflow 是运行时物化后的宿主活动，不是画布根）
+
+**端口（Port）**:
+活动的出边语义，对应一个 Outcome 名称（如 If 的 True/False、默认的 Done）。端口由活动类型声明，不由实例存储。
+
+**连线（Connection）**:
+Flowchart 层的一条执行流边，由源端点（活动 Id + 端口名）指向目标端点。连线只存在于 Flowchart 的 Connections 中，不表达嵌套归属。
+
+**容器（Container）**:
+持有 `Activities` 列表的活动（如 Flowchart、Sequence）。子活动的归属由容器持有。
+_Avoid_: 复合活动与容器混用（Composite 的特征是持有 Root，容器持有列表）
+
+**体（Body）**:
+以属性形式内联持有的单个子活动，最典型是 ForEach 的 Body。体不在父级的 Activities 列表里，也不经连线到达——访问它的唯一入口是下钻。
+
+**下钻（Drill-in）**:
+从父画布进入某个属性持有子树（体或容器）的内部画布的导航动作，层级以栈记录。
+
+**合并模式（MergeMode）**:
+多入边节点的汇聚语义：Stream / Merge / Converge / Cascade / Race。未设置时按 Stream 处理。
+
+**活动 Id（Activity Id）**:
+活动实例的身份标识，创建时即可生成；发布物化时若已存在则保留。
+_Avoid_: 与 NodeId 混用
+
+**节点 Id（NodeId）**:
+运行时结构身份，供书签、执行日志与恢复定位使用；由后端在物化时统一赋值，创建方不填。
+
+**草稿（Draft）**:
+尚未发布的定义版本，可被设计器就地反复保存。
+
+**发布（Publish）**:
+将当前草稿固化为可执行版本的动作，发布时做严格画布校验（开始节点、孤立节点、连线引用、必填输入、变量合法性）。

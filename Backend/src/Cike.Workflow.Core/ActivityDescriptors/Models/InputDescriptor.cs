@@ -12,8 +12,12 @@ public class InputDescriptor : PropertyDescriptor
         Type type,
         Func<IActivity, object?> valueGetter,
         Action<IActivity, object?> valueSetter,
+        string uiComponentName,
         bool isWrapped,
         string displayName,
+        string? description = null,
+        object? defaultValue = null,
+        bool isBrowsable = true,
         bool isSerializable = true,
         bool autoEvaluate = true)
     {
@@ -22,11 +26,21 @@ public class InputDescriptor : PropertyDescriptor
         Type = type;
         ValueGetter = valueGetter;
         ValueSetter = valueSetter;
+        UIComponentName = uiComponentName;
         IsWrapped = isWrapped;
         DisplayName = displayName;
-        AutoEvaluate = autoEvaluate;
+        Description = description;
+        DefaultValue = defaultValue;
+        IsBrowsable = isBrowsable;
         IsSerializable = isSerializable;
+        AutoEvaluate = autoEvaluate;
     }
+
+    public string UIComponentName { get; set; } = null!;
+
+    public object? DefaultValue { get; set; }
+
+    public bool? IsReadOnly { get; set; }
 
     public bool IsWrapped { get; set; }
 
