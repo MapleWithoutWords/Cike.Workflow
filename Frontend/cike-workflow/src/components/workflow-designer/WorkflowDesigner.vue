@@ -8,6 +8,8 @@ import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
 import PropertyPanel from "./PropertyPanel.vue"
+import RemoveNodeDialog from "./RemoveNodeDialog.vue"
+import VariablesDialog from "./VariablesDialog.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
 
@@ -34,7 +36,6 @@ function confirmRemove(): void {
   pendingRemoveCommand.value = null
   if (!command) return
   props.designer.executeCommand(command)
-  if (props.designer.selectedActivityId.value === null) return
 }
 
 function drillById(activityId: string): void {
@@ -141,24 +142,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       <PropertyPanel :activity="designer.selectedActivity.value" :designer="designer" />
     </div>
 
-    <AlertDialog :open="removeDialogOpen" @update:open="(open: boolean) => (removeDialogOpen = open)">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>删除节点</AlertDialogTitle>
-          <AlertDialogDescription>
-            <template v-if="(pendingRemoveCommand?.removedConnectionCount ?? 0) > 0">
-              将同时移除该节点关联的 {{ pendingRemoveCommand?.removedConnectionCount }} 条连线。
-            </template>
-            <template v-else>确认删除选中的节点？</template>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction @click="confirmRemove">删除</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <RemoveNodeDialog
+      :open="removeDialogOpen"
+      :pending-command="pendingRemoveCommand"
+      @update:open="(open: boolean) => (removeDialogOpen = open)"
+      @confirm="confirmRemove"
+    />
 
-    <VariablesPanel :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
+    <VariablesDialog :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
   </div>
 </template>

@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
 })
 
 function applyViewport(): void {
-  if (!graph) return
+  if (!graph || !props.entryActivity) return
   const saved = getCanvasState(props.entryActivity as never)
   if (saved) {
     graph.scale(saved.zoom)
@@ -207,24 +207,24 @@ defineExpose({ viewportCenter, removeCellById })
 </script>
 
 <template>
-  <div ref="containerRef" class="canvas-surface h-full w-full" @dragover.prevent @drop="onDrop">
-    <!-- Theme-aware edge/port styling: SVG presentation attributes cannot use
-         CSS variables, so colors are applied through currentColor + CSS. -->
-    <style scoped>
-      .canvas-surface {
-        background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-        background-size: 20px 20px;
-        color: var(--border);
-      }
-      .canvas-surface :deep(.x6-port-body circle) {
-        stroke: var(--border);
-        fill: var(--background);
-      }
-      .canvas-surface :deep(.x6-port-body text) {
-        fill: var(--muted-foreground);
-        font-size: 10px;
-        user-select: none;
-      }
-    </style>
-  </div>
+  <div ref="containerRef" class="canvas-surface h-full w-full" @dragover.prevent @drop="onDrop" />
 </template>
+
+<!-- Theme-aware edge/port styling: SVG presentation attributes cannot use
+     CSS variables, so colors are applied through currentColor + CSS. -->
+<style scoped>
+.canvas-surface {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: var(--border);
+}
+.canvas-surface :deep(.x6-port-body circle) {
+  stroke: var(--border);
+  fill: var(--background);
+}
+.canvas-surface :deep(.x6-port-body text) {
+  fill: var(--muted-foreground);
+  font-size: 10px;
+  user-select: none;
+}
+</style>
