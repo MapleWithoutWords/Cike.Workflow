@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { If } from "../activities/If";
-import { getMergeMode, resolveInputFields, setMergeMode } from "./form";
+import { getMergeMode, resolveInputFields, setMergeMode, variableNameIssues } from "./form";
 
 describe("form", () => {
   it("ResolveInputFields_MapsClrNameToLowerFirst", () => {
@@ -24,5 +24,18 @@ describe("form", () => {
     expect(activity.customProperties["mergeMode"]).toBe("Merge");
     setMergeMode(activity, null);
     expect(getMergeMode(activity)).toBeNull();
+  });
+});
+
+describe("variableNameIssues", () => {
+  it("FlagsEmptyAndDuplicateNames", () => {
+    const issues = variableNameIssues([
+      { name: "amount", typeName: "String" },
+      { name: "", typeName: "String" },
+      { name: "amount", typeName: "Int32" },
+    ]);
+    expect(issues.length).toBe(2);
+    expect(issues[0]).toContain("空");
+    expect(issues[1]).toContain("amount");
   });
 });

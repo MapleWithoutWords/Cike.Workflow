@@ -19,7 +19,7 @@ import {
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
-import type { InputDescriptor } from "@/api/generated"
+import type { InputDescriptor, VariableDefinition } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
 import { activityShortName, resolveActivityClass } from "@/core/designer/registry"
@@ -53,6 +53,8 @@ export function useWorkflowDesigner() {
   const paletteGroups = shallowRef<PaletteGroup[]>([])
   /** Wire type → descriptor lookup (inputs drive the generic property form). */
   const descriptorByType = shallowRef<Map<string, { inputs?: InputDescriptor[] }>>(new Map())
+  /** Options-level workflow variables. */
+  const variables = shallowRef<VariableDefinition[]>([])
 
   const currentEntry = computed<DrillEntry | null>(() => drillStack.value[drillStack.value.length - 1] ?? null)
 
@@ -112,6 +114,7 @@ export function useWorkflowDesigner() {
       }
       rowId.value = definitionRowId
       savedOptions.value = (data.options ?? {}) as Record<string, unknown>
+      variables.value = ((data.options as { variables?: VariableDefinition[] } | null)?.variables ?? []) as VariableDefinition[]
       definitionName.value = data.name || data.definitionId || "未命名"
       root.value = fromWireActivity((data.root ?? {}) as WireActivity)
       drillStack.value = [{ activity: root.value, title: definitionName.value }]
@@ -190,8 +193,7 @@ export function useWorkflowDesigner() {
     setCanvasState(entry.activity, state)
   }
 
-  async function loadPalette(): Promise<void> {
-    try {
+  async function loadPalette(): Promise<void> {    try {
       const { data } = await getApiV1CommonsActivityDescriptors({})
       const descriptors = (data ?? []) as Array<{ typeName?: string; inputs?: InputDescriptor[] }>
       paletteGroups.value = buildPaletteGroups(descriptors)
@@ -205,8 +207,7 @@ export function useWorkflowDesigner() {
     }
   }
 
-  /** Adds a node of the given wire type; point is canvas-local. */
-  function addNode(typeName: string, point: { x: number; y: number }): void {
+  /** Adds a node of the given wire type; point is canvas-local. */  function addNode(typeName: string, point: { x: number; y: number }): void {
     const Ctor = resolveActivityClass(typeName)
     if (!Ctor) return
     const entry = currentEntry.value
@@ -215,6 +216,12 @@ export function useWorkflowDesigner() {
     const container = entry.activity as unknown as { activities: IActivity[] }
     executeCommand(makeAddNodeCommand(container as never, activity, { x: Math.round(point.x), y: Math.round(point.y) }))
     selectedActivityId.value = activity.id
+  }
+
+  /** Replaces the options-level variables and mirrors them into savedOptions. */
+  function setVariables(list: VariableDefinition[]): void {
+    variables.value = list
+    savedOptions.value = { ...savedOptions.value, variables: list }
   }
 
   const selectedEdgeId = ref<string | null>(null)
@@ -311,6 +318,8 @@ export function useWorkflowDesigner() {
     paletteGroups,
     descriptorByType,
     connectionTargets,
+    variables,
+    setVariables,
     addNode,
     selectedEdgeId,
     connect,

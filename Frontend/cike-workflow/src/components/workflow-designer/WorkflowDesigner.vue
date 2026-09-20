@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
-import { Redo2, Trash2, Undo2 } from "@lucide/vue"
+import { Redo2, Trash2, Undo2, Variable } from "@lucide/vue"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +18,12 @@ import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
 import PropertyPanel from "./PropertyPanel.vue"
+import VariablesPanel from "./VariablesPanel.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
 
 const canvasRef = ref<InstanceType<typeof DesignerCanvas> | null>(null)
+const variablesOpen = ref(false)
 
 const entryKey = computed(() => {
   const stack = props.designer.drillStack.value
@@ -108,6 +110,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         >
           <Trash2 :size="16" />
         </Button>
+        <Button variant="ghost" size="icon" title="工作流变量" @click="variablesOpen = true">
+          <Variable :size="16" />
+        </Button>
         <Button size="sm" :disabled="designer.saving.value" @click="designer.save()">
           {{ designer.saving.value ? "保存中…" : "保存" }}
         </Button>
@@ -164,5 +169,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <VariablesPanel :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
   </div>
 </template>

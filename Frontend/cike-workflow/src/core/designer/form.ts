@@ -67,3 +67,27 @@ export function setMergeMode(activity: IActivity, mode: string | null): void {
   if (!mode) delete customProperties["mergeMode"];
   else customProperties["mergeMode"] = mode;
 }
+
+/** Options-level workflow variables (mirrors backend WorkflowVariableDefinition). */
+export interface WorkflowVariableInput {
+  name?: string;
+  typeName?: string;
+  isArray?: boolean;
+}
+
+/** Lightweight, non-blocking validation matching the backend publish rules. */
+export function variableNameIssues(variables: WorkflowVariableInput[]): string[] {
+  const issues: string[] = [];
+  variables.forEach((variable, index) => {
+    if (!variable.name) issues.push(`第 ${index + 1} 个变量名称为空`);
+  });
+  const seen = new Map<string, number>();
+  for (const variable of variables) {
+    if (!variable.name) continue;
+    seen.set(variable.name, (seen.get(variable.name) ?? 0) + 1);
+  }
+  for (const [name, count] of seen) {
+    if (count > 1) issues.push(`变量名称 [${name}] 重复`);
+  }
+  return issues;
+}
