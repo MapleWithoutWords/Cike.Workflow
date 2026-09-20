@@ -1,9 +1,17 @@
-import { register } from "@antv/x6-vue-shape"
+import { register, getTeleport } from "@antv/x6-vue-shape"
 import DesignerNode from "./DesignerNode.vue"
 
 export const CIKE_NODE_SHAPE = "cike-node"
 export const NODE_WIDTH = 180
 export const NODE_HEIGHT = 44
+
+/**
+ * x6-vue-shape v3 renders Vue node content through a teleport container that
+ * must be mounted in the Vue tree; calling getTeleport() also flips the shared
+ * `active` flag on, without which node components never render. Created once at
+ * module scope so the flag is enabled before any graph builds its cells.
+ */
+export const TeleportContainer = getTeleport()
 
 let registered = false
 

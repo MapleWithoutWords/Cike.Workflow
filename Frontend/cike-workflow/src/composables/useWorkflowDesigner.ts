@@ -50,6 +50,10 @@ export function useWorkflowDesigner() {
   const canUndo = ref(false)
   const canRedo = ref(false)
   const commandStack = new CommandStack()
+  /** Bumped on every model mutation (command/undo/redo) so model-derived
+   *  computeds re-run — the domain model is held in shallowRefs and commands
+   *  mutate plain nested arrays that Vue cannot track on its own. */
+  const revision = ref(0)
   const paletteGroups = shallowRef<PaletteGroup[]>([])
   /** Wire type → descriptor lookup (inputs drive the generic property form). */
   const descriptorByType = shallowRef<Map<string, { inputs?: InputDescriptor[] }>>(new Map())
@@ -61,6 +65,7 @@ export function useWorkflowDesigner() {
   const breadcrumb = computed(() => drillStack.value.map((entry) => entry.title))
 
   const projection = computed<CanvasProjection>(() => {
+    void revision.value
     const entry = currentEntry.value
     if (!entry) return { nodes: [], edges: [] }
     if (entry.chainChildren) return projectOrderedChain(entry.chainChildren)
@@ -74,6 +79,7 @@ export function useWorkflowDesigner() {
   })
 
   const currentChildren = computed<IActivity[]>(() => {
+    void revision.value
     const entry = currentEntry.value
     if (!entry) return []
     if (entry.chainChildren) return entry.chainChildren
@@ -153,16 +159,19 @@ export function useWorkflowDesigner() {
 
   function executeCommand(command: DesignerCommand): void {
     commandStack.execute(command)
+    revision.value++
     refreshUndoFlags()
   }
 
   function undo(): void {
     commandStack.undo()
+    revision.value++
     refreshUndoFlags()
   }
 
   function redo(): void {
     commandStack.redo()
+    revision.value++
     refreshUndoFlags()
   }
 

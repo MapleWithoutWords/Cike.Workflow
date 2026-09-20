@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { Graph, Snapline } from "@antv/x6"
 import type { CanvasProjection } from "@/core/designer/projection"
 import { getCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
-import { CIKE_NODE_SHAPE, registerDesignerShapes } from "./nodes/register"
+import { CIKE_NODE_SHAPE, registerDesignerShapes, TeleportContainer } from "./nodes/register"
 
 const props = defineProps<{
   projection: CanvasProjection
@@ -62,6 +62,10 @@ onMounted(() => {
   registerDesignerShapes()
   graph = new Graph({
     container: containerRef.value!,
+    // Synchronous rendering: x6-vue-shape node views must be appended to the
+    // SVG immediately; X6's default async renderer leaves them unmounted here.
+    async: false,
+    autoResize: true,
     grid: false,
     interacting: props.interactive,
     mousewheel: { enabled: true, factor: 1.2, zoomAtMousePosition: true },
@@ -208,6 +212,7 @@ defineExpose({ viewportCenter, removeCellById })
 
 <template>
   <div ref="containerRef" class="canvas-surface h-full w-full" @dragover.prevent @drop="onDrop" />
+  <component :is="TeleportContainer" v-if="TeleportContainer" />
 </template>
 
 <!-- Theme-aware edge/port styling: SVG presentation attributes cannot use
