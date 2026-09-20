@@ -102,6 +102,48 @@ export function makeAddNodeCommand(
   };
 }
 
+export function makeConnectCommand(
+  parent: NodeContainer,
+  connection: ActivityConnection,
+): DesignerCommand {
+  const connections = parent.connections ?? [];
+  return {
+    label: "添加连线",
+    apply: () => {
+      connections.push(connection);
+    },
+    undo: () => {
+      const at = connections.indexOf(connection);
+      if (at >= 0) connections.splice(at, 1);
+    },
+    redo: () => {
+      connections.push(connection);
+    },
+  };
+}
+
+export function makeDisconnectCommand(
+  parent: NodeContainer,
+  connection: ActivityConnection,
+): DesignerCommand {
+  const connections = parent.connections ?? [];
+  const originalIndex = connections.indexOf(connection);
+  return {
+    label: "删除连线",
+    apply: () => {
+      const at = connections.indexOf(connection);
+      if (at >= 0) connections.splice(at, 1);
+    },
+    undo: () => {
+      connections.splice(Math.max(originalIndex, 0), 0, connection);
+    },
+    redo: () => {
+      const at = connections.indexOf(connection);
+      if (at >= 0) connections.splice(at, 1);
+    },
+  };
+}
+
 export function makeRemoveNodeCommand(parent: NodeContainer, childId: string): (DesignerCommand & { removedConnectionCount: number }) | null {
   const childIndex = parent.activities.findIndex((child) => child.id === childId);
   if (childIndex < 0) return null;

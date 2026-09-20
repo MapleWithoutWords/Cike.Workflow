@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue"
-import { Graph } from "@antv/x6"
+import { Graph, Snapline } from "@antv/x6"
 import type { CanvasProjection } from "@/core/designer/projection"
 import { getCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
 import { CIKE_NODE_SHAPE, registerDesignerShapes } from "./nodes/register"
@@ -20,10 +20,13 @@ const emit = defineEmits<{
   nodeMoved: [payload: { id: string; x: number; y: number; from: { x: number; y: number } | null }]
   viewportChanged: [state: DesignerCanvasMeta]
   dropActivity: [payload: { typeName: string; x: number; y: number }]
+  edgeClick: [edgeId: string]
+  connectRequest: [payload: { edgeId: string; source: string; sourcePort?: string; target: string }]
 }>()
 
 const containerRef = ref<HTMLDivElement>()
 let graph: Graph | null = null
+let selectedEdgeId: string | null = null
 /** Positions captured on node:mousedown for move-command undo. */
 const dragOrigins = new Map<string, { x: number; y: number } | null>()
 
@@ -34,6 +37,27 @@ function onDrop(event: DragEvent): void {
   emit("dropActivity", { typeName, x: point.x, y: point.y })
 }
 
+function setEdgeHighlight(edge: { setAttrByPath?: (path: string, value: unknown) => void } | null, width: number): void {
+  edge?.setAttrByPath?.("line/strokeWidth", width)
+}
+
+function selectEdge(edgeId: string): void {
+  if (selectedEdgeId === edgeId) return
+  const previous = selectedEdgeId ? graph?.getCellById(selectedEdgeId) : null
+  setEdgeHighlight(previous as never, 1.5)
+  selectedEdgeId = edgeId
+  const current = graph?.getCellById(edgeId)
+  setEdgeHighlight(current as never, 3)
+  emit("edgeClick", edgeId)
+}
+
+function clearEdgeSelection(): void {
+  if (!selectedEdgeId) return
+  const previous = graph?.getCellById(selectedEdgeId)
+  setEdgeHighlight(previous as never, 1.5)
+  selectedEdgeId = null
+}
+
 onMounted(() => {
   registerDesignerShapes()
   graph = new Graph({
@@ -42,9 +66,42 @@ onMounted(() => {
     interacting: props.interactive,
     mousewheel: { enabled: true, factor: 1.2, zoomAtMousePosition: true },
     panning: { enabled: true, eventTypes: ["leftMouseDown", "rightMouseDown"] },
+    connecting: {
+      allowBlank: false,
+      allowLoop: false,
+      allowNode: false,
+      allowEdge: false,
+      allowPort: true,
+      allowMulti: "withPort",
+      highlight: true,
+      connectionPoint: "boundary",
+      connector: { name: "rounded", args: { radius: 8 } },
+      validateConnection: ({ sourceCell, targetCell }) => sourceCell !== targetCell,
+      createEdge: () =>
+        graph!.createEdge({
+          shape: "edge",
+          attrs: { line: { stroke: "currentColor", strokeWidth: 1.5, targetMarker: null } },
+        }),
+    },
   })
+  if (props.interactive) graph.use(new Snapline())
   graph.on("node:click", ({ node }) => emit("nodeClick", String(node.id)))
-  graph.on("blank:click", () => emit("nodeClick", ""))
+  graph.on("blank:click", () => {
+    clearEdgeSelection()
+    emit("nodeClick", "")
+  })
+  graph.on("edge:click", ({ edge }) => selectEdge(String(edge.id)))
+  graph.on("edge:connected", ({ edge, isNew }) => {
+    if (!isNew) return
+    const source = edge.getSource()
+    const target = edge.getTarget()
+    emit("connectRequest", {
+      edgeId: String(edge.id),
+      source: String(typeof source === "object" && "cell" in source ? source.cell : source),
+      sourcePort: typeof source === "object" && "port" in source && source.port ? String(source.port) : undefined,
+      target: String(typeof target === "object" && "cell" in target ? target.cell : target),
+    })
+  })
   graph.on("node:dblclick", ({ node }) => emit("nodeDblclick", String(node.id)))
   graph.on("node:mousedown", ({ node }) => {
     const activity = props.entryActivity as { activities?: { id: string; metadata?: { designer?: { x?: number; y?: number } } }[] } | undefined
@@ -101,7 +158,6 @@ function viewportCenter(): { x: number; y: number } {
   }
 }
 
-defineExpose({ viewportCenter })
 
 function renderProjection(): void {
   if (!graph) return
@@ -129,10 +185,12 @@ function renderProjection(): void {
       zIndex: 0,
       source: edge.sourcePort ? { cell: edge.source, port: edge.sourcePort } : { cell: edge.source },
       target: { cell: edge.target },
+      connector: { name: "rounded", args: { radius: 8 } },
       attrs: {
         line: {
           stroke: "currentColor",
           strokeWidth: 1.5,
+          targetMarker: edge.visual ? null : undefined,
           ...(edge.visual ? { strokeDasharray: "4 4" } : {}),
         },
       },
@@ -140,6 +198,12 @@ function renderProjection(): void {
   }
   graph.fromJSON({ cells })
 }
+
+function removeCellById(cellId: string): void {
+  graph?.removeCell(cellId)
+}
+
+defineExpose({ viewportCenter, removeCellById })
 </script>
 
 <template>

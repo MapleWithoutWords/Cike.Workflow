@@ -5,7 +5,7 @@ import { End } from "../activities/End";
 import { If } from "../activities/If";
 import { ActivityEndpoint } from "../models/ActivityEndpoint";
 import { ActivityConnection } from "../models/ActivityConnection";
-import { CommandStack, makeMoveNodeCommand, makeRemoveNodeCommand, makeAddNodeCommand } from "./commands";
+import { CommandStack, makeMoveNodeCommand, makeRemoveNodeCommand, makeAddNodeCommand, makeConnectCommand, makeDisconnectCommand } from "./commands";
 import { getNodePosition } from "./metadata";
 
 function makeFlowchart(): { flowchart: Flowchart; start: Start; decision: If; end: End } {
@@ -98,5 +98,40 @@ describe("AddNodeCommand", () => {
     expect(flowchart.activities.length).toBe(4);
     command.undo();
     void end;
+  });
+});
+
+describe("ConnectCommand", () => {
+  it("Connect_AppendPort_UndoRemoves", () => {
+    const { flowchart, start, decision } = makeFlowchart();
+    const command = makeConnectCommand(flowchart, new ActivityConnection(new ActivityEndpoint(start.id, "Done"), new ActivityEndpoint(decision.id)));
+    command.apply();
+    expect(flowchart.connections.length).toBe(3);
+    command.undo();
+    expect(flowchart.connections.length).toBe(2);
+    command.redo?.();
+    expect(flowchart.connections.length).toBe(3);
+  });
+});
+
+describe("DisconnectCommand", () => {
+  it("Disconnect_RemoveByReference_UndoRestoresAtOriginalIndex", () => {
+    const { flowchart } = makeFlowchart();
+    const target = flowchart.connections[0];
+    const command = makeDisconnectCommand(flowchart, target);
+    command.apply();
+    expect(flowchart.connections.length).toBe(1);
+    command.undo();
+    expect(flowchart.connections.length).toBe(2);
+    expect(flowchart.connections[0]).toBe(target);
+  });
+
+  it("Disconnect_AlreadyRemoved_NoopSafe", () => {
+    const { flowchart } = makeFlowchart();
+    const target = flowchart.connections[0];
+    const command = makeDisconnectCommand(flowchart, target);
+    command.apply();
+    command.apply();
+    expect(flowchart.connections.length).toBe(1);
   });
 });

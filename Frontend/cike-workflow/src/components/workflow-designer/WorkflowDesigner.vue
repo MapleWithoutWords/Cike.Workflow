@@ -61,10 +61,21 @@ function addAtCenter(typeName: string): void {
   props.designer.addNode(typeName, canvasRef.value?.viewportCenter() ?? { x: 80, y: 80 })
 }
 
+function onConnectRequest(payload: { edgeId: string; source: string; sourcePort?: string; target: string }): void {
+  const accepted = props.designer.connect(payload)
+  if (!accepted) canvasRef.value?.removeCellById(payload.edgeId)
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== "Delete" && event.key !== "Backspace") return
   const target = event.target as HTMLElement | null
   if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return
+  const edgeId = props.designer.selectedEdgeId.value
+  if (edgeId) {
+    event.preventDefault()
+    props.designer.removeEdge(edgeId)
+    return
+  }
   const activityId = props.designer.selectedActivityId.value
   if (!activityId) return
   event.preventDefault()
@@ -118,11 +129,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
           :selected-id="designer.selectedActivityId.value"
           :entry-key="entryKey"
           :entry-activity="designer.currentEntry.value?.activity ?? null"
-          @node-click="(id: string) => (designer.selectedActivityId.value = id || null)"
+          @node-click="(id: string) => { designer.selectedActivityId.value = id || null; designer.selectedEdgeId.value = null }"
           @node-dblclick="(id: string) => drillById(id)"
           @node-moved="(payload) => designer.moveNode(payload)"
           @viewport-changed="(state) => designer.saveViewport(state)"
           @drop-activity="(payload) => designer.addNode(payload.typeName, { x: payload.x, y: payload.y })"
+          @edge-click="(edgeId: string) => { designer.selectedActivityId.value = null; designer.selectedEdgeId.value = edgeId }"
+          @connect-request="onConnectRequest"
         />
         <div
           v-if="designer.loadError.value || designer.saveError.value"

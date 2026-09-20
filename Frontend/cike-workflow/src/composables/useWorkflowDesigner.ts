@@ -7,9 +7,13 @@ import {
 import type { Activity, IActivity } from "@/core/abstracts/Activity"
 import { Activity as ActivityClass } from "@/core/abstracts/Activity"
 import { Flowchart } from "@/core/activities/Flowchart"
+import { ActivityConnection } from "@/core/models/ActivityConnection"
+import { ActivityEndpoint } from "@/core/models/ActivityEndpoint"
 import {
   CommandStack,
   makeAddNodeCommand,
+  makeConnectCommand,
+  makeDisconnectCommand,
   makeMoveNodeCommand,
   makeRemoveNodeCommand,
   type DesignerCommand,
@@ -195,6 +199,49 @@ export function useWorkflowDesigner() {
     selectedActivityId.value = activity.id
   }
 
+  const selectedEdgeId = ref<string | null>(null)
+
+  /** Creates a connection; returns false (rejecting the canvas edge) on duplicates. */
+  function connect(payload: { source: string; sourcePort?: string; target: string }): boolean {
+    const entry = currentEntry.value
+    if (!entry || entry.chainChildren) return false
+    if (payload.source === payload.target) return false
+    const container = entry.activity as unknown as { connections?: ActivityConnection[] }
+    const connections = container.connections ?? []
+    const duplicate = connections.some(
+      (connection) =>
+        connection.source.activityId === payload.source &&
+        connection.source.port === payload.sourcePort &&
+        connection.target.activityId === payload.target,
+    )
+    if (duplicate) return false
+    executeCommand(
+      makeConnectCommand(
+        container as never,
+        new ActivityConnection(new ActivityEndpoint(payload.source, payload.sourcePort), new ActivityEndpoint(payload.target)),
+      ),
+    )
+    return true
+  }
+
+  function removeEdge(edgeId: string): void {
+    const entry = currentEntry.value
+    if (!entry) return
+    const edge = projection.value.edges.find((candidate) => candidate.id === edgeId)
+    if (!edge || edge.visual) return
+    const container = entry.activity as unknown as { connections?: ActivityConnection[] }
+    const connections = container.connections ?? []
+    const connection = connections.find(
+      (candidate) =>
+        candidate.source.activityId === edge.source &&
+        (candidate.source.port ?? undefined) === (edge.sourcePort ?? undefined) &&
+        candidate.target.activityId === edge.target,
+    )
+    if (!connection) return
+    executeCommand(makeDisconnectCommand(container as never, connection))
+    if (selectedEdgeId.value === edgeId) selectedEdgeId.value = null
+  }
+
   function getViewport(): DesignerCanvasMeta | null {
     const entry = currentEntry.value
     if (!entry) return null
@@ -245,6 +292,9 @@ export function useWorkflowDesigner() {
     canRedo,
     paletteGroups,
     addNode,
+    selectedEdgeId,
+    connect,
+    removeEdge,
     load,
     drillInto,
     popTo,
