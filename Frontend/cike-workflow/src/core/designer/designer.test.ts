@@ -3,7 +3,6 @@ import { If } from "../activities/If";
 import { ForEach } from "../activities/ForEach";
 import { Flowchart } from "../activities/Flowchart";
 import { Start } from "../activities/Start";
-import { Activity } from "../abstracts/Activity";
 import { End } from "../activities/End";
 import { ActivityEndpoint } from "../models/ActivityEndpoint";
 import { ActivityConnection } from "../models/ActivityConnection";
@@ -201,11 +200,35 @@ describe("drill", () => {
 });
 
 describe("chain", () => {
-  it("IsChainContainer_NonFlowchartContainer_True", () => {
-    // A hypothetical Sequence-like generic container: has activities but no connections.
-    const sequenceLike = new (class extends (class {}) {})();
-    Object.assign(sequenceLike, { activities: [], connections: undefined });
-    expect(isChainContainer(sequenceLike as unknown as Activity)).toBe(true);
+  it("IsChainContainer_UnmirroredSequence_True", () => {
+    // Real hydration path: unmirrored Sequence arrives as GenericActivity
+    // (activities hydrated, connections defaulted to []).
+    const sequence = fromWireActivity({
+      type: "Cike.Sequence",
+      id: "s1",
+      activities: [
+        { type: "Cike.Start", id: "s-start" },
+        { type: "Cike.End", id: "s-end" },
+      ],
+    }) as GenericActivity;
+    expect(canDrillInto(sequence)).toBe(true);
+    expect(isChainContainer(sequence)).toBe(true);
     expect(isChainContainer(new Flowchart())).toBe(false);
+  });
+
+  it("CanDrillInto_ScalarGeneric_False", () => {
+    const scalar = fromWireActivity({ type: "Cike.WriteLine", id: "w1", text: { type: "Literal", value: "hi" } });
+    expect(canDrillInto(scalar)).toBe(false);
+  });
+
+  it("CanDrillInto_GenericWithConnections_True", () => {
+    const container = fromWireActivity({
+      type: "Cike.CustomFlow",
+      id: "c1",
+      activities: [{ type: "Cike.Start", id: "c-start" }],
+      connections: [{ source: { activityId: "c-start" }, target: { activityId: "c-start" } }],
+    });
+    expect(canDrillInto(container)).toBe(true);
+    expect(isChainContainer(container as GenericActivity)).toBe(false);
   });
 });

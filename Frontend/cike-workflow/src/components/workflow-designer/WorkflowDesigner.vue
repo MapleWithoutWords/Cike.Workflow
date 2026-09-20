@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { Redo2, Trash2, Undo2, Variable } from "@lucide/vue"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import type { DesignerCommand } from "@/core/designer/commands"
@@ -18,7 +8,6 @@ import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
 import PropertyPanel from "./PropertyPanel.vue"
-import VariablesPanel from "./VariablesPanel.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
 

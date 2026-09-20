@@ -193,7 +193,8 @@ export function useWorkflowDesigner() {
     setCanvasState(entry.activity, state)
   }
 
-  async function loadPalette(): Promise<void> {    try {
+  async function loadPalette(): Promise<void> {
+    try {
       const { data } = await getApiV1CommonsActivityDescriptors({})
       const descriptors = (data ?? []) as Array<{ typeName?: string; inputs?: InputDescriptor[] }>
       paletteGroups.value = buildPaletteGroups(descriptors)
@@ -207,21 +208,46 @@ export function useWorkflowDesigner() {
     }
   }
 
-  /** Adds a node of the given wire type; point is canvas-local. */  function addNode(typeName: string, point: { x: number; y: number }): void {
+  /** Adds a node of the given wire type; point is canvas-local, auto-staggered
+   *  down-right while it would overlap an existing node. */
+  function addNode(typeName: string, point: { x: number; y: number }): void {
     const Ctor = resolveActivityClass(typeName)
     if (!Ctor) return
     const entry = currentEntry.value
     if (!entry || entry.chainChildren) return
     const activity = new Ctor()
+    const occupied = new Set(projection.value.nodes.map((node) => `${Math.round(node.x)},${Math.round(node.y)}`))
+    let position = { x: Math.round(point.x), y: Math.round(point.y) }
+    while (occupied.has(`${position.x},${position.y}`)) {
+      position = { x: position.x + 30, y: position.y + 70 }
+    }
     const container = entry.activity as unknown as { activities: IActivity[] }
-    executeCommand(makeAddNodeCommand(container as never, activity, { x: Math.round(point.x), y: Math.round(point.y) }))
+    executeCommand(makeAddNodeCommand(container as never, activity, position))
     selectedActivityId.value = activity.id
   }
 
-  /** Replaces the options-level variables and mirrors them into savedOptions. */
+  /** Replaces the options-level variables through the command stack so the
+   *  edit participates in undo/redo like every other designer edit. */
   function setVariables(list: VariableDefinition[]): void {
-    variables.value = list
-    savedOptions.value = { ...savedOptions.value, variables: list }
+    const from = savedOptions.value["variables"] as VariableDefinition[] | undefined
+    executeCommand({
+      label: "编辑工作流变量",
+      apply: () => {
+        savedOptions.value = { ...savedOptions.value, variables: list }
+        variables.value = list
+      },
+      undo: () => {
+        const restored = { ...savedOptions.value }
+        if (from == null) delete restored["variables"]
+        else restored["variables"] = from
+        savedOptions.value = restored
+        variables.value = from ?? []
+      },
+      redo: () => {
+        savedOptions.value = { ...savedOptions.value, variables: list }
+        variables.value = list
+      },
+    })
   }
 
   const selectedEdgeId = ref<string | null>(null)

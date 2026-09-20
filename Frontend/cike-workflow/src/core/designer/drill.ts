@@ -32,8 +32,9 @@ export function ensureDrillTarget(activity: Activity): Activity | null {
 /** Whether a chain layout applies to the drilled-into container. */
 export function isChainContainer(activity: Activity): boolean {
   if (activity instanceof Flowchart) return false;
-  return (
-    "activities" in activity &&
-    !("connections" in activity && Array.isArray((activity as { connections?: unknown }).connections))
-  );
+  if (!("activities" in activity)) return false;
+  const connections = (activity as { connections?: unknown }).connections;
+  // Unmirrored order-executing containers (Sequence 等) carry no connections;
+  // hydrated GenericActivity defaults connections to [], which still means chain.
+  return !Array.isArray(connections) || connections.length === 0;
 }

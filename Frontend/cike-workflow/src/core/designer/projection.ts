@@ -56,6 +56,9 @@ export function getPortsOf(activity: IActivity): string[] {
 
 export function canDrillInto(activity: IActivity): boolean {
   if (activity instanceof Flowchart) return true;
+  // Generic unknowns are drillable only when their wire JSON was container-like.
+  const generic = activity as { raw?: { activities?: unknown } };
+  if (typeof generic.raw === "object" && generic.raw !== null) return Array.isArray(generic.raw.activities);
   // Property-held bodies (ForEach.body / While.body / For.body) are drillable;
   // a null body gets an empty flowchart created on drill-in.
   return "body" in activity;
