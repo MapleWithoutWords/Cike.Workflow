@@ -23,12 +23,6 @@ const props = defineProps<{ designer: WorkflowDesignerState }>()
 
 const canvasRef = ref<InstanceType<typeof DesignerCanvas> | null>(null)
 
-const selectedForPanel = computed(() => {
-  const activity = props.designer.selectedActivity.value
-  if (!activity) return null
-  return { name: activity.name ?? activity.type, type: activity.type }
-})
-
 const entryKey = computed(() => {
   const stack = props.designer.drillStack.value
   return stack.map((entry) => entry.activity.id).join("/")
@@ -150,7 +144,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
           已保存 {{ designer.lastSavedAt.value.toLocaleTimeString() }}
         </div>
       </div>
-      <PropertyPanel :selected="selectedForPanel" />
+      <PropertyPanel :activity="designer.selectedActivity.value" :designer="designer" />
     </div>
 
     <AlertDialog :open="removeDialogOpen" @update:open="(open: boolean) => (removeDialogOpen = open)">

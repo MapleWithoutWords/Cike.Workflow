@@ -19,6 +19,7 @@ import {
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
+import type { InputDescriptor } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
 import { activityShortName, resolveActivityClass } from "@/core/designer/registry"
@@ -50,6 +51,8 @@ export function useWorkflowDesigner() {
   const canRedo = ref(false)
   const commandStack = new CommandStack()
   const paletteGroups = shallowRef<PaletteGroup[]>([])
+  /** Wire type → descriptor lookup (inputs drive the generic property form). */
+  const descriptorByType = shallowRef<Map<string, { inputs?: InputDescriptor[] }>>(new Map())
 
   const currentEntry = computed<DrillEntry | null>(() => drillStack.value[drillStack.value.length - 1] ?? null)
 
@@ -87,6 +90,15 @@ export function useWorkflowDesigner() {
     const children = currentChildren.value
     if (children.length === 0) return false
     return !children.some((child) => activityShortName(child.type) === "Start")
+  })
+
+  /** Inbound edge count per activity id on the current level (MergeMode UI gate). */
+  const connectionTargets = computed(() => {
+    const map = new Map<string, number>()
+    for (const edge of projection.value.edges) {
+      map.set(edge.target, (map.get(edge.target) ?? 0) + 1)
+    }
+    return map
   })
 
   async function load(definitionRowId: string): Promise<void> {
@@ -181,7 +193,13 @@ export function useWorkflowDesigner() {
   async function loadPalette(): Promise<void> {
     try {
       const { data } = await getApiV1CommonsActivityDescriptors({})
-      paletteGroups.value = buildPaletteGroups((data ?? []) as never)
+      const descriptors = (data ?? []) as Array<{ typeName?: string; inputs?: InputDescriptor[] }>
+      paletteGroups.value = buildPaletteGroups(descriptors)
+      const lookup = new Map<string, { inputs?: InputDescriptor[] }>()
+      for (const descriptor of descriptors) {
+        if (descriptor.typeName) lookup.set(descriptor.typeName, { inputs: descriptor.inputs })
+      }
+      descriptorByType.value = lookup
     } catch {
       paletteGroups.value = []
     }
@@ -291,6 +309,8 @@ export function useWorkflowDesigner() {
     canUndo,
     canRedo,
     paletteGroups,
+    descriptorByType,
+    connectionTargets,
     addNode,
     selectedEdgeId,
     connect,

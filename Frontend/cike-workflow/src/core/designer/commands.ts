@@ -80,6 +80,30 @@ export function makeMoveNodeCommand(
   };
 }
 
+/** Generic property edit command: sets target[key] from → to with inverse. */
+export function makeEditPropertyCommand(
+  target: Record<string, unknown>,
+  key: string,
+  from: unknown,
+  to: unknown,
+): DesignerCommand {
+  return {
+    label: `修改 ${key}`,
+    apply: () => {
+      if (to == null) delete target[key];
+      else target[key] = to;
+    },
+    undo: () => {
+      if (from == null) delete target[key];
+      else target[key] = from;
+    },
+    redo: () => {
+      if (to == null) delete target[key];
+      else target[key] = to;
+    },
+  };
+}
+
 export function makeAddNodeCommand(
   parent: NodeContainer,
   activity: IActivity,
