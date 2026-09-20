@@ -29,6 +29,9 @@ public class ActivityDescriptor
 
     public string? Description { get; set; }
 
+    /// <summary>Optional icon identifier (lucide name) for designer rendering.</summary>
+    public string? Icon { get; set; }
+
     public ICollection<InputDescriptor> Inputs { get; init; } = new List<InputDescriptor>();
 
     public ICollection<OutputDescriptor> Outputs { get; init; } = new List<OutputDescriptor>();

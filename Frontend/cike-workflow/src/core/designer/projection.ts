@@ -18,6 +18,9 @@ export interface DesignerNodeData {
   /** Short type name, e.g. "If". */
   typeShort: string;
   name: string;
+  /** Backend-provided icon name (lucide); enriched by the composable, not the
+   *  pure projection (which has no descriptor access). */
+  icon?: string | null;
   /** Entry port names (connection targets). */
   inPorts: string[];
   /** Outcome port names (connection sources). */

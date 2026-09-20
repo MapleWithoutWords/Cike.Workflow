@@ -1,42 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { Node } from "@antv/x6"
-import {
-  AlertTriangle,
-  Boxes,
-  FileCode,
-  GitFork,
-  Globe,
-  LogOut,
-  Play,
-  Repeat,
-  RotateCw,
-  Split,
-  Square,
-  Workflow,
-} from "@lucide/vue"
 import type { DesignerNodeData } from "@/core/designer/projection"
+import { resolveActivityIcon } from "./icons"
 
 const props = defineProps<{ node: Node }>()
 
 const data = computed(() => props.node.getData() as DesignerNodeData & { selected?: boolean })
 
-const ICONS: Record<string, unknown> = {
-  Start: Play,
-  End: Square,
-  Fault: AlertTriangle,
-  Break: LogOut,
-  If: GitFork,
-  Switch: Split,
-  While: RotateCw,
-  For: Repeat,
-  ForEach: Repeat,
-  Flowchart: Workflow,
-  RunJavaScript: FileCode,
-  SendHttpRequest: Globe,
-}
-
-const icon = computed(() => (ICONS[data.value.typeShort] ?? Boxes) as unknown)
+const icon = computed(() => resolveActivityIcon(data.value.icon))
 </script>
 
 <template>

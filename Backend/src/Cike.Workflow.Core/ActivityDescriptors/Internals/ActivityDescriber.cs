@@ -12,6 +12,24 @@ internal class ActivityDescriber : IActivityDescriber
         return new ActivityDescriber();
     }
 
+    // Consolidated activity-type -> lucide icon name, surfaced via ActivityDescriptor.Icon
+    // so the designer palette/canvas render icons purely from backend metadata.
+    private static readonly IReadOnlyDictionary<string, string> IconByTypeName = new Dictionary<string, string>
+    {
+        ["Cike.Start"] = "play",
+        ["Cike.End"] = "square",
+        ["Cike.Fault"] = "alert-triangle",
+        ["Cike.Break"] = "log-out",
+        ["Cike.If"] = "git-fork",
+        ["Cike.Switch"] = "split",
+        ["Cike.While"] = "rotate-cw",
+        ["Cike.For"] = "repeat",
+        ["Cike.ForEach"] = "repeat",
+        ["Cike.Flowchart"] = "workflow",
+        ["Cike.RunJavaScript"] = "file-code",
+        ["Cike.Workflow.Http.Activities.SendHttpRequest"] = "globe",
+    };
+
     public async Task<ActivityDescriptor> DescribeActivityAsync([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type activityType, CancellationToken cancellationToken = default)
     {
         var activityAttr = activityType.GetCustomAttribute<ActivityAttribute>();
@@ -40,6 +58,7 @@ internal class ActivityDescriber : IActivityDescriber
             IsStart = isStart,
             IsTerminal = isTerminal,
             Category = activityAttr?.Category ?? "其它",
+            Icon = IconByTypeName.GetValueOrDefault(fullTypeName),
             IsBrowsable = activityType.GetCustomAttribute<BrowsableAttribute>()?.Browsable ?? true,
         };
 

@@ -57,6 +57,8 @@ export function useWorkflowDesigner() {
   const paletteGroups = shallowRef<PaletteGroup[]>([])
   /** Wire type → descriptor lookup (inputs drive the generic property form). */
   const descriptorByType = shallowRef<Map<string, { inputs?: InputDescriptor[] }>>(new Map())
+  /** Wire type → backend icon name; enriches projected nodes for canvas rendering. */
+  const iconByType = shallowRef<Map<string, string>>(new Map())
   /** Options-level workflow variables. */
   const variables = shallowRef<VariableDefinition[]>([])
 
@@ -66,16 +68,30 @@ export function useWorkflowDesigner() {
 
   const projection = computed<CanvasProjection>(() => {
     void revision.value
+    const icons = iconByType.value
     const entry = currentEntry.value
     if (!entry) return { nodes: [], edges: [] }
-    if (entry.chainChildren) return projectOrderedChain(entry.chainChildren)
-    if (entry.activity instanceof Flowchart) return projectFlowchart(entry.activity)
-    if ("activities" in entry.activity && Array.isArray((entry.activity as { activities?: unknown }).activities)) {
-      return projectCanvas(
-        entry.activity as unknown as { activities: IActivity[]; connections: import("@/core/models/ActivityConnection").ActivityConnection[] },
-      )
+    const base = entry.chainChildren
+      ? projectOrderedChain(entry.chainChildren)
+      : entry.activity instanceof Flowchart
+        ? projectFlowchart(entry.activity)
+        : "activities" in entry.activity && Array.isArray((entry.activity as { activities?: unknown }).activities)
+          ? projectCanvas(
+              entry.activity as unknown as {
+                activities: IActivity[]
+                connections: import("@/core/models/ActivityConnection").ActivityConnection[]
+              },
+            )
+          : { nodes: [], edges: [] }
+    // Enrich with the backend-provided icon (keyed by wire type); pure projection
+    // has no descriptor access so icon resolution lives here.
+    return {
+      edges: base.edges,
+      nodes: base.nodes.map((node) => ({
+        ...node,
+        data: { ...node.data, icon: icons.get(node.data.type) ?? null },
+      })),
     }
-    return { nodes: [], edges: [] }
   })
 
   const currentChildren = computed<IActivity[]>(() => {
@@ -205,13 +221,17 @@ export function useWorkflowDesigner() {
   async function loadPalette(): Promise<void> {
     try {
       const { data } = await getApiV1CommonsActivityDescriptors({})
-      const descriptors = (data ?? []) as Array<{ typeName?: string; inputs?: InputDescriptor[] }>
+      const descriptors = (data ?? []) as Array<{ typeName?: string; inputs?: InputDescriptor[]; icon?: string | null }>
       paletteGroups.value = buildPaletteGroups(descriptors)
       const lookup = new Map<string, { inputs?: InputDescriptor[] }>()
+      const icons = new Map<string, string>()
       for (const descriptor of descriptors) {
-        if (descriptor.typeName) lookup.set(descriptor.typeName, { inputs: descriptor.inputs })
+        if (!descriptor.typeName) continue
+        lookup.set(descriptor.typeName, { inputs: descriptor.inputs })
+        if (descriptor.icon) icons.set(descriptor.typeName, descriptor.icon)
       }
       descriptorByType.value = lookup
+      iconByType.value = icons
     } catch {
       paletteGroups.value = []
     }

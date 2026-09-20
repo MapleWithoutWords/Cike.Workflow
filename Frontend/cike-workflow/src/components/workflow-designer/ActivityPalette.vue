@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PaletteGroup } from "@/core/designer/palette"
+import { resolveActivityIcon } from "./nodes/icons"
 
 defineProps<{ groups: PaletteGroup[] }>()
 
@@ -26,15 +27,18 @@ function onDragStart(typeName: string, event: DragEvent): void {
       <button
         v-for="item in group.items"
         :key="item.typeName"
-        class="block w-full px-3 py-1.5 text-left transition-colors"
+        class="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors"
         :class="item.canAdd ? 'cursor-grab hover:bg-accent' : 'cursor-not-allowed opacity-50'"
         :draggable="item.canAdd"
         :title="item.description ?? item.typeName"
         @click="item.canAdd && emit('add', item.typeName)"
         @dragstart="item.canAdd && onDragStart(item.typeName, $event)"
       >
-        <div class="text-xs font-medium text-foreground">{{ item.displayName }}</div>
-        <div v-if="!item.canAdd" class="text-[10px] text-muted-foreground">前端未镜像，不可添加</div>
+        <component :is="resolveActivityIcon(item.icon)" :size="15" class="shrink-0 text-muted-foreground" />
+        <div class="min-w-0">
+          <div class="truncate text-xs font-medium text-foreground">{{ item.displayName }}</div>
+          <div v-if="!item.canAdd" class="text-[10px] text-muted-foreground">前端未镜像，不可添加</div>
+        </div>
       </button>
     </div>
   </aside>

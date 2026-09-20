@@ -14,12 +14,15 @@ export interface PaletteDescriptorInput {
   category?: string;
   isBrowsable?: boolean;
   version?: number;
+  icon?: string | null;
 }
 
 export interface PaletteItem {
   typeName: string;
   displayName: string;
   description: string | null;
+  /** Backend-provided icon name (lucide), resolved to a component at render. */
+  icon: string | null;
   /** True when a frontend-mirrored class exists for instantiation. */
   canAdd: boolean;
 }
@@ -40,6 +43,7 @@ export function buildPaletteGroups(descriptors: PaletteDescriptorInput[]): Palet
       typeName,
       displayName: descriptor.displayName ?? descriptor.name ?? typeName,
       description: descriptor.description ?? null,
+      icon: descriptor.icon ?? null,
       canAdd: resolveActivityClass(typeName) !== null,
     });
   }
