@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { Upload, History, Pencil } from "@lucide/vue"
 
 const route = useRoute()
+const router = useRouter()
 const definitionId = route.params.definitionId as string
 
 // Mock data
@@ -40,7 +41,10 @@ const versions = [
         <p class="mt-2 text-sm text-muted-foreground">{{ definition.description }}</p>
       </div>
       <div class="flex gap-2">
-        <button class="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent">
+        <button
+          class="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent"
+          @click="router.push({ name: 'definition-designer', params: route.params })"
+        >
           <Pencil :size="14" />
           编辑
         </button>
