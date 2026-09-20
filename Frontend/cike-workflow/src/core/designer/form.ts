@@ -91,3 +91,21 @@ export function variableNameIssues(variables: WorkflowVariableInput[]): string[]
   }
   return issues;
 }
+
+/**
+ * Coerce a text-edited literal back into the shape of the previous value so
+ * numbers/booleans/objects survive a roundtrip through an input element.
+ * Returns undefined when an object payload fails to parse (caller no-ops).
+ */
+export function coerceLiteralValue(from: unknown, raw: string): unknown {
+  if (typeof from === "number") return raw === "" ? null : Number(raw);
+  if (typeof from === "boolean") return raw === "true";
+  if (from != null && typeof from === "object") {
+    try {
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return undefined;
+    }
+  }
+  return raw === "" ? null : raw;
+}
