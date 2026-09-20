@@ -13,6 +13,11 @@ const selectedForPanel = computed(() => {
   if (!activity) return null
   return { name: activity.name ?? activity.type, type: activity.type }
 })
+
+function drillById(activityId: string): void {
+  const activity = props.designer.currentChildren.value.find((child) => child.id === activityId)
+  if (activity) props.designer.drillInto(activity)
+}
 </script>
 
 <template>
@@ -20,7 +25,7 @@ const selectedForPanel = computed(() => {
     <header class="flex shrink-0 items-center justify-between border-b px-4 py-2">
       <DesignerBreadcrumb
         :entries="designer.breadcrumb.value"
-        @select="(index: number) => designer.drillStack.value = designer.drillStack.value.slice(0, index + 1)"
+        @select="(index: number) => designer.popTo(index)"
       />
     </header>
     <div class="flex min-h-0 flex-1">
@@ -31,6 +36,7 @@ const selectedForPanel = computed(() => {
           :interactive="false"
           :selected-id="designer.selectedActivityId.value"
           @node-click="(id: string) => (designer.selectedActivityId.value = id || null)"
+          @node-dblclick="(id: string) => drillById(id)"
         />
         <div
           v-if="designer.loadError.value"

@@ -3,6 +3,7 @@ import { If } from "../activities/If";
 import { ForEach } from "../activities/ForEach";
 import { Flowchart } from "../activities/Flowchart";
 import { Start } from "../activities/Start";
+import { Activity } from "../abstracts/Activity";
 import { End } from "../activities/End";
 import { ActivityEndpoint } from "../models/ActivityEndpoint";
 import { ActivityConnection } from "../models/ActivityConnection";
@@ -10,6 +11,7 @@ import { computeAutoLayout } from "./layout";
 import { getNodePosition, setNodePosition } from "./metadata";
 import { fromWireActivity, toWireActivity, GenericActivity, type WireActivity } from "./serialization";
 import { canDrillInto, getPortsOf, projectFlowchart, projectOrderedChain } from "./projection";
+import { ensureDrillTarget, isChainContainer } from "./drill";
 
 function makeFlowchartWire(): WireActivity {
   return {
@@ -172,5 +174,38 @@ describe("projection", () => {
   it("ProjectFlowchart_Empty_ReturnsEmptyProjection", () => {
     const flowchart = new Flowchart();
     expect(projectFlowchart(flowchart)).toEqual({ nodes: [], edges: [] });
+  });
+});
+
+describe("drill", () => {
+  it("DrillTarget_ForEachNullBody_CreatesEmptyFlowchart", () => {
+    const forEach = new ForEach();
+    const target = ensureDrillTarget(forEach);
+    expect(target).toBeInstanceOf(Flowchart);
+    expect(forEach.body).toBe(target);
+  });
+
+  it("DrillTarget_ExistingBody_ReturnsItUnchanged", () => {
+    const forEach = new ForEach();
+    const existing = new Flowchart();
+    forEach.body = existing;
+    expect(ensureDrillTarget(forEach)).toBe(existing);
+  });
+
+  it("DrillTarget_GenericBody_FallsBackToNull", () => {
+    const forEach = new ForEach();
+    forEach.body = null;
+    (forEach as unknown as { body: unknown }).body = { type: "Cike.Mystery", id: "x" };
+    expect(ensureDrillTarget(forEach)).toBeNull();
+  });
+});
+
+describe("chain", () => {
+  it("IsChainContainer_NonFlowchartContainer_True", () => {
+    // A hypothetical Sequence-like generic container: has activities but no connections.
+    const sequenceLike = new (class extends (class {}) {})();
+    Object.assign(sequenceLike, { activities: [], connections: undefined });
+    expect(isChainContainer(sequenceLike as unknown as Activity)).toBe(true);
+    expect(isChainContainer(new Flowchart())).toBe(false);
   });
 });

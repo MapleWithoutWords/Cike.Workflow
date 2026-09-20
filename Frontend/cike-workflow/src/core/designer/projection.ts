@@ -1,4 +1,5 @@
 import type { Activity, IActivity } from "../abstracts/Activity";
+import type { ActivityConnection } from "../models/ActivityConnection";
 import { Flowchart } from "../activities/Flowchart";
 import { activityShortName, resolveActivityClass } from "./registry";
 import { computeAutoLayout, type Point } from "./layout";
@@ -61,15 +62,26 @@ export function canDrillInto(activity: IActivity): boolean {
 }
 
 export function projectFlowchart(flowchart: Flowchart): CanvasProjection {
-  const activities = flowchart.activities;
-  if (activities.length === 0 && flowchart.connections.length === 0) return EMPTY_PROJECTION;
+  return projectCanvas(flowchart);
+}
+
+/** Duck-typed source: any container-shaped model (mirrored or generic). */
+export interface CanvasSource {
+  activities: IActivity[];
+  connections: ActivityConnection[];
+}
+
+export function projectCanvas(source: CanvasSource): CanvasProjection {
+  const activities = source.activities;
+  const connections = source.connections ?? [];
+  if (activities.length === 0 && connections.length === 0) return EMPTY_PROJECTION;
 
   const savedPositions = new Map<string, Point>();
   for (const activity of activities) {
     const saved = getNodePosition(activity);
     if (saved) savedPositions.set(activity.id, saved);
   }
-  const layout = computeAutoLayout(activities, flowchart.connections);
+  const layout = computeAutoLayout(activities, connections);
 
   const nodes: ProjectedNode[] = activities.map((activity) => {
     const position = savedPositions.get(activity.id) ?? layout.get(activity.id) ?? { x: 80, y: 80 };
@@ -89,7 +101,7 @@ export function projectFlowchart(flowchart: Flowchart): CanvasProjection {
     };
   });
 
-  const edges: ProjectedEdge[] = flowchart.connections.map((connection, index) => ({
+  const edges: ProjectedEdge[] = connections.map((connection, index) => ({
     id: `conn-${index}-${connection.source.activityId}-${connection.target.activityId}`,
     source: connection.source.activityId,
     sourcePort: connection.source.port,
