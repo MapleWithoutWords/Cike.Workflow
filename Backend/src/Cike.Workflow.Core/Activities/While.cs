@@ -49,6 +49,14 @@ public class While : Activity
     /// <inheritdoc />
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext context) => await HandleIterationAsync(context);
 
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        Body?.Validate(context);
+    }
+
     private async ValueTask OnBodyCompleted(ActivityCompletedContext context)
     {
         await HandleIterationAsync(context.TargetContext, context.ChildContext);

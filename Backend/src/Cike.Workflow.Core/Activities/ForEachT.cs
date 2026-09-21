@@ -40,6 +40,14 @@ public class ForEach<T> : Activity
         await HandleIteration(context);
     }
 
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        Body?.Validate(context);
+    }
+
     private async Task HandleIteration(ActivityExecutionContext context)
     {
         var isBreaking = context.GetIsBreakingProperty();

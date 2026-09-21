@@ -30,6 +30,7 @@ global using Cike.Workflow.Core.Serialization.ReferenceHandlers;
 global using Cike.Workflow.Core.StorageDrivers;
 global using Cike.Workflow.Core.StorageDrivers.Internals;
 global using Cike.Workflow.Core.StorageDrivers.Models;
+global using Cike.Workflow.Core.Validation;
 global using Cike.Workflow.Core.Variables;
 global using Cike.Workflow.Expressions;
 global using Cike.Workflow.Expressions.Contexts;

@@ -68,6 +68,14 @@ public abstract class CompositeActivity : Activity, IVariableContainer, IComposi
         return new();
     }
 
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        Root.Validate(context);
+    }
+
     private async ValueTask OnCompleteCompositeSignal(CompleteCompositeSignal signal, SignalContext context)
     {
         // Set the outcome into the context for the parent activity to pick up.

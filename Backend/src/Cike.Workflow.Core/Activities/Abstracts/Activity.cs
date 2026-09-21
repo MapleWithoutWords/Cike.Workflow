@@ -61,6 +61,24 @@ public abstract class Activity : IActivity, ISignalHandler
         return ValueTask.CompletedTask;
     }
 
+    void IActivity.Validate(WorkflowValidationContext context) => Validate(context);
+
+    /// <summary>
+    /// Validate this activity. The default implementation checks that Input properties are not null;
+    /// derived activities may override to add their own rules (call base to keep the default ones).
+    /// </summary>
+    protected virtual void Validate(WorkflowValidationContext context)
+    {
+        foreach (var property in GetType().GetProperties())
+        {
+            if (!typeof(Input).IsAssignableFrom(property.PropertyType))
+                continue;
+
+            if (property.GetValue(this) == null)
+                context.Errors.Add(new(Id, $"节点 [{Id}] 缺少必填属性 [{property.Name}]。"));
+        }
+    }
+
     async ValueTask ISignalHandler.ReceiveSignalAsync(object signal, SignalContext context)
     {
         // Give derived activity a chance to do something with the signal.

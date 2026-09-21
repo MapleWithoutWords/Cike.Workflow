@@ -99,4 +99,12 @@ public class For : Activity
     }
 
     private async ValueTask OnChildComplete(ActivityCompletedContext context) => await HandleIteration(context.TargetContext);
+
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        Body?.Validate(context);
+    }
 }

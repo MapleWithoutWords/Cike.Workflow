@@ -37,4 +37,13 @@ public abstract class ContainerActivity : Activity, IVariableContainer
     {
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        foreach (var child in Activities)
+            child.Validate(context);
+    }
 }

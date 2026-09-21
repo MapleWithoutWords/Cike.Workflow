@@ -388,4 +388,58 @@ public class Flowchart : ContainerActivity
         var rootActivity = query.FirstOrDefault();
         return rootActivity;
     }
+
+    /// <inheritdoc />
+    protected override void Validate(WorkflowValidationContext context)
+    {
+        base.Validate(context);
+
+        ValidateStartNode(context);
+        ValidateConnections(context);
+        ValidateOrphanNodes(context);
+    }
+
+    /// <summary>开始节点存在：显式 Start、Start 类型活动、或标记可启动工作流的活动，三者居一。</summary>
+    private void ValidateStartNode(WorkflowValidationContext context)
+    {
+        var hasStart = Start != null
+                       || Activities.Any(x => x is Start)
+                       || Activities.Any(x => x.GetCanStartWorkflow());
+
+        if (!hasStart)
+            context.Errors.Add(new(Start?.Id, "画布中未找到开始节点，请添加开始节点后再发布。"));
+    }
+
+    private void ValidateConnections(WorkflowValidationContext context)
+    {
+        var activityIds = Activities.Select(x => x.Id).ToHashSet();
+
+        foreach (var connection in Connections)
+        {
+            if (!activityIds.Contains(connection.Source.ActivityId))
+                context.Errors.Add(new(connection.Source.ActivityId, $"连线引用了不存在的源节点 [{connection.Source.ActivityId}]。"));
+            if (!activityIds.Contains(connection.Target.ActivityId))
+                context.Errors.Add(new(connection.Target.ActivityId, $"连线引用了不存在的目标节点 [{connection.Target.ActivityId}]。"));
+        }
+    }
+
+    /// <summary>无孤立节点：除开始节点外，每个节点必须至少参与一条连线（有入边或出边）。</summary>
+    private void ValidateOrphanNodes(WorkflowValidationContext context)
+    {
+        var connectedIds = Connections
+            .SelectMany(x => new[] { x.Source.ActivityId, x.Target.ActivityId })
+            .ToHashSet();
+
+        foreach (var activity in Activities)
+        {
+            if (connectedIds.Contains(activity.Id))
+                continue;
+
+            // 仅含开始节点的空流程合法：开始后流程直接完成
+            if (activity is Start || activity.GetCanStartWorkflow() || ReferenceEquals(activity, Start))
+                continue;
+
+            context.Errors.Add(new(activity.Id, $"节点 [{activity.Id}] 是孤立节点，请将其接入流程或删除。"));
+        }
+    }
 }

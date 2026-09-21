@@ -1,4 +1,5 @@
 using Cike.Workflow.Core.Activities.FlowchartActivity.Models;
+using Cike.Workflow.Core.Validation;
 using System.Diagnostics;
 using System.Reflection;
 
@@ -30,6 +31,12 @@ public interface IActivity
     ValueTask<bool> CanExecuteAsync(ActivityExecutionContext context);
 
     ValueTask ExecuteAsync(ActivityExecutionContext context);
+
+    /// <summary>
+    /// 发布前画布校验：活动校验自己并把错误追加进 context.Errors。
+    /// 具体规则由活动类型覆写 Activity 的同名虚方法实现，容器类活动负责递归自己的子活动。
+    /// </summary>
+    void Validate(WorkflowValidationContext context);
 
     public IEnumerable<PropertyInfo> GetInputProperties() => GetType().GetProperties().Where(x => typeof(Input).IsAssignableFrom(x.PropertyType)).ToList();
 
