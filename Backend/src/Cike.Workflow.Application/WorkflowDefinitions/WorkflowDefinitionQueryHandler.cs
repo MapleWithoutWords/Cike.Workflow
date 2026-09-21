@@ -4,7 +4,8 @@ namespace Cike.Workflow.Application.WorkflowDefinitions;
 
 public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> folderCacheService,
     IActivitySerializer activitySerializer,
-    IWorkflowDefinitionRepository workflowDefinitionRepository)
+    IWorkflowDefinitionRepository workflowDefinitionRepository,
+    IWorkflowValidator workflowValidator)
 {
     [LocalEventHandler]
     public async Task GetListAsync(GetWorkflowDefinitionFolderListQuery query, CancellationToken cancellationToken = default)
@@ -75,5 +76,18 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
             x => x.DefinitionId == query.DefinitionId, "Version desc", cancellationToken);
 
         query.Result = versions.Adapt<List<WorkflowDefinitionVersionItemDto>>();
+    }
+
+    [LocalEventHandler]
+    public void ValidateCanvasAsync(ValidateWorkflowCanvasQuery query, CancellationToken cancellationToken = default)
+    {
+        var variables = query.Options.Variables
+            .Select(x => new WorkflowVariableDefinition(x.Id, x.Name, x.TypeName, x.IsArray))
+            .ToList();
+        var errors = workflowValidator.Validate(new WorkflowValidationContext(query.Root, variables));
+
+        query.Result = errors
+            .Select(x => new WorkflowCanvasValidationErrorDto { ActivityId = x.ActivityId, Message = x.Message })
+            .ToList();
     }
 }

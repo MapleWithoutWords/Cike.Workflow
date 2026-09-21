@@ -76,6 +76,16 @@ public class WorkflowDefinitionService : MinimalApiServiceBase
         return TypedResults.Ok(command.PublishedId);
     }
 
+    public async Task<Results<Ok<List<WorkflowCanvasValidationErrorDto>>, BadRequest>> ValidateCanvasAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        ValidateWorkflowCanvasDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new ValidateWorkflowCanvasQuery(dto.Root, dto.Options);
+        await localEventBus.PublishAsync(query, cancellationToken);
+        return TypedResults.Ok(query.Result);
+    }
+
     public async Task<Results<Ok, BadRequest>> MoveAsync(
         [FromServices] ILocalEventBus localEventBus,
         long id,
