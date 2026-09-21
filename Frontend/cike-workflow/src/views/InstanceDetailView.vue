@@ -1,118 +1,125 @@
 <script setup lang="ts">
-import { useRoute, RouterLink } from "vue-router"
-import { ChevronRight } from "@lucide/vue"
+import { computed, onMounted, ref } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { ArrowLeft } from "@lucide/vue"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import DesignerCanvas from "@/components/workflow-designer/DesignerCanvas.vue"
+import { getApiV1WorkflowDefinitionsById, getApiV1WorkflowInstancesById } from "@/api/generated"
+import type { WorkflowInstanceDetailDto, WorkflowStatus } from "@/api/generated"
+import { fromWireActivity, type WireActivity } from "@/core/designer/serialization"
+import { Flowchart } from "@/core/activities/Flowchart"
+import { projectCanvas, projectFlowchart, type CanvasProjection } from "@/core/designer/projection"
+import { buildActivityStatusMap } from "@/core/designer/execution"
 
 const route = useRoute()
-const instanceId = route.params.instanceId as string
+const router = useRouter()
 const workspaceId = route.params.workspaceId as string
+const instanceId = route.params.instanceId as string
 
-// Mock data
-const instance = {
-  id: instanceId,
-  name: "报销审批 #1024",
-  definitionName: "月度报销审批",
-  definitionId: "d1",
-  version: 3,
-  correlationId: "abc-123-def",
-  status: "Finished" as const,
-  incidentCount: 0,
-  isExecuting: false,
-  finishedAt: "2026-09-15 10:30",
+const loading = ref(true)
+const loadError = ref<string | null>(null)
+const instance = ref<WorkflowInstanceDetailDto | null>(null)
+const projection = ref<CanvasProjection>({ nodes: [], edges: [] })
+const canvasRoot = ref<unknown>(null)
+
+const instanceStatusUi: Record<WorkflowStatus, { label: string; class: string }> = {
+  0: { label: "等待中", class: "bg-muted text-muted-foreground" },
+  1: { label: "执行中", class: "bg-info/15 text-info" },
+  2: { label: "已挂起", class: "bg-warning/15 text-warning" },
+  3: { label: "已完成", class: "bg-success/15 text-success" },
+  4: { label: "已取消", class: "bg-muted text-muted-foreground" },
+  5: { label: "已故障", class: "bg-destructive/15 text-destructive" },
+  6: { label: "已中断", class: "bg-warning/15 text-warning" },
 }
 
-const activities = [
-  { id: "a1", name: "开始", type: "Start", status: "Completed" as const, finishedAt: "10:00:01" },
-  { id: "a2", name: "提交报销单", type: "HttpEndpoint", status: "Completed" as const, finishedAt: "10:00:05" },
-  { id: "a3", name: "主管审批", type: "Approval", status: "Completed" as const, finishedAt: "10:15:30" },
-  { id: "a4", name: "财务复核", type: "Approval", status: "Completed" as const, finishedAt: "10:28:00" },
-  { id: "a5", name: "结束", type: "Finish", status: "Completed" as const, finishedAt: "10:30:00" },
-]
+const statusBadge = computed(() => {
+  const status = instance.value?.status
+  return status != null ? instanceStatusUi[status] : null
+})
 
-const statusConfig: Record<string, { label: string; class: string }> = {
-  Pending: { label: "等待", class: "bg-muted text-muted-foreground" },
-  Running: { label: "运行中", class: "bg-info/15 text-info" },
-  Completed: { label: "已完成", class: "bg-success/15 text-success" },
-  Canceled: { label: "已取消", class: "bg-muted text-muted-foreground" },
-  Faulted: { label: "故障", class: "bg-destructive/15 text-destructive" },
+function goBack(): void {
+  router.push({ name: "instances", params: { workspaceId } })
 }
 
-const instanceStatusConfig: Record<string, { label: string; class: string }> = {
-  Pending: { label: "等待中", class: "bg-muted text-muted-foreground" },
-  Executing: { label: "执行中", class: "bg-info/15 text-info" },
-  Suspended: { label: "已挂起", class: "bg-warning/15 text-warning" },
-  Finished: { label: "已完成", class: "bg-success/15 text-success" },
-  Cancelled: { label: "已取消", class: "bg-muted text-muted-foreground" },
-  Faulted: { label: "已故障", class: "bg-destructive/15 text-destructive" },
-  Interrupted: { label: "已中断", class: "bg-warning/15 text-warning" },
-}
+onMounted(async () => {
+  loading.value = true
+  loadError.value = null
+  try {
+    const { data, error } = await getApiV1WorkflowInstancesById({ path: { id: instanceId } })
+    if (error || !data) {
+      loadError.value = error ? String(error) : "加载实例失败"
+      return
+    }
+    instance.value = data
+    if (!data.definitionVersionId) {
+      loadError.value = "实例缺少定义版本信息"
+      return
+    }
+    const definition = await getApiV1WorkflowDefinitionsById({ path: { id: data.definitionVersionId } })
+    if (definition.error || !definition.data) {
+      loadError.value = definition.error ? String(definition.error) : "加载定义版本失败"
+      return
+    }
+    const root = fromWireActivity((definition.data.root ?? {}) as WireActivity)
+    canvasRoot.value = root
+    const base =
+      root instanceof Flowchart
+        ? projectFlowchart(root)
+        : "activities" in root && Array.isArray((root as { activities?: unknown }).activities)
+          ? projectCanvas(root as never)
+          : { nodes: [], edges: [] }
+    // Overlay each activity's run status onto its node (matched by activityId).
+    const statusMap = buildActivityStatusMap(data.activityInstances ?? [])
+    projection.value = {
+      edges: base.edges,
+      nodes: base.nodes.map((node) => ({
+        ...node,
+        data: { ...node.data, status: statusMap.get(node.data.activityId) ?? null },
+      })),
+    }
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div>
-      <div class="flex items-center gap-3">
-        <Badge :class="instanceStatusConfig[instance.status]?.class">
-          {{ instanceStatusConfig[instance.status]?.label }}
-        </Badge>
-        <h1 class="text-xl font-semibold tracking-tight">{{ instance.name }}</h1>
+  <div class="flex h-full min-h-0 flex-col">
+    <header class="flex shrink-0 items-center gap-3 border-b px-4 py-2">
+      <Button variant="ghost" size="icon" title="返回" @click="goBack">
+        <ArrowLeft :size="16" />
+      </Button>
+      <Badge v-if="statusBadge" :class="statusBadge.class">{{ statusBadge.label }}</Badge>
+      <span class="truncate text-sm font-medium">{{ instance?.name || `实例 ${instanceId}` }}</span>
+      <div class="flex items-center gap-4 text-xs text-muted-foreground">
+        <RouterLink
+          v-if="instance?.definitionVersionId"
+          :to="`/workspaces/${workspaceId}/definitions/${instance.definitionVersionId}`"
+          class="hover:text-primary"
+        >
+          {{ instance?.definitionName || "查看定义" }}
+        </RouterLink>
+        <span v-if="instance?.version">版本 <span class="font-mono">v{{ instance.version }}</span></span>
+        <span v-if="instance?.correlationId">关联 ID <span class="font-mono">{{ instance.correlationId }}</span></span>
       </div>
-      <div class="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-        <span>定义:
-          <RouterLink :to="`/workspaces/${workspaceId}/definitions/${instance.definitionId}`" class="text-foreground hover:text-primary">
-            {{ instance.definitionName }}
-          </RouterLink>
-        </span>
-        <span>版本: <span class="font-mono">v{{ instance.version }}</span></span>
-        <span>关联 ID: <span class="font-mono">{{ instance.correlationId }}</span></span>
-      </div>
-    </div>
+    </header>
 
-    <!-- Activity Execution Records -->
-    <div>
-      <h2 class="mb-3 font-medium">活动执行记录</h2>
-      <div class="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow class="bg-muted/50 hover:bg-muted/50">
-              <TableHead>活动</TableHead>
-              <TableHead>类型</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>完成时间</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow
-              v-for="(act, idx) in activities"
-              :key="act.id"
-            >
-              <TableCell>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-muted-foreground">{{ idx + 1 }}</span>
-                  <ChevronRight v-if="idx < activities.length - 1" :size="12" class="text-muted-foreground/50" />
-                  <span class="font-medium">{{ act.name }}</span>
-                </div>
-              </TableCell>
-              <TableCell class="font-mono text-xs text-muted-foreground">{{ act.type }}</TableCell>
-              <TableCell>
-                <Badge :class="statusConfig[act.status]?.class">
-                  {{ statusConfig[act.status]?.label }}
-                </Badge>
-              </TableCell>
-              <TableCell class="font-mono text-xs text-muted-foreground">{{ act.finishedAt }}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+    <div class="relative min-h-0 flex-1">
+      <div v-if="loading" class="flex h-full items-center justify-center text-sm text-muted-foreground">
+        加载中…
       </div>
+      <div v-else-if="loadError" class="flex h-full items-center justify-center text-sm text-destructive">
+        {{ loadError }}
+      </div>
+      <DesignerCanvas
+        v-else
+        :projection="projection"
+        :interactive="false"
+        :selected-id="null"
+        entry-key="instance"
+        :entry-activity="canvasRoot"
+      />
     </div>
   </div>
 </template>

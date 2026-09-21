@@ -30,30 +30,26 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "工作流定义" },
       },
       {
-        path: "definitions/:definitionId",
-        name: "definition-detail",
-        component: () => import("@/views/DefinitionDetailView.vue"),
-        meta: { title: "定义详情" },
-      },
-      {
         path: "instances",
         name: "instances",
         component: () => import("@/views/InstancesView.vue"),
         meta: { title: "工作流实例" },
       },
-      {
-        path: "instances/:instanceId",
-        name: "instance-detail",
-        component: () => import("@/views/InstanceDetailView.vue"),
-        meta: { title: "实例详情" },
-      },
     ],
   },
   {
-    path: "/workspaces/:workspaceId/definitions/:definitionId/edit",
-    name: "definition-designer",
+    // Definition detail IS the designer canvas: full-screen, no app shell.
+    path: "/workspaces/:workspaceId/definitions/:definitionId",
+    name: "definition-detail",
     component: () => import("@/views/WorkflowDesignerView.vue"),
     meta: { title: "工作流设计器", layout: "blank" },
+  },
+  {
+    // Instance detail: full-screen read-only canvas showing run progress.
+    path: "/workspaces/:workspaceId/instances/:instanceId",
+    name: "instance-detail",
+    component: () => import("@/views/InstanceDetailView.vue"),
+    meta: { title: "实例详情", layout: "blank" },
   },
   {
     path: "/:pathMatch(.*)*",

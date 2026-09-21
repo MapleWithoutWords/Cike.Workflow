@@ -2,6 +2,7 @@
 import { computed } from "vue"
 import type { Node } from "@antv/x6"
 import type { DesignerNodeData } from "@/core/designer/projection"
+import { ACTIVITY_STATUS_UI } from "@/core/designer/execution"
 import { resolveActivityIcon } from "./icons"
 
 const props = defineProps<{ node: Node }>()
@@ -9,6 +10,8 @@ const props = defineProps<{ node: Node }>()
 const data = computed(() => props.node.getData() as DesignerNodeData & { selected?: boolean })
 
 const icon = computed(() => resolveActivityIcon(data.value.icon))
+
+const statusUi = computed(() => (data.value.status != null ? ACTIVITY_STATUS_UI[data.value.status] : null))
 </script>
 
 <template>
@@ -21,6 +24,11 @@ const icon = computed(() => resolveActivityIcon(data.value.icon))
   >
     <component :is="icon" :size="14" class="shrink-0 text-muted-foreground" />
     <span class="min-w-0 truncate text-xs font-medium text-foreground">{{ data.name }}</span>
-    <span v-if="data.isGeneric" class="ml-auto shrink-0 text-[10px] text-muted-foreground">{{ data.typeShort }}</span>
+    <span
+      v-if="statusUi"
+      class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
+      :class="statusUi.class"
+    >{{ statusUi.label }}</span>
+    <span v-else-if="data.isGeneric" class="ml-auto shrink-0 text-[10px] text-muted-foreground">{{ data.typeShort }}</span>
   </div>
 </template>

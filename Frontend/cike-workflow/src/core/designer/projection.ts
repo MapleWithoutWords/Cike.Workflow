@@ -29,6 +29,8 @@ export interface DesignerNodeData {
   isGeneric: boolean;
   /** True when double-click drills into a nested level. */
   canDrill: boolean;
+  /** Run status when shown on a read-only instance canvas (0..4); else absent. */
+  status?: import("@/api/generated").ActivityStatus | null;
 }
 
 export interface ProjectedNode {

@@ -13,6 +13,7 @@ export type ActivityDescriptor = {
     category?: string;
     displayName?: string | null;
     description?: string | null;
+    icon?: string | null;
     inputs?: Array<InputDescriptor>;
     outputs?: Array<OutputDescriptor>;
     isContainer?: boolean;
@@ -252,6 +253,8 @@ export type PropertyDescriptor = {
 };
 
 export type PublishWorkflowDefinitionDto = {
+    root?: IActivity;
+    options?: WorkflowDefinitionOptionsValueObject;
     publishedNote?: string | null;
 };
 
@@ -875,8 +878,10 @@ export type PostApiV1WorkflowDefinitionsPublishByIdResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: string;
 };
+
+export type PostApiV1WorkflowDefinitionsPublishByIdResponse = PostApiV1WorkflowDefinitionsPublishByIdResponses[keyof PostApiV1WorkflowDefinitionsPublishByIdResponses];
 
 export type PostApiV1WorkflowDefinitionsMoveByIdData = {
     body: MoveWorkflowDefinitionDto;

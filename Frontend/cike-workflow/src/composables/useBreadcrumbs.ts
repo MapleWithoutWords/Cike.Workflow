@@ -28,29 +28,23 @@ export function useBreadcrumbs() {
 
     if (!workspaceId) return crumbs
 
-    // 空间层级：仅在非 definitions 页时提供链接，避免指向当前页
+    // 空间层级：仅在非当前模块列表页时提供链接，避免指向当前页
     const isOnDefinitions = name === "definitions" || name === "definition-detail"
+    const isOnInstances = name === "instances" || name === "instance-detail"
+    const targetPath = isOnInstances
+      ? `/workspaces/${workspaceId}/instances`
+      : `/workspaces/${workspaceId}/definitions`
     crumbs.push({
       label: workspaceName || workspaceId,
-      to: isOnDefinitions ? undefined : `/workspaces/${workspaceId}/definitions`,
+      to: isOnDefinitions || isOnInstances ? undefined : targetPath,
     })
 
     if (name === "definition-detail") {
-      crumbs.push({
-        label: "工作流定义",
-        to: `/workspaces/${workspaceId}/definitions`,
-      })
       const defName = (route.meta.definitionName as string) ?? ""
       crumbs.push({ label: defName || "定义详情" })
-    } else if (name === "instances" || name === "instance-detail") {
-      crumbs.push({
-        label: "工作流实例",
-        to: name === "instance-detail" ? `/workspaces/${workspaceId}/instances` : undefined,
-      })
-      if (name === "instance-detail") {
-        const instName = (route.meta.instanceName as string) ?? ""
-        crumbs.push({ label: instName || "实例详情" })
-      }
+    } else if (name === "instance-detail") {
+      const instName = (route.meta.instanceName as string) ?? ""
+      crumbs.push({ label: instName || "实例详情" })
     }
 
     return crumbs

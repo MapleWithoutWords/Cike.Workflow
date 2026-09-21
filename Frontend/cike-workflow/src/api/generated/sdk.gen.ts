@@ -143,6 +143,7 @@ export const postApiV1WorkflowDefinitionsSaveById = <ThrowOnError extends boolea
 });
 
 export const postApiV1WorkflowDefinitionsPublishById = <ThrowOnError extends boolean = false>(options: Options<PostApiV1WorkflowDefinitionsPublishByIdData, ThrowOnError>): RequestResult<PostApiV1WorkflowDefinitionsPublishByIdResponses, PostApiV1WorkflowDefinitionsPublishByIdErrors, ThrowOnError> => (options.client ?? client).post<PostApiV1WorkflowDefinitionsPublishByIdResponses, PostApiV1WorkflowDefinitionsPublishByIdErrors, ThrowOnError>({
+    responseType: 'json',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/WorkflowDefinitions/Publish/{id}',
     ...options,

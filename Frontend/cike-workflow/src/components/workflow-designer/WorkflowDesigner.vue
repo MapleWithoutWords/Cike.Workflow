@@ -1,20 +1,54 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
-import { Redo2, Trash2, Undo2, Variable } from "@lucide/vue"
+import { useRoute, useRouter } from "vue-router"
+import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload, Variable } from "@lucide/vue"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import type { DesignerCommand } from "@/core/designer/commands"
+import type { WorkflowDefinitionFolderItemDto } from "@/api/generated"
+import DefinitionFormDialog from "@/components/DefinitionFormDialog.vue"
 import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
 import PropertyPanel from "./PropertyPanel.vue"
 import RemoveNodeDialog from "./RemoveNodeDialog.vue"
 import VariablesDialog from "./VariablesDialog.vue"
+import PublishDialog from "./PublishDialog.vue"
+import VersionHistorySheet from "./VersionHistorySheet.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
 
+const route = useRoute()
+const router = useRouter()
+const workspaceId = computed(() => route.params.workspaceId as string)
+
 const canvasRef = ref<InstanceType<typeof DesignerCanvas> | null>(null)
 const variablesOpen = ref(false)
+const publishOpen = ref(false)
+const historyOpen = ref(false)
+const editOpen = ref(false)
+
+/** Synthetic shape for the reused metadata dialog (edit mode keyed by row id). */
+const editDefinition = computed<WorkflowDefinitionFolderItemDto>(() => ({
+  id: props.designer.rowId.value ?? undefined,
+  data: {
+    definitionId: props.designer.definitionId.value,
+    name: props.designer.definitionName.value,
+    description: props.designer.description.value,
+    type: props.designer.definitionType.value,
+    usableAsActivity: props.designer.usableAsActivity.value,
+  } as WorkflowDefinitionFolderItemDto["data"],
+}))
+
+function goBack(): void {
+  router.push({ name: "definitions", params: { workspaceId: workspaceId.value } })
+}
+
+function onMetadataSaved(): void {
+  const rowId = props.designer.rowId.value
+  if (rowId) props.designer.load(rowId)
+}
 
 const entryKey = computed(() => {
   const stack = props.designer.drillStack.value
@@ -53,6 +87,8 @@ function onConnectRequest(payload: { edgeId: string; source: string; sourcePort?
 }
 
 function onKeydown(event: KeyboardEvent): void {
+  // Read-only versions (historic) never accept keyboard mutations.
+  if (props.designer.readonly.value) return
   if (event.key !== "Delete" && event.key !== "Backspace") return
   const target = event.target as HTMLElement | null
   if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return
@@ -76,25 +112,42 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
   <div class="flex h-full min-h-0 flex-col">
     <header class="flex shrink-0 items-center justify-between border-b px-4 py-2">
       <div class="flex min-w-0 items-center gap-3">
+        <Button variant="ghost" size="icon" title="返回" @click="goBack">
+          <ArrowLeft :size="16" />
+        </Button>
+        <div class="flex min-w-0 items-center gap-2">
+          <span class="truncate text-sm font-medium">{{ designer.definitionName.value }}</span>
+          <Badge variant="secondary" class="font-mono">v{{ designer.version.value }}</Badge>
+          <Badge v-if="designer.isPublished.value" class="bg-success/15 text-success border-transparent">已发布</Badge>
+        </div>
         <DesignerBreadcrumb :entries="designer.breadcrumb.value" @select="(index: number) => designer.popTo(index)" />
         <span
-          v-if="designer.missingStartNode.value"
+          v-if="designer.readonly.value"
+          class="flex shrink-0 items-center gap-2 rounded bg-info/15 px-2 py-0.5 text-xs text-info"
+        >
+          正在查看 v{{ designer.version.value }}（只读）
+          <button type="button" class="inline-flex items-center gap-1 font-medium hover:underline" @click="designer.returnToLatest()">
+            <RotateCcw :size="12" /> 返回最新
+          </button>
+        </span>
+        <span
+          v-else-if="designer.missingStartNode.value"
           class="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-xs text-warning"
         >
           画布缺少开始节点，发布前需添加
         </span>
       </div>
       <div class="flex shrink-0 items-center gap-2">
-        <Button variant="ghost" size="icon" :disabled="!designer.canUndo.value" title="撤销" @click="designer.undo()">
+        <Button variant="ghost" size="icon" :disabled="!designer.canUndo.value || designer.readonly.value" title="撤销" @click="designer.undo()">
           <Undo2 :size="16" />
         </Button>
-        <Button variant="ghost" size="icon" :disabled="!designer.canRedo.value" title="重做" @click="designer.redo()">
+        <Button variant="ghost" size="icon" :disabled="!designer.canRedo.value || designer.readonly.value" title="重做" @click="designer.redo()">
           <Redo2 :size="16" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          :disabled="!designer.selectedActivityId.value"
+          :disabled="!designer.selectedActivityId.value || designer.readonly.value"
           title="删除节点"
           @click="designer.selectedActivityId.value && requestRemove(designer.selectedActivityId.value)"
         >
@@ -103,18 +156,28 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         <Button variant="ghost" size="icon" title="工作流变量" @click="variablesOpen = true">
           <Variable :size="16" />
         </Button>
-        <Button size="sm" :disabled="designer.saving.value" @click="designer.save()">
+        <div class="mx-1 h-5 w-px bg-border" />
+        <Button variant="ghost" size="icon" title="历史版本" @click="historyOpen = true">
+          <History :size="16" />
+        </Button>
+        <Button variant="outline" size="sm" :disabled="designer.readonly.value" @click="editOpen = true">
+          <Pencil :size="14" /> 编辑
+        </Button>
+        <Button size="sm" variant="ghost" :disabled="designer.saving.value || designer.readonly.value" @click="designer.save()">
           {{ designer.saving.value ? "保存中…" : "保存" }}
+        </Button>
+        <Button size="sm" :disabled="designer.readonly.value" @click="publishOpen = true">
+          <Upload :size="14" /> 发布
         </Button>
       </div>
     </header>
     <div class="flex min-h-0 flex-1">
-      <ActivityPalette :groups="designer.paletteGroups.value" @add="(typeName: string) => addAtCenter(typeName)" />
+      <ActivityPalette v-if="!designer.readonly.value" :groups="designer.paletteGroups.value" @add="(typeName: string) => addAtCenter(typeName)" />
       <div class="relative min-w-0 flex-1">
         <DesignerCanvas
           ref="canvasRef"
           :projection="designer.projection.value"
-          :interactive="true"
+          :interactive="!designer.readonly.value"
           :selected-id="designer.selectedActivityId.value"
           :entry-key="entryKey"
           :entry-activity="designer.currentEntry.value?.activity ?? null"
@@ -150,5 +213,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
     />
 
     <VariablesDialog :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
+
+    <PublishDialog :designer="designer" :open="publishOpen" @update:open="(open: boolean) => (publishOpen = open)" />
+
+    <VersionHistorySheet :designer="designer" :open="historyOpen" @update:open="(open: boolean) => (historyOpen = open)" />
+
+    <DefinitionFormDialog
+      :open="editOpen"
+      :definition="editDefinition"
+      :folder-id="designer.folderId.value"
+      :workspace-id="workspaceId"
+      @update:open="(open: boolean) => (editOpen = open)"
+      @saved="onMetadataSaved"
+    />
   </div>
 </template>

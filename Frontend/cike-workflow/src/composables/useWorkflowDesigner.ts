@@ -2,8 +2,12 @@ import { computed, ref, shallowRef } from "vue"
 import {
   getApiV1CommonsActivityDescriptors,
   getApiV1WorkflowDefinitionsById,
+  getApiV1WorkflowDefinitionsVersionList,
+  postApiV1WorkflowDefinitionsPublishById,
+  postApiV1WorkflowDefinitionsRollback,
   postApiV1WorkflowDefinitionsSaveById,
 } from "@/api/generated"
+import type { WorkflowDefinitionType, WorkflowDefinitionVersionItemDto } from "@/api/generated"
 import type { Activity, IActivity } from "@/core/abstracts/Activity"
 import { Activity as ActivityClass } from "@/core/abstracts/Activity"
 import { Flowchart } from "@/core/activities/Flowchart"
@@ -40,6 +44,21 @@ export function useWorkflowDesigner() {
   const definitionName = ref("")
   const loadError = ref<string | null>(null)
   const loading = ref(false)
+  /** Business identifier, constant across every version of the definition. */
+  const definitionId = ref("")
+  /** Metadata of the currently loaded version row, for toolbar display + edit. */
+  const description = ref("")
+  const definitionType = ref<WorkflowDefinitionType | undefined>(undefined)
+  const usableAsActivity = ref(false)
+  const materializerName = ref("")
+  const folderId = ref("")
+  const version = ref(0)
+  const isLatest = ref(true)
+  const isPublished = ref(false)
+  /** Every version row of this definition (newest first as returned by API). */
+  const versions = shallowRef<WorkflowDefinitionVersionItemDto[]>([])
+  /** Historic (non-latest) versions are frozen: canvas is view-only. */
+  const readonly = computed(() => !isLatest.value)
   const drillStack = shallowRef<DrillEntry[]>([])
   const selectedActivityId = ref<string | null>(null)
   const rowId = ref<string | null>(null)
@@ -138,12 +157,23 @@ export function useWorkflowDesigner() {
       savedOptions.value = (data.options ?? {}) as Record<string, unknown>
       variables.value = ((data.options as { variables?: VariableDefinition[] } | null)?.variables ?? []) as VariableDefinition[]
       definitionName.value = data.name || data.definitionId || "未命名"
+      definitionId.value = data.definitionId ?? ""
+      description.value = data.description ?? ""
+      definitionType.value = data.type
+      usableAsActivity.value = data.usableAsActivity ?? false
+      materializerName.value = data.materializerName ?? ""
+      folderId.value = data.folderId ?? ""
+      version.value = data.version ?? 0
+      isLatest.value = data.isLatest ?? true
+      isPublished.value = data.isPublished ?? false
       root.value = fromWireActivity((data.root ?? {}) as WireActivity)
       drillStack.value = [{ activity: root.value, title: definitionName.value }]
       selectedActivityId.value = null
+      selectedEdgeId.value = null
       commandStack.clear()
       refreshUndoFlags()
       void loadPalette()
+      void loadVersions()
     } finally {
       loading.value = false
     }
@@ -329,11 +359,11 @@ export function useWorkflowDesigner() {
   }
 
   async function save(): Promise<void> {
-    if (!root.value || rowId.value == null || saving.value) return
+    if (!root.value || rowId.value == null || saving.value || readonly.value) return
     saving.value = true
     saveError.value = null
     try {
-      const { error } = await postApiV1WorkflowDefinitionsSaveById({
+      const { data, error } = await postApiV1WorkflowDefinitionsSaveById({
         path: { id: rowId.value },
         body: {
           root: toWireActivity(root.value) as never,
@@ -344,6 +374,13 @@ export function useWorkflowDesigner() {
         saveError.value = typeof error === "string" ? error : JSON.stringify(error)
         return
       }
+      // A published version is immutable: the backend forks a new draft version
+      // and returns its id. When it differs from the current row, reload the
+      // whole canvas onto the new draft so further edits land there.
+      const newRowId = data != null ? String(data) : null
+      if (newRowId && newRowId !== rowId.value) {
+        await load(newRowId)
+      }
       lastSavedAt.value = new Date()
     } catch (err) {
       saveError.value = String(err)
@@ -352,9 +389,83 @@ export function useWorkflowDesigner() {
     }
   }
 
+  async function loadVersions(): Promise<void> {
+    if (!definitionId.value) return
+    const { data } = await getApiV1WorkflowDefinitionsVersionList({
+      query: { definitionId: definitionId.value },
+    })
+    versions.value = (data ?? []) as WorkflowDefinitionVersionItemDto[]
+  }
+
+  /** Loads a version row for view-only inspection (read-only when non-latest). */
+  async function viewVersion(versionRowId: string): Promise<void> {
+    await load(versionRowId)
+  }
+
+  /** Returns from a historic version back to the editable latest version. */
+  async function returnToLatest(): Promise<void> {
+    // Always refetch: after a rollback the latest version row has changed.
+    await loadVersions()
+    const latest = versions.value.find((entry) => entry.isLatest)
+    if (latest?.id) await load(String(latest.id))
+  }
+
+  /** Publishes the current canvas (root + options) with an optional note. */
+  async function publish(publishedNote?: string): Promise<void> {
+    if (!root.value || rowId.value == null || saving.value || readonly.value) return
+    saving.value = true
+    saveError.value = null
+    try {
+      const { data, error } = await postApiV1WorkflowDefinitionsPublishById({
+        path: { id: rowId.value },
+        body: {
+          root: toWireActivity(root.value) as never,
+          options: savedOptions.value as never,
+          publishedNote: publishedNote ?? null,
+        },
+      })
+      if (error) {
+        saveError.value = typeof error === "string" ? error : JSON.stringify(error)
+        return
+      }
+      // Reload to refresh version state (published flag / new version row).
+      const publishedRowId = data != null ? String(data) : rowId.value
+      await load(publishedRowId)
+    } catch (err) {
+      saveError.value = String(err)
+    } finally {
+      saving.value = false
+    }
+  }
+
+  /** Rolls a historic version back to become the new latest, then reloads. */
+  async function rollback(definitionVersionId: string): Promise<void> {
+    if (!definitionId.value) return
+    const { error } = await postApiV1WorkflowDefinitionsRollback({
+      body: { definitionId: definitionId.value, definitionVersionId },
+    })
+    if (error) {
+      saveError.value = typeof error === "string" ? error : JSON.stringify(error)
+      return
+    }
+    await returnToLatest()
+  }
+
   return {
     root,
     definitionName,
+    definitionId,
+    rowId,
+    description,
+    definitionType,
+    usableAsActivity,
+    materializerName,
+    folderId,
+    version,
+    isLatest,
+    isPublished,
+    readonly,
+    versions,
     loadError,
     loading,
     drillStack,
@@ -380,6 +491,11 @@ export function useWorkflowDesigner() {
     connect,
     removeEdge,
     load,
+    loadVersions,
+    viewVersion,
+    returnToLatest,
+    publish,
+    rollback,
     drillInto,
     popTo,
     executeCommand,

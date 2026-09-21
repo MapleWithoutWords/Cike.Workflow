@@ -523,7 +523,15 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request"
@@ -892,6 +900,10 @@
             "nullable": true
           },
           "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
             "type": "string",
             "nullable": true
           },
@@ -1612,6 +1624,12 @@
       "PublishWorkflowDefinitionDto": {
         "type": "object",
         "properties": {
+          "root": {
+            "$ref": "#/components/schemas/IActivity"
+          },
+          "options": {
+            "$ref": "#/components/schemas/WorkflowDefinitionOptionsValueObject"
+          },
           "publishedNote": {
             "type": "string",
             "nullable": true
