@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace Cike.Workflow.Core.Activities;
 
+[Browsable(false)]
 public class ForEach<T> : Activity
 {
     private const string CurrentIndexProperty = "CurrentIndex";
