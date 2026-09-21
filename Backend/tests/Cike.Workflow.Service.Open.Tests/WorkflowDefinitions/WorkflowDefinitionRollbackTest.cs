@@ -10,13 +10,13 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
 
     private async Task<long> SaveAsync(long id, string prefix)
     {
-        var response = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{id}", new { body = CreateValidCanvas(prefix) });
+        var response = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{id}", new { root = CreateValidCanvas(prefix) });
         await EnsureSuccessAsync(response);
         return await ReadLongAsync(response);
     }
 
-    private async Task PublishAsync(long id)
-        => await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Publish/{id}", new { publishedNote = "发布" }));
+    private async Task PublishAsync(long id, string prefix)
+        => await EnsureSuccessAsync(await PostPublishAsync(id, new { root = CreateValidCanvas(prefix), publishedNote = "发布" }));
 
     private async Task<(string DefinitionId, long RowId)> PrepareAsync()
     {
@@ -32,7 +32,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         var (definitionId, rowId) = await PrepareAsync();
         // v1 保存并发布 → v2 草稿（内容 rb2）
         await SaveAsync(rowId, "rb1");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "rb1");
         await SaveAsync(rowId, "rb2");
 
         var response = await PostRollbackAsync(definitionId, rowId);
@@ -40,7 +40,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var detail = (await GetDetailAsync(rowId)).RootElement;
         // v1 行是已发布历史版本，内容不变
-        Assert.That(GetString(detail, "originalStringData"), Does.Contain("rb1_start"));
+        Assert.That(detail.GetProperty("root").GetRawText(), Does.Contain("rb1_start"));
 
         var versions = await GetVersionListAsync(definitionId);
         Assert.That(versions, Has.Count.EqualTo(2));
@@ -48,7 +48,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         var latest = versions.Single(x => GetInt(x, "version") == 2);
         Assert.That(GetBool(latest, "isPublished"), Is.False);
         var latestDetail = (await GetDetailAsync(GetLong(latest, "id"))).RootElement;
-        Assert.That(GetString(latestDetail, "originalStringData"), Does.Contain("rb1_start"));
+        Assert.That(latestDetail.GetProperty("root").GetRawText(), Does.Contain("rb1_start"));
     }
 
     [Test]
@@ -57,9 +57,9 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         var (definitionId, rowId) = await PrepareAsync();
         // v1 发布（rb1）→ v2（rb2）发布 → 最新为已发布 v2，无草稿
         await SaveAsync(rowId, "rb1");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "rb1");
         await SaveAsync(rowId, "rb2");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "rb2");
 
         var response = await PostRollbackAsync(definitionId, rowId);
 
@@ -74,15 +74,15 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
         Assert.That(GetBool(v2, "isPublished"), Is.True);
         var v1Detail = (await GetDetailAsync(GetLong(v1, "id"))).RootElement;
         var v2Detail = (await GetDetailAsync(GetLong(v2, "id"))).RootElement;
-        Assert.That(GetString(v1Detail, "originalStringData"), Does.Contain("rb1_start"));
-        Assert.That(GetString(v2Detail, "originalStringData"), Does.Contain("rb2_start"));
+        Assert.That(v1Detail.GetProperty("root").GetRawText(), Does.Contain("rb1_start"));
+        Assert.That(v2Detail.GetProperty("root").GetRawText(), Does.Contain("rb2_start"));
 
         // 新草稿 v3：IsLatest 转移，内容复制自 v1
         var v3 = versions.Single(x => GetInt(x, "version") == 3);
         Assert.That(GetBool(v3, "isLatest"), Is.True);
         Assert.That(GetBool(v3, "isPublished"), Is.False);
         var v3Detail = (await GetDetailAsync(GetLong(v3, "id"))).RootElement;
-        Assert.That(GetString(v3Detail, "originalStringData"), Does.Contain("rb1_start"));
+        Assert.That(v3Detail.GetProperty("root").GetRawText(), Does.Contain("rb1_start"));
         Assert.That(GetBool(v2Detail, "isLatest"), Is.False);
     }
 
@@ -91,7 +91,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "rb1");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "rb1");
         var draftId = await SaveAsync(rowId, "rb2");
         // v2 草稿期间改名（元数据走已有 Update 命令，作用于草稿行）
         await EnsureSuccessAsync(await CreateClient().PutAsJsonAsync($"/api/v1/WorkflowDefinitions/{draftId}", new
@@ -106,7 +106,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
 
         var detail = (await GetDetailAsync(draftId)).RootElement;
         Assert.That(GetString(detail, "description"), Is.EqualTo("改名后的描述"));
-        Assert.That(GetString(detail, "originalStringData"), Does.Contain("rb1_start"));
+        Assert.That(detail.GetProperty("root").GetRawText(), Does.Contain("rb1_start"));
     }
 
     [Test]
@@ -126,7 +126,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "nb");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "nb");
         await SaveAsync(rowId, "nb2");
 
         var response = await PostRollbackAsync(definitionId, 999_999);
@@ -140,7 +140,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "own");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "own");
         await SaveAsync(rowId, "own2");
         // 另一个定义的版本行
         var otherDefinitionId = $"WF_{Guid.NewGuid():N}";
@@ -157,7 +157,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "sys");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "sys");
         await SaveAsync(rowId, "sys2");
         await SeedDefinitionAsync(definitionId, e => e.IsSystem = true);
 
@@ -172,7 +172,7 @@ internal class WorkflowDefinitionRollbackTest : WorkflowDefinitionTestBase
     {
         var (definitionId, rowId) = await PrepareAsync();
         await SaveAsync(rowId, "ro");
-        await PublishAsync(rowId);
+        await PublishAsync(rowId, "ro");
         await SaveAsync(rowId, "ro2");
         await SeedDefinitionAsync(definitionId, e => e.IsReadonly = true);
 

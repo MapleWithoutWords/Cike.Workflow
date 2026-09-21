@@ -1,31 +1,41 @@
 using System.Net;
+using Cike.Workflow.Caching;
+using Cike.Workflow.Common.Versions;
+using Cike.Workflow.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cike.Workflow.Service.Open.Tests.WorkflowDefinitions;
 
-/// <summary>票②：发布工作流定义（严格画布校验 + 就地打标）。</summary>
+/// <summary>发布携带完整画布：先校验后写库，草稿就地发布 / 已发布生成 v+1 直接发布，返回发布后版本行 Id。</summary>
 internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
 {
-    private async Task<(string DefinitionId, long RowId)> PrepareSavedAsync(string canvasPrefix = "pub")
+    /// <summary>详情查询走 BeginAsNoTracking，影子属性 Options 不还原；变量落库经运行时缓存断言（与 CacheTest 同源读法）。</summary>
+    private IWorkflowDefinitionCache Cache => serviceProvider.GetRequiredService<IWorkflowDefinitionCache>();
+
+    private Task<HttpResponseMessage> PostPublishCanvasAsync(long id, string? note = null, string prefix = "pub", object? options = null)
+        => PostPublishAsync(id, options == null
+            ? new { root = CreateValidCanvas(prefix), publishedNote = note }
+            : (object)new { root = CreateValidCanvas(prefix), options, publishedNote = note });
+
+    private async Task<(string DefinitionId, long RowId)> PrepareAsync()
     {
         var workspaceId = await CreateWorkspaceAsync();
         var definitionId = $"WF_{Guid.NewGuid():N}";
         var rowId = await CreateDefinitionAsync(workspaceId, 0, definitionId);
-        var save = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = CreateValidCanvas(canvasPrefix) });
-        await EnsureSuccessAsync(save);
         return (definitionId, rowId);
     }
 
-    private Task<HttpResponseMessage> PostPublishAsync(long id, string? note = null)
-        => CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Publish/{id}", new { publishedNote = note });
-
     [Test]
-    public async Task PublishAsync_合法画布_版本列表显示发布状态发布人和备注()
+    public async Task PublishAsync_携带画布直接发布_落库内容与提交画布一致且打发布标记()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync();
+        var (definitionId, rowId) = await PrepareAsync();
 
-        var response = await PostPublishAsync(rowId, "首个正式版本");
+        var response = await PostPublishCanvasAsync(rowId, "首个正式版本");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        // 返回发布后的版本行 Id
+        Assert.That(await ReadLongAsync(response), Is.EqualTo(await GetVersionRowIdAsync(definitionId, 1)));
+
         var versions = await GetVersionListAsync(definitionId);
         Assert.That(versions, Has.Count.EqualTo(1));
         var version = versions[0];
@@ -33,14 +43,35 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
         Assert.That(GetString(version, "publishedNote"), Is.EqualTo("首个正式版本"));
         Assert.That(GetString(version, "publishedBy"), Is.EqualTo(TestAuthHandler.TestUserId));
         Assert.That(GetDateTime(version, "publishedAt"), Is.GreaterThan(DateTime.MinValue));
+
+        // 落库内容与提交画布一致（未保存的画布随发布生效）
+        var detail = (await GetDetailAsync(rowId)).RootElement;
+        Assert.That(detail.GetProperty("root").GetRawText(), Does.Contain("pub_start"));
+        Assert.That(GetBool(detail, "isPublished"), Is.True);
+    }
+
+    [Test]
+    public async Task PublishAsync_携带变量选项_变量定义随发布落库()
+    {
+        var (definitionId, rowId) = await PrepareAsync();
+        var variables = new object[]
+        {
+            new { id = "var1", name = "count", typeName = "Int32", isArray = false },
+        };
+
+        var response = await PostPublishCanvasAsync(rowId, options: new { variables });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        // 变量落库经运行时缓存断言（详情读口不还原影子 Options，为既有行为）
+        var cached = await Cache.GetAsync(WorkflowDefinitionHandle.ByDefinitionId(definitionId, VersionOptions.Latest));
+        Assert.That(cached, Is.Not.Null);
+        Assert.That(cached!.OptionsPayload, Does.Contain("count"));
     }
 
     [Test]
     public async Task PublishAsync_缺少开始节点_返回400且消息可定位()
     {
-        var workspaceId = await CreateWorkspaceAsync();
-        var definitionId = $"WF_{Guid.NewGuid():N}";
-        var rowId = await CreateDefinitionAsync(workspaceId, 0, definitionId);
+        var (_, rowId) = await PrepareAsync();
         var canvas = new
         {
             type = "Cike.Flowchart",
@@ -48,9 +79,8 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
             activities = new object[] { new { type = "Cike.End", id = "nos_end" } },
             connections = Array.Empty<object>(),
         };
-        await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = canvas }));
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishAsync(rowId, new { root = canvas });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("开始节点"));
@@ -59,8 +89,7 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
     [Test]
     public async Task PublishAsync_存在孤立节点_返回400且消息可定位()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("orphan");
-        // 在合法画布基础上追加一个未接入流程的 WriteLine 节点
+        var (_, rowId) = await PrepareAsync();
         var canvas = new
         {
             type = "Cike.Flowchart",
@@ -76,9 +105,8 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
                 new { source = new { activityId = "orphan_start" }, target = new { activityId = "orphan_end" } },
             },
         };
-        await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = canvas }));
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishAsync(rowId, new { root = canvas });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var message = await response.Content.ReadAsStringAsync();
@@ -89,19 +117,14 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
     [Test]
     public async Task PublishAsync_变量定义非法_返回400且消息可定位()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("var");
+        var (_, rowId) = await PrepareAsync();
         var variables = new object[]
         {
             new { id = "var1", name = "count", typeName = "Int32", isArray = false },
             new { id = "var2", name = "count", typeName = "Int32", isArray = false },
         };
-        await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new
-        {
-            body = CreateValidCanvas("var"),
-            options = new { variables },
-        }));
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishCanvasAsync(rowId, prefix: "var", options: new { variables });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var message = await response.Content.ReadAsStringAsync();
@@ -112,8 +135,7 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
     [Test]
     public async Task PublishAsync_活动必填属性缺失_返回400且消息可定位()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("req");
-        // WriteLine 未设置 text → 必填属性缺失
+        var (_, rowId) = await PrepareAsync();
         var canvas = new
         {
             type = "Cike.Flowchart",
@@ -130,9 +152,8 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
                 new { source = new { activityId = "req_write" }, target = new { activityId = "req_end" } },
             },
         };
-        await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = canvas }));
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishAsync(rowId, new { root = canvas });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var message = await response.Content.ReadAsStringAsync();
@@ -141,45 +162,85 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
     }
 
     [Test]
-    public async Task PublishAsync_最新行已是发布态_返回400()
+    public async Task PublishAsync_画布Root缺失_返回400()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("dup");
-        await EnsureSuccessAsync(await PostPublishAsync(rowId));
+        var (_, rowId) = await PrepareAsync();
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishAsync(rowId, new { publishedNote = "无画布" });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("新草稿"));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("画布内容不能为空"));
     }
 
     [Test]
-    public async Task PublishAsync_系统内置定义_返回400()
+    public async Task PublishAsync_校验失败_落库内容保持不变且未打发布标记()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("sys");
-        await SeedDefinitionAsync(definitionId, e => e.IsSystem = true);
+        var (_, rowId) = await PrepareAsync();
+        var invalidCanvas = new
+        {
+            type = "Cike.Flowchart",
+            id = "zero_flowchart",
+            activities = new object[] { new { type = "Cike.End", id = "zero_bad_end" } },
+            connections = Array.Empty<object>(),
+        };
 
-        var response = await PostPublishAsync(rowId);
+        var response = await PostPublishAsync(rowId, new { root = invalidCanvas });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("系统内置"));
+        // 数据库零写入：内容仍是建行时的空画布，未打发布标记
+        var detail = (await GetDetailAsync(rowId)).RootElement;
+        Assert.That(detail.GetProperty("root").GetRawText(), Does.Not.Contain("zero_bad_end"));
+        Assert.That(GetBool(detail, "isPublished"), Is.False);
+        Assert.That(GetInt(detail, "version"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task PublishAsync_最新行已是发布态_生成新草稿版本并直接发布()
+    {
+        var (definitionId, rowId) = await PrepareAsync();
+        await EnsureSuccessAsync(await PostPublishCanvasAsync(rowId));
+        var firstId = await GetVersionRowIdAsync(definitionId, 1);
+
+        var response = await PostPublishCanvasAsync(rowId, "第二版");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var secondId = await ReadLongAsync(response);
+        Assert.That(secondId, Is.Not.EqualTo(firstId));
+        Assert.That(secondId, Is.EqualTo(await GetVersionRowIdAsync(definitionId, 2)));
+
+        var versions = await GetVersionListAsync(definitionId);
+        Assert.That(versions, Has.Count.EqualTo(2));
+        Assert.That(versions.All(x => GetBool(x, "isPublished")), Is.True);
+        // IsLatest 转移到新版本行
+        Assert.That(GetBool(versions[0], "isLatest"), Is.True);
+        Assert.That(GetBool(versions[1], "isLatest"), Is.False);
+        Assert.That(GetString(versions[0], "publishedNote"), Is.EqualTo("第二版"));
+        Assert.That(GetInt(versions[0], "version"), Is.EqualTo(2));
     }
 
     [Test]
     public async Task PublishAsync_后续发布_历史版本发布标记保留()
     {
-        var (definitionId, rowId) = await PrepareSavedAsync("hist");
-        await EnsureSuccessAsync(await PostPublishAsync(rowId, "v1"));
-
-        // 发布后再次保存 → v2 草稿 → 再发布
-        var save = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = CreateValidCanvas("hist2") });
-        await EnsureSuccessAsync(save);
-        var draftId = await ReadLongAsync(save);
-        await EnsureSuccessAsync(await PostPublishAsync(draftId, "v2"));
+        var (definitionId, rowId) = await PrepareAsync();
+        await EnsureSuccessAsync(await PostPublishCanvasAsync(rowId, "v1", prefix: "hist"));
+        await EnsureSuccessAsync(await PostPublishCanvasAsync(rowId, "v2", prefix: "hist2"));
 
         var versions = await GetVersionListAsync(definitionId);
         Assert.That(versions, Has.Count.EqualTo(2));
         Assert.That(versions.All(x => GetBool(x, "isPublished")), Is.True);
         Assert.That(GetString(versions[0], "publishedNote"), Is.EqualTo("v2"));
         Assert.That(GetString(versions[1], "publishedNote"), Is.EqualTo("v1"));
+    }
+
+    [Test]
+    public async Task PublishAsync_系统内置定义_返回400()
+    {
+        var (definitionId, rowId) = await PrepareAsync();
+        await SeedDefinitionAsync(definitionId, e => e.IsSystem = true);
+
+        var response = await PostPublishCanvasAsync(rowId, prefix: "sys");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("系统内置"));
     }
 }

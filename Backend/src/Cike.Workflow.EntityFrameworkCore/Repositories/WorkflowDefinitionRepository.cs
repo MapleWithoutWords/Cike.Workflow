@@ -99,6 +99,10 @@ public class WorkflowDefinitionRepository(CikeWorkflowDbContext context, IPayloa
             .Where(x => x.DefinitionId == definitionId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.FolderId, folderId), cancellationToken);
 
+        // ExecuteUpdate 绕过跟踪器：请求内已被跟踪的同键实体（如处理器入口 GetEntityAsync 取回的行）
+        // 经身份解析会以陈旧值返回，缓存会被旧 FolderId 刷写——先清空跟踪器再重读
+        context.ChangeTracker.Clear();
+
         // 同步运行时缓存：重读受影响行（跟踪物化 + OnLoadAsync 还原 Options，纪律①），write-through 刷新旧条目
         var versions = await GetQueryable()
             .Where(x => x.DefinitionId == definitionId)

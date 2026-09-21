@@ -1,10 +1,17 @@
 using System.Net;
+using Cike.Workflow.Caching;
+using Cike.Workflow.Common.Versions;
+using Cike.Workflow.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cike.Workflow.Service.Open.Tests.WorkflowDefinitions;
 
 /// <summary>票④：移动工作流定义到其他目录（所有版本行一起移动）。</summary>
 internal class WorkflowDefinitionMoveTest : WorkflowDefinitionTestBase
 {
+    /// <summary>详情查询走 BeginAsNoTracking，影子属性 Options 不还原；Options 断言经运行时缓存（与 PublishTest 同源读法）。</summary>
+    private IWorkflowDefinitionCache Cache => serviceProvider.GetRequiredService<IWorkflowDefinitionCache>();
+
     private Task<HttpResponseMessage> PostMoveAsync(long id, long folderId)
         => CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Move/{id}", new { folderId });
 
@@ -24,17 +31,23 @@ internal class WorkflowDefinitionMoveTest : WorkflowDefinitionTestBase
     {
         var (workspaceId, sourceFolderId, targetFolderId, definitionId, rowId) = await PrepareAsync();
         // 保存带变量的画布，验证移动不会丢失 Options（影子属性）
+        var options = new
+        {
+            variables = new object[] { new { id = "var1", name = "count", typeName = "Int32", isArray = false } },
+        };
         var saveWithVariables = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new
         {
-            body = CreateValidCanvas("opt"),
-            options = new
-            {
-                variables = new object[] { new { id = "var1", name = "count", typeName = "Int32", isArray = false } },
-            },
+            root = CreateValidCanvas("opt"),
+            options,
         });
         await EnsureSuccessAsync(saveWithVariables);
-        await EnsureSuccessAsync(await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Publish/{rowId}", new { publishedNote = "v1" }));
-        var saveAgain = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { body = CreateValidCanvas("mv2") });
+        await EnsureSuccessAsync(await PostPublishAsync(rowId, new
+        {
+            root = CreateValidCanvas("opt"),
+            options,
+            publishedNote = "v1",
+        }));
+        var saveAgain = await CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Save/{rowId}", new { root = CreateValidCanvas("mv2") });
         await EnsureSuccessAsync(saveAgain);
         var draftId = await ReadLongAsync(saveAgain);
         var versionIds = new List<long> { rowId, draftId };
@@ -50,10 +63,12 @@ internal class WorkflowDefinitionMoveTest : WorkflowDefinitionTestBase
             Assert.That(GetLong(detail, "folderId"), Is.EqualTo(targetFolderId));
         }
 
-        // 移动不改内容：v1 行的 Options（变量定义）保持不变
+        // 移动不改内容：v1 行的 Options（变量定义）保持不变（经运行时缓存断言）
         var v1Detail = (await GetDetailAsync(rowId)).RootElement;
-        Assert.That(GetString(v1Detail, "originalStringData"), Does.Contain("opt_start"));
-        Assert.That(v1Detail.GetProperty("options").GetProperty("variables").GetArrayLength(), Is.EqualTo(1));
+        Assert.That(v1Detail.GetProperty("root").GetRawText(), Does.Contain("opt_start"));
+        var cached = await Cache.GetAsync(WorkflowDefinitionHandle.ByDefinitionId(definitionId, VersionOptions.SpecificVersion(1)));
+        Assert.That(cached, Is.Not.Null);
+        Assert.That(cached!.OptionsPayload, Does.Contain("count"));
 
         // 目录列表断言：新目录可见、原目录不可见
         var inTarget = await GetFolderListAsync(workspaceId, targetFolderId);

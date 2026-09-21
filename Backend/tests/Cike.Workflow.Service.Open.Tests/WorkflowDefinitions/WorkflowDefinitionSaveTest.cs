@@ -21,14 +21,14 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
     {
         var (_, definitionId, rowId) = await PrepareAsync();
 
-        var response = await PostSaveAsync(rowId, new { body = CreateValidCanvas("v1") });
+        var response = await PostSaveAsync(rowId, new { root = CreateValidCanvas("v1") });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var detail = (await GetDetailAsync(rowId)).RootElement;
         Assert.That(GetInt(detail, "version"), Is.EqualTo(1));
         Assert.That(GetBool(detail, "isLatest"), Is.True);
         Assert.That(GetBool(detail, "isPublished"), Is.False);
-        Assert.That(GetString(detail, "originalStringData"), Does.Contain("v1_start"));
+        Assert.That(detail.GetProperty("root").GetRawText(), Does.Contain("v1_start"));
     }
 
     [Test]
@@ -36,8 +36,8 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
     {
         var (_, definitionId, rowId) = await PrepareAsync();
 
-        await PostSaveAsync(rowId, new { body = CreateValidCanvas("a") });
-        await PostSaveAsync(rowId, new { body = CreateValidCanvas("b") });
+        await PostSaveAsync(rowId, new { root = CreateValidCanvas("a") });
+        await PostSaveAsync(rowId, new { root = CreateValidCanvas("b") });
 
         var versions = await GetVersionListAsync(definitionId);
         Assert.That(versions, Has.Count.EqualTo(1));
@@ -48,11 +48,11 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
     public async Task SaveAsync_最新版已发布时保存_生成v2新草稿且IsLatest转移()
     {
         var (_, definitionId, rowId) = await PrepareAsync();
-        await PostSaveAsync(rowId, new { body = CreateValidCanvas("v1") });
+        await PostSaveAsync(rowId, new { root = CreateValidCanvas("v1") });
         // 构造已发布的最新行：直库打标（发布端点在票②，此处不依赖）
         await SeedDefinitionAsync(definitionId, e => e.IsPublished = true);
 
-        var response = await PostSaveAsync(rowId, new { body = CreateValidCanvas("v2") });
+        var response = await PostSaveAsync(rowId, new { root = CreateValidCanvas("v2") });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var draftId = await ReadLongAsync(response);
@@ -62,14 +62,14 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
         Assert.That(GetInt(published, "version"), Is.EqualTo(1));
         Assert.That(GetBool(published, "isPublished"), Is.True);
         Assert.That(GetBool(published, "isLatest"), Is.False);
-        Assert.That(GetString(published, "originalStringData"), Does.Contain("v1_start"));
+        Assert.That(published.GetProperty("root").GetRawText(), Does.Contain("v1_start"));
 
         // 新草稿 v2
         var draft = (await GetDetailAsync(draftId)).RootElement;
         Assert.That(GetInt(draft, "version"), Is.EqualTo(2));
         Assert.That(GetBool(draft, "isLatest"), Is.True);
         Assert.That(GetBool(draft, "isPublished"), Is.False);
-        Assert.That(GetString(draft, "originalStringData"), Does.Contain("v2_start"));
+        Assert.That(draft.GetProperty("root").GetRawText(), Does.Contain("v2_start"));
         // 元数据沿用
         Assert.That(GetString(draft, "definitionId"), Is.EqualTo(definitionId));
 
@@ -84,7 +84,7 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
         var before = (await GetDetailAsync(rowId)).RootElement;
         var nameBefore = GetString(before, "name");
 
-        var response = await PostSaveAsync(rowId, new { body = CreateValidCanvas("meta") });
+        var response = await PostSaveAsync(rowId, new { root = CreateValidCanvas("meta") });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var after = (await GetDetailAsync(rowId)).RootElement;
@@ -96,7 +96,7 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
     {
         var (_, definitionId, rowId) = await PrepareAsync();
 
-        var response = await PostSaveAsync(rowId, new { body = (object?)null });
+        var response = await PostSaveAsync(rowId, new { root = (object?)null });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
@@ -107,7 +107,7 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
         var (_, definitionId, rowId) = await PrepareAsync();
         await SeedDefinitionAsync(definitionId, e => e.IsSystem = true);
 
-        var response = await PostSaveAsync(rowId, new { body = CreateValidCanvas("sys") });
+        var response = await PostSaveAsync(rowId, new { root = CreateValidCanvas("sys") });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("系统内置"));
@@ -119,7 +119,7 @@ internal class WorkflowDefinitionSaveTest : WorkflowDefinitionTestBase
         var (_, definitionId, rowId) = await PrepareAsync();
         await SeedDefinitionAsync(definitionId, e => e.IsReadonly = true);
 
-        var response = await PostSaveAsync(rowId, new { body = CreateValidCanvas("ro") });
+        var response = await PostSaveAsync(rowId, new { root = CreateValidCanvas("ro") });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("只读"));

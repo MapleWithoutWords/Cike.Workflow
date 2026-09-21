@@ -69,24 +69,8 @@ public class WorkflowDefinitionCommandHandler(
         var latest = await GetLatestAsync(entity.DefinitionId, cancellationToken);
 
         var data = activitySerializer.Serialize(command.Dto.Root);
-
-        if (!latest.IsPublished)
-        {
-            // 草稿就地更新：版本号、IsLatest、IsPublished 不变
-            latest.OriginalStringData = data;
-            latest.Options = command.Dto.Options;
-            await workflowDefinitionRepository.UpdateAsync(latest, cancellationToken: cancellationToken);
-            command.DraftId = latest.Id;
-            return;
-        }
-
-        // 最新版已发布：生成 v+1 新草稿，IsLatest 转移，元数据沿用最新行
-        latest.IsLatest = false;
-        await workflowDefinitionRepository.UpdateAsync(latest, cancellationToken: cancellationToken);
-
-        var draft = CreateDraft(latest, data, command.Dto.Options);
-        await workflowDefinitionRepository.InsertAsync(draft, cancellationToken: cancellationToken);
-        command.DraftId = draft.Id;
+        var row = await PersistDraftAsync(latest, data, command.Dto.Options, null, cancellationToken);
+        command.DraftId = row.Id;
     }
 
     [LocalEventHandler]
@@ -111,23 +95,24 @@ public class WorkflowDefinitionCommandHandler(
 
         var latest = await GetLatestAsync(entity.DefinitionId, cancellationToken);
 
-        if (latest.IsPublished)
-            throw new UserFriendlyException("当前版本已发布，请先保存产生新草稿后再发布。");
-
-        // 严格画布校验：全部通过才允许落库（Core 层 WorkflowValidator）
-        var root = activitySerializer.Deserialize(latest.OriginalStringData);
-        var variables = latest.Options.Variables
+        // 先校验后写库：严格画布校验全部通过才允许落库（Core 层 WorkflowValidator），失败时零写入
+        var data = activitySerializer.Serialize(command.Root);
+        var variables = command.Options.Variables
             .Select(x => new WorkflowVariableDefinition(x.Id, x.Name, x.TypeName, x.IsArray))
             .ToList();
-        var errors = workflowValidator.Validate(new WorkflowValidationContext(root, variables));
+        var errors = workflowValidator.Validate(new WorkflowValidationContext(command.Root, variables));
         if (errors.Count > 0)
             throw new UserFriendlyException(string.Join("；", errors.Select(x => x.Message)));
 
-        latest.IsPublished = true;
-        latest.PublishedNote = command.PublishedNote ?? string.Empty;
-        latest.PublishedBy = currentUser.GetGuidId();
-        latest.PublishedAt = DateTime.Now;
-        await workflowDefinitionRepository.UpdateAsync(latest, cancellationToken: cancellationToken);
+        var note = command.PublishedNote ?? string.Empty;
+        var row = await PersistDraftAsync(latest, data, command.Options, row =>
+        {
+            row.IsPublished = true;
+            row.PublishedNote = note;
+            row.PublishedBy = currentUser.GetGuidId();
+            row.PublishedAt = DateTime.Now;
+        }, cancellationToken);
+        command.PublishedId = row.Id;
     }
 
     [LocalEventHandler]
@@ -203,6 +188,32 @@ public class WorkflowDefinitionCommandHandler(
     {
         return await workflowDefinitionRepository.FindAsync(id, cancellationToken)
             ?? throw new UserFriendlyException("工作流定义不存在，请检查后重试。");
+    }
+
+    /// <summary>
+    /// 草稿落库（保存与发布共用）：最新行未发布时就地覆盖内容（版本号、IsLatest、IsPublished 不变）；
+    /// 已发布则生成 v+1 新草稿，IsLatest 转移、元数据沿用最新行。<paramref name="finalize"/> 在写库前
+    /// 套用到持有内容的行上（发布用其打发布标记），保证每条路径只落一次库。返回持有内容的行（已跟踪）。
+    /// </summary>
+    private async Task<WorkflowDefinition> PersistDraftAsync(WorkflowDefinition latest, string originalStringData,
+        WorkflowDefinitionOptionsValueObject options, Action<WorkflowDefinition>? finalize, CancellationToken cancellationToken = default)
+    {
+        if (!latest.IsPublished)
+        {
+            latest.OriginalStringData = originalStringData;
+            latest.Options = options;
+            finalize?.Invoke(latest);
+            await workflowDefinitionRepository.UpdateAsync(latest, cancellationToken: cancellationToken);
+            return latest;
+        }
+
+        latest.IsLatest = false;
+        await workflowDefinitionRepository.UpdateAsync(latest, cancellationToken: cancellationToken);
+
+        var draft = CreateDraft(latest, originalStringData, options);
+        finalize?.Invoke(draft);
+        await workflowDefinitionRepository.InsertAsync(draft, cancellationToken: cancellationToken);
+        return draft;
     }
 
     /// <summary>基于最新行创建 v+1 新草稿：元数据沿用最新行，画布内容取传入值。</summary>

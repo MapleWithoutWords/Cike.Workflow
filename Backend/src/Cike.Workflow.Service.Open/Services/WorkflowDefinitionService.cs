@@ -65,15 +65,15 @@ public class WorkflowDefinitionService : MinimalApiServiceBase
         return TypedResults.Ok(command.DraftId);
     }
 
-    public async Task<Results<Ok, BadRequest>> PublishAsync(
+    public async Task<Results<Ok<long>, BadRequest>> PublishAsync(
         [FromServices] ILocalEventBus localEventBus,
         long id,
         PublishWorkflowDefinitionDto dto,
         CancellationToken cancellationToken = default)
     {
-        var command = new PublishWorkflowDefinitionCommand(id, dto.PublishedNote);
+        var command = new PublishWorkflowDefinitionCommand(id, dto.Root, dto.Options, dto.PublishedNote);
         await localEventBus.PublishAsync(command, cancellationToken);
-        return TypedResults.Ok();
+        return TypedResults.Ok(command.PublishedId);
     }
 
     public async Task<Results<Ok, BadRequest>> MoveAsync(

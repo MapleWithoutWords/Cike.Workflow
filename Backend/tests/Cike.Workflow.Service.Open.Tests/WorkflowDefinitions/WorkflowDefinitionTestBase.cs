@@ -67,6 +67,10 @@ public abstract class WorkflowDefinitionTestBase : BaseIntegrationTest
         return await ReadLongAsync(response);
     }
 
+    /// <summary>发布端点调用（负载由调用方组：root / options / publishedNote）。</summary>
+    protected Task<HttpResponseMessage> PostPublishAsync(long id, object dto)
+        => CreateClient().PostAsJsonAsync($"/api/v1/WorkflowDefinitions/Publish/{id}", dto);
+
     /// <summary>详情端点取数（状态断言一律经查询端点）。</summary>
     protected async Task<JsonDocument> GetDetailAsync(long id)
     {
