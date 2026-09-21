@@ -5,7 +5,7 @@ namespace Cike.Workflow.Core.Activities;
 /// <summary>
 /// Break out of a loop.
 /// </summary>
-[Activity("Cike", "Looping", "Break out of a loop.")]
+[Activity("Cike", "Looping", "Break out of a loop.", Icon = "log-out")]
 public class Break : AutoCompleteActivity, ITerminalNode
 {
     /// <inheritdoc />

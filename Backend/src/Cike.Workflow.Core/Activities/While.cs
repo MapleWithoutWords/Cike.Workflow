@@ -5,7 +5,7 @@ namespace Cike.Workflow.Core.Activities;
 /// <summary>
 /// Execute an activity while a given condition evaluates to true.
 /// </summary>
-[Activity("Cike", "Looping", "Execute an activity while a given condition evaluates to true.")]
+[Activity("Cike", "Looping", "Execute an activity while a given condition evaluates to true.", Icon = "rotate-cw")]
 public class While : Activity
 {
     /// <summary>

@@ -1,6 +1,6 @@
 namespace Cike.Workflow.Core.Activities;
 
-[Activity("Cike")]
+[Activity("Cike", Icon = "play")]
 public class Start : AutoCompleteActivity
 {
 }

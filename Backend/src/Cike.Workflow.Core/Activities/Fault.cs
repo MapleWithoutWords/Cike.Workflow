@@ -3,7 +3,7 @@ namespace Cike.Workflow.Core.Activities;
 /// <summary>
 /// Faults the workflow.
 /// </summary>
-[Activity("Cike", "Primitives", "Faults the workflow.")]
+[Activity("Cike", "Primitives", "Faults the workflow.", Icon = "alert-triangle")]
 public class Fault : Activity
 {
     /// <inheritdoc />

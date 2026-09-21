@@ -3,7 +3,7 @@ namespace Cike.Workflow.Core.Activities;
 /// <summary>
 /// Iterate over a set of values.
 /// </summary>
-[Activity("Cike", "Looping", "Iterate over a set of values.")]
+[Activity("Cike", "Looping", "Iterate over a set of values.", Icon = "repeat")]
 public class ForEach : ForEach<object>
 {
 }

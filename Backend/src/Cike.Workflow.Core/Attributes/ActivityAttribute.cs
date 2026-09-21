@@ -44,4 +44,5 @@ public class ActivityAttribute : Attribute
     public string? Description { get; set; }
     public string? DisplayName { get; set; }
     public string? Category { get; set; }
+    public string? Icon { get; set; }
 }

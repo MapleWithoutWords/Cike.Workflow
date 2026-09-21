@@ -1,6 +1,6 @@
 namespace Cike.Workflow.Expression.Javascript.Activities;
 
-[Activity("Cike", "Scripting", "Executes JavaScript code", DisplayName = "Run JavaScript")]
+[Activity("Cike", "Scripting", "Executes JavaScript code", DisplayName = "Run JavaScript", Icon = "file-code")]
 public class RunJavaScript : AutoCompleteActivity<object?>
 {
     public RunJavaScript() : base()

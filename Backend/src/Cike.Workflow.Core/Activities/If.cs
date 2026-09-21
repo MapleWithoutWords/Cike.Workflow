@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 namespace Cike.Workflow.Core.Activities;
 
 [FlowNode("True", "False")]
-[Activity("Cike", "Branching", "Evaluate a Boolean condition to determine which path to execute next.", DisplayName = "Decision")]
+[Activity("Cike", "Branching", "Evaluate a Boolean condition to determine which path to execute next.", DisplayName = "Decision", Icon = "git-fork")]
 public class If : Activity
 {
     /// <inheritdoc />

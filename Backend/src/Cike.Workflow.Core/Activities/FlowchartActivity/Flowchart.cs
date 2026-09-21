@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Cike.Workflow.Core.Activities.FlowchartActivity;
 
-[Activity("Cike", "Flow", "A flowchart is a collection of activities and connections between them.")]
+[Activity("Cike", "Flow", "A flowchart is a collection of activities and connections between them.", Icon = "workflow")]
 [Browsable(false)]
 public class Flowchart : ContainerActivity
 {

@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace Cike.Workflow.Core.Activities;
 
-[Activity("Cike", "Looping", "Iterate over a sequence of steps between a start and an end number.")]
+[Activity("Cike", "Looping", "Iterate over a sequence of steps between a start and an end number.", Icon = "repeat")]
 public class For : Activity
 {
     private const string CurrentStepProperty = "CurrentStep";

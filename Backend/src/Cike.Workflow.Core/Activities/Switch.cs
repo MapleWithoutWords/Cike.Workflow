@@ -9,7 +9,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace Cike.Workflow.Core.Activities;
 
 [FlowNode("Default")]
-[Activity("Cike")]
+[Activity("Cike", Icon = "split")]
 public class Switch : Activity
 {
     public Switch() : base()
