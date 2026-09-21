@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, computed, onMounted } from "vue"
+import { useInfiniteScroll } from "@vueuse/core"
 import { RouterLink } from "vue-router"
 import { Plus, Search, Boxes, Pencil, Trash2 } from "@lucide/vue"
 import { getApiV1WorkspacesPagedList, deleteApiV1Workspaces } from "@/api"
@@ -7,26 +8,53 @@ import type { WorkspaceItemDto } from "@/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import WorkspaceFormDialog from "@/components/WorkspaceFormDialog.vue"
 
-// --- 列表数据 ---
+// --- 图标配色：根据 workspace name 哈希选取 chart 色系（均为 style.css 定义的主题变量） ---
+const CHART_COLORS = [
+  { icon: "bg-chart-1/10 text-chart-1", badge: "bg-chart-1/10 text-chart-1" },
+  { icon: "bg-chart-2/10 text-chart-2", badge: "bg-chart-2/10 text-chart-2" },
+  { icon: "bg-chart-3/10 text-chart-3", badge: "bg-chart-3/10 text-chart-3" },
+  { icon: "bg-chart-4/10 text-chart-4", badge: "bg-chart-4/10 text-chart-4" },
+  { icon: "bg-chart-5/10 text-chart-5", badge: "bg-chart-5/10 text-chart-5" },
+]
+
+function getChartColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return CHART_COLORS[Math.abs(hash) % CHART_COLORS.length]
+}
+
+// --- 日期格式化 ---
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return "—"
+  const d = new Date(dateStr)
+  return d.toLocaleDateString("zh-CN", { year: "numeric", month: "short", day: "numeric" })
+}
+
+// --- 列表数据（滚动加载） ---
 const workspaces = ref<WorkspaceItemDto[]>([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const loadError = ref(false)
 const total = ref(0)
 const keyword = ref("")
 const page = ref(1)
 const pageSize = ref(12)
+const hasMore = computed(() => workspaces.value.length < total.value)
 
-async function fetchWorkspaces() {
-  loading.value = true
+async function fetchWorkspaces(append = false) {
+  if (append) loadingMore.value = true
+  else loading.value = true
   loadError.value = false
   try {
     const { data, error } = await getApiV1WorkspacesPagedList({
@@ -40,17 +68,53 @@ async function fetchWorkspaces() {
       loadError.value = true
       return
     }
-    workspaces.value = data?.items ?? []
+    const items = data?.items ?? []
+    workspaces.value = append ? [...workspaces.value, ...items] : items
     total.value = Number(data?.total ?? 0)
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
-function handleSearch() {
+// 重新加载（回到第一页，用于搜索 / 增删改后刷新）
+function reload() {
   page.value = 1
-  fetchWorkspaces()
+  fetchWorkspaces(false)
 }
+
+function handleSearch() {
+  reload()
+}
+
+// 滚动加载：复用 @vueuse/core 的 useInfiniteScroll（内置“内容未填满容器时继续加载”）
+// 滚动容器是布局的 main（带 overflow-y-auto），在 onMounted 时解析
+const rootEl = ref<HTMLElement | null>(null)
+const scrollContainer = ref<HTMLElement | null>(null)
+
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null
+  while (node) {
+    const overflowY = getComputedStyle(node).overflowY
+    if (overflowY === "auto" || overflowY === "scroll") return node
+    node = node.parentElement
+  }
+  return null
+}
+
+useInfiniteScroll(
+  scrollContainer,
+  async () => {
+    page.value += 1
+    await fetchWorkspaces(true)
+  },
+  {
+    distance: 200,
+    // 节流滚动处理，避免触摸板/鼠标滚轮高频事件造成的卡顿
+    throttle: 100,
+    canLoadMore: () => hasMore.value && !loading.value && !loadingMore.value,
+  },
+)
 
 // --- 新建 / 编辑 ---
 const formDialogOpen = ref(false)
@@ -67,7 +131,7 @@ function openEdit(ws: WorkspaceItemDto) {
 }
 
 function onSaved() {
-  fetchWorkspaces()
+  reload()
 }
 
 // --- 删除 ---
@@ -90,17 +154,20 @@ async function confirmDelete() {
     if (error) return
     deleteDialogOpen.value = false
     deletingWorkspace.value = null
-    fetchWorkspaces()
+    reload()
   } finally {
     deleting.value = false
   }
 }
 
-onMounted(fetchWorkspaces)
+onMounted(() => {
+  scrollContainer.value = getScrollParent(rootEl.value)
+  fetchWorkspaces(false)
+})
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div ref="rootEl" class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -127,16 +194,21 @@ onMounted(fetchWorkspaces)
     </div>
 
     <!-- Workspace Cards -->
-    <div v-if="loading" class="text-sm text-muted-foreground">加载中...</div>
+    <div v-if="loading" class="flex items-center justify-center py-16">
+      <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <div class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        加载中...
+      </div>
+    </div>
 
     <div v-else-if="workspaces.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div
         v-for="ws in workspaces"
         :key="ws.id"
-        class="group relative rounded-lg border p-5 transition-colors hover:border-primary/50 hover:bg-accent/30"
+        class="group relative flex flex-col rounded-lg border bg-card transition-colors hover:border-primary/50 hover:bg-accent/30"
       >
-        <!-- 操作按钮（右下角，避免与 code 徽章重叠） -->
-        <div class="absolute bottom-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <!-- 操作按钮 -->
+        <div class="absolute top-2.5 right-2.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <Button variant="ghost" size="icon-xs" title="编辑" @click.prevent="openEdit(ws)">
             <Pencil />
           </Button>
@@ -145,22 +217,37 @@ onMounted(fetchWorkspaces)
           </Button>
         </div>
 
-        <RouterLink :to="`/workspaces/${ws.id}`" class="block">
-          <div class="flex items-start justify-between">
-            <div class="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <RouterLink :to="`/workspaces/${ws.id}`" class="flex flex-1 flex-col p-5">
+          <!-- 图标 + 名称行 -->
+          <div class="flex items-start gap-3">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+              :class="getChartColor(ws.name || '').icon"
+            >
               <Boxes :size="20" />
             </div>
-            <span class="rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
-              {{ ws.code }}
-            </span>
+            <div class="min-w-0 flex-1">
+              <h3 class="truncate font-medium text-card-foreground">{{ ws.name }}</h3>
+              <span
+                class="mt-0.5 inline-block rounded px-1.5 py-0.5 font-mono text-xs"
+                :class="getChartColor(ws.name || '').badge"
+              >
+                {{ ws.code }}
+              </span>
+            </div>
           </div>
-          <h3 class="mt-3 font-medium">{{ ws.name }}</h3>
-          <p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
-            {{ ws.description }}
-          </p>
-          <p class="mt-3 text-xs text-muted-foreground">
-            更新于 {{ ws.updatedAt }}
-          </p>
+
+          <!-- 描述（flex-1 占满剩余空间，使 footer 贴底对齐） -->
+          <div class="mt-3 flex-1">
+            <p class="line-clamp-2 text-sm text-muted-foreground">
+              {{ ws.description || "暂无描述" }}
+            </p>
+          </div>
+
+          <!-- 底部元数据分隔线（固定 mt-4，保证与描述间距一致） -->
+          <div class="mt-4 flex items-center border-t pt-3 text-xs text-muted-foreground">
+            <span>更新于 {{ formatDate(ws.updatedAt) }}</span>
+          </div>
         </RouterLink>
       </div>
     </div>
@@ -171,7 +258,7 @@ onMounted(fetchWorkspaces)
       <p class="mt-1 text-sm text-muted-foreground">
         无法获取空间列表，请检查后端服务后重试
       </p>
-      <Button class="mt-4" variant="outline" @click="fetchWorkspaces">
+      <Button class="mt-4" variant="outline" @click="reload">
         重试
       </Button>
     </div>
@@ -189,6 +276,17 @@ onMounted(fetchWorkspaces)
       </Button>
     </div>
 
+    <!-- 滚动加载状态提示 -->
+    <div v-if="workspaces.length" class="pt-2">
+      <div v-if="loadingMore" class="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+        <div class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        加载中...
+      </div>
+      <p v-else-if="!hasMore" class="py-2 text-center text-xs text-muted-foreground">
+        已加载全部 {{ total }} 个空间
+      </p>
+    </div>
+
     <!-- 新建 / 编辑对话框 -->
     <WorkspaceFormDialog
       v-model:open="formDialogOpen"
@@ -197,23 +295,23 @@ onMounted(fetchWorkspaces)
     />
 
     <!-- 删除确认对话框 -->
-    <Dialog v-model:open="deleteDialogOpen">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>确认删除</DialogTitle>
-          <DialogDescription>
+    <AlertDialog v-model:open="deleteDialogOpen">
+      <AlertDialogContent class="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>确认删除</AlertDialogTitle>
+          <AlertDialogDescription>
             确定要删除空间「{{ deletingWorkspace?.name }}」吗？此操作不可撤销。
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
           <Button variant="outline" @click="deleteDialogOpen = false">
             取消
           </Button>
           <Button variant="destructive" :disabled="deleting" @click="confirmDelete">
             {{ deleting ? '删除中...' : '删除' }}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

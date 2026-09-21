@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from "vue-router"
 import { Search, Filter } from "@lucide/vue"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 const route = useRoute()
 const workspaceId = route.params.workspaceId as string
@@ -31,60 +42,58 @@ const statusConfig: Record<string, { label: string; class: string }> = {
     <div class="flex items-center gap-3">
       <div class="relative max-w-sm flex-1">
         <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
+        <Input
           placeholder="搜索实例名称或关联 ID..."
-          class="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+          class="pl-9"
         />
       </div>
-      <button class="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent">
+      <Button variant="outline">
         <Filter :size="16" />
         状态筛选
-      </button>
+      </Button>
     </div>
 
     <!-- Instance Table -->
     <div class="rounded-lg border">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b bg-muted/50">
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">状态</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">名称 / 定义</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">版本</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">关联 ID</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">异常</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">完成时间</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
+      <Table>
+        <TableHeader>
+          <TableRow class="bg-muted/50 hover:bg-muted/50">
+            <TableHead>状态</TableHead>
+            <TableHead>名称 / 定义</TableHead>
+            <TableHead>版本</TableHead>
+            <TableHead>关联 ID</TableHead>
+            <TableHead>异常</TableHead>
+            <TableHead>完成时间</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow
             v-for="inst in instances"
             :key="inst.id"
-            class="border-b transition-colors last:border-b-0 hover:bg-muted/30"
           >
-            <td class="px-4 py-2.5">
-              <span :class="['inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium', statusConfig[inst.status]?.class]">
+            <TableCell>
+              <Badge :class="statusConfig[inst.status]?.class">
                 {{ statusConfig[inst.status]?.label ?? inst.status }}
-              </span>
-            </td>
-            <td class="px-4 py-2.5">
+              </Badge>
+            </TableCell>
+            <TableCell>
               <RouterLink :to="`/workspaces/${workspaceId}/instances/${inst.id}`" class="hover:text-primary">
                 <span class="font-medium">{{ inst.name || inst.definitionName }}</span>
                 <span v-if="inst.name" class="ml-1 text-xs text-muted-foreground">({{ inst.definitionName }})</span>
               </RouterLink>
-            </td>
-            <td class="px-4 py-2.5 font-mono text-xs">v{{ inst.version }}</td>
-            <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">{{ inst.correlationId }}</td>
-            <td class="px-4 py-2.5">
-              <span v-if="inst.incidentCount > 0" class="inline-flex items-center rounded bg-destructive/15 px-1.5 py-0.5 text-xs text-destructive">
+            </TableCell>
+            <TableCell class="font-mono text-xs">v{{ inst.version }}</TableCell>
+            <TableCell class="font-mono text-xs text-muted-foreground">{{ inst.correlationId }}</TableCell>
+            <TableCell>
+              <Badge v-if="inst.incidentCount > 0" variant="destructive">
                 {{ inst.incidentCount }}
-              </span>
+              </Badge>
               <span v-else class="text-muted-foreground">—</span>
-            </td>
-            <td class="px-4 py-2.5 text-xs text-muted-foreground">{{ inst.finishedAt || "—" }}</td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+            <TableCell class="text-xs text-muted-foreground">{{ inst.finishedAt || "—" }}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
   </div>
 </template>

@@ -21,7 +21,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Cike.Workflow.Http.Activities
 {
-    [Activity(Icon = "globe")]
+    [Activity(Category = "Http", Icon = "globe")]
     public class SendHttpRequest : Activity
     {
         /// <summary>

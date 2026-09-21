@@ -28,21 +28,20 @@ export function useBreadcrumbs() {
 
     if (!workspaceId) return crumbs
 
-    // 空间层级（可切换节点由 AppBreadcrumb 单独处理）
+    // 空间层级：仅在非 definitions 页时提供链接，避免指向当前页
+    const isOnDefinitions = name === "definitions" || name === "definition-detail"
     crumbs.push({
       label: workspaceName || workspaceId,
-      to: `/workspaces/${workspaceId}/definitions`,
+      to: isOnDefinitions ? undefined : `/workspaces/${workspaceId}/definitions`,
     })
 
-    if (name === "definitions" || name === "definition-detail") {
+    if (name === "definition-detail") {
       crumbs.push({
         label: "工作流定义",
-        to: name === "definition-detail" ? `/workspaces/${workspaceId}/definitions` : undefined,
+        to: `/workspaces/${workspaceId}/definitions`,
       })
-      if (name === "definition-detail") {
-        const defName = (route.meta.definitionName as string) ?? ""
-        crumbs.push({ label: defName || "定义详情" })
-      }
+      const defName = (route.meta.definitionName as string) ?? ""
+      crumbs.push({ label: defName || "定义详情" })
     } else if (name === "instances" || name === "instance-detail") {
       crumbs.push({
         label: "工作流实例",

@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from "vue-router"
 import { LayoutDashboard, Boxes } from "@lucide/vue"
-import { cn } from "@/lib/utils"
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarRail,
+} from "@/components/ui/sidebar"
 
 const route = useRoute()
 
@@ -18,35 +28,37 @@ function isActive(name: string) {
 </script>
 
 <template>
-  <aside class="flex w-56 shrink-0 flex-col border-r bg-sidebar">
-    <!-- Logo -->
-    <div class="flex h-14 items-center border-b px-4">
-      <RouterLink to="/" class="flex items-center gap-2 font-semibold">
-        <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">
+  <Sidebar collapsible="icon">
+    <SidebarHeader>
+      <RouterLink to="/" class="flex items-center gap-2 px-1 py-1.5 font-semibold">
+        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
           CW
         </div>
-        <span class="text-sm">Cike Workflow</span>
+        <span class="text-sm group-data-[collapsible=icon]:hidden">Cike Workflow</span>
       </RouterLink>
-    </div>
+    </SidebarHeader>
 
-    <!-- Navigation -->
-    <nav class="flex-1 space-y-1 p-3">
-      <RouterLink
-        v-for="item in menuItems"
-        :key="item.name"
-        :to="item.to"
-        :class="
-          cn(
-            'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-            isActive(item.name)
-              ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-          )
-        "
-      >
-        <component :is="item.icon" :size="18" />
-        {{ item.label }}
-      </RouterLink>
-    </nav>
-  </aside>
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem v-for="item in menuItems" :key="item.name">
+              <SidebarMenuButton
+                as-child
+                :is-active="isActive(item.name)"
+                :tooltip="item.label"
+              >
+                <RouterLink :to="item.to">
+                  <component :is="item.icon" />
+                  <span>{{ item.label }}</span>
+                </RouterLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+
+    <SidebarRail />
+  </Sidebar>
 </template>

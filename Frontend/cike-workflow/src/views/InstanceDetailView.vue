@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { useRoute, RouterLink } from "vue-router"
 import { ChevronRight } from "@lucide/vue"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 const route = useRoute()
 const instanceId = route.params.instanceId as string
@@ -52,9 +61,9 @@ const instanceStatusConfig: Record<string, { label: string; class: string }> = {
     <!-- Header -->
     <div>
       <div class="flex items-center gap-3">
-        <span :class="['inline-flex items-center rounded px-2 py-0.5 text-sm font-medium', instanceStatusConfig[instance.status]?.class]">
+        <Badge :class="instanceStatusConfig[instance.status]?.class">
           {{ instanceStatusConfig[instance.status]?.label }}
-        </span>
+        </Badge>
         <h1 class="text-xl font-semibold tracking-tight">{{ instance.name }}</h1>
       </div>
       <div class="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
@@ -72,38 +81,37 @@ const instanceStatusConfig: Record<string, { label: string; class: string }> = {
     <div>
       <h2 class="mb-3 font-medium">活动执行记录</h2>
       <div class="rounded-lg border">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b bg-muted/50">
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">活动</th>
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">类型</th>
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">状态</th>
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">完成时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
+        <Table>
+          <TableHeader>
+            <TableRow class="bg-muted/50 hover:bg-muted/50">
+              <TableHead>活动</TableHead>
+              <TableHead>类型</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>完成时间</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
               v-for="(act, idx) in activities"
               :key="act.id"
-              class="border-b transition-colors last:border-b-0 hover:bg-muted/30"
             >
-              <td class="px-4 py-2.5">
+              <TableCell>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-muted-foreground">{{ idx + 1 }}</span>
                   <ChevronRight v-if="idx < activities.length - 1" :size="12" class="text-muted-foreground/50" />
                   <span class="font-medium">{{ act.name }}</span>
                 </div>
-              </td>
-              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">{{ act.type }}</td>
-              <td class="px-4 py-2.5">
-                <span :class="['inline-flex items-center rounded px-1.5 py-0.5 text-xs', statusConfig[act.status]?.class]">
+              </TableCell>
+              <TableCell class="font-mono text-xs text-muted-foreground">{{ act.type }}</TableCell>
+              <TableCell>
+                <Badge :class="statusConfig[act.status]?.class">
                   {{ statusConfig[act.status]?.label }}
-                </span>
-              </td>
-              <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">{{ act.finishedAt }}</td>
-            </tr>
-          </tbody>
-        </table>
+                </Badge>
+              </TableCell>
+              <TableCell class="font-mono text-xs text-muted-foreground">{{ act.finishedAt }}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </div>
   </div>

@@ -16,6 +16,7 @@ import {
   postApiV1WorkflowDefinitionsMoveById,
 } from "@/api"
 import type { WorkflowDefinitionFolderItemDto, FolderPathDto } from "@/api"
+import { extractApiErrorMessage } from "@/lib/apiError"
 
 const ROOT_FOLDER_ID = "0"
 
@@ -115,7 +116,7 @@ async function handleMove() {
       body: { folderId: pickerFolderId.value },
     })
     if (error) {
-      errorMessage.value = "移动失败，请稍后重试"
+      errorMessage.value = extractApiErrorMessage(error, "移动失败，请稍后重试")
       return
     }
     close()

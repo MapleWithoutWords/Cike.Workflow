@@ -1,20 +1,21 @@
 <script setup lang="ts">
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AppSidebar from "@/components/layout/AppSidebar.vue"
 import AppHeader from "@/components/layout/AppHeader.vue"
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <SidebarProvider class="h-svh overflow-hidden">
     <AppSidebar />
-    <div class="flex flex-1 flex-col overflow-hidden">
+    <SidebarInset class="overflow-hidden">
       <AppHeader />
-      <main
+      <div
         id="main-content"
         tabindex="-1"
-        class="flex-1 overflow-y-auto p-6 outline-none"
+        class="flex-1 overflow-y-auto overscroll-contain p-6 outline-none"
       >
         <slot />
-      </main>
-    </div>
-  </div>
+      </div>
+    </SidebarInset>
+  </SidebarProvider>
 </template>

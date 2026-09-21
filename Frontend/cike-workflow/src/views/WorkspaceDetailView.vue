@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { RouterLink, useRoute } from "vue-router"
+import { useRoute } from "vue-router"
 import { getApiV1Workspaces } from "@/api"
 import type { WorkspaceItemDto } from "@/api"
 import { setWorkspaceName } from "@/composables/useWorkspaceName"
-import { cn } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RouterView } from "vue-router"
 
 const route = useRoute()
 const workspaceId = route.params.workspaceId as string
@@ -20,16 +21,10 @@ onMounted(async () => {
   }
 })
 
-const tabs = [
-  { label: "工作流定义", routeName: "definitions" },
-  { label: "工作流实例", routeName: "instances" },
-]
-
-function isTabActive(routeName: string) {
+function activeTab(): string {
   const name = route.name as string
-  if (routeName === "definitions") return name === "definitions" || name === "definition-detail"
-  if (routeName === "instances") return name === "instances" || name === "instance-detail"
-  return name === routeName
+  if (name === "instances" || name === "instance-detail") return "instances"
+  return "definitions"
 }
 </script>
 
@@ -43,25 +38,16 @@ function isTabActive(routeName: string) {
     </div>
 
     <!-- Tabs -->
-    <div class="border-b">
-      <nav class="flex gap-6">
-        <RouterLink
-          v-for="tab in tabs"
-          :key="tab.routeName"
-          :to="{ name: tab.routeName, params: { workspaceId } }"
-          :class="
-            cn(
-              'border-b-2 px-1 pb-2.5 text-sm font-medium transition-colors',
-              isTabActive(tab.routeName)
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )
-          "
-        >
-          {{ tab.label }}
-        </RouterLink>
-      </nav>
-    </div>
+    <Tabs :model-value="activeTab()">
+      <TabsList>
+        <TabsTrigger value="definitions" @click="$router.push({ name: 'definitions', params: { workspaceId } })">
+          工作流定义
+        </TabsTrigger>
+        <TabsTrigger value="instances" @click="$router.push({ name: 'instances', params: { workspaceId } })">
+          工作流实例
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
 
     <!-- Tab Content -->
     <RouterView />

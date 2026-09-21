@@ -17,14 +17,23 @@ import type {
 } from "@/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import FolderFormDialog from "@/components/FolderFormDialog.vue"
 import DefinitionFormDialog from "@/components/DefinitionFormDialog.vue"
 import MoveDefinitionDialog from "@/components/MoveDefinitionDialog.vue"
@@ -114,7 +123,7 @@ const typeLabels: Record<number, string> = {
   3: "Approval",
 }
 
-function typeBadgeClass(type: number | undefined) {
+function typeBadgeClass(type: number | undefined): string {
   switch (type) {
     case 1: return "bg-secondary text-secondary-foreground"
     case 2: return "bg-info/15 text-info"
@@ -277,25 +286,21 @@ async function copyDefinitionId(definitionId: string) {
 
     <!-- 列表 -->
     <div v-else-if="items.length" class="rounded-lg border">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b bg-muted/50">
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">名称</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">类型</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">版本</th>
-            <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">发布状态</th>
-            <th class="px-4 py-2.5 text-right font-medium text-muted-foreground">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="item in items"
-            :key="item.id"
-            class="group border-b transition-colors last:border-b-0 hover:bg-muted/30"
-          >
+      <Table>
+        <TableHeader>
+          <TableRow class="bg-muted/50 hover:bg-muted/50">
+            <TableHead>名称</TableHead>
+            <TableHead>类型</TableHead>
+            <TableHead>版本</TableHead>
+            <TableHead>发布状态</TableHead>
+            <TableHead class="text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <template v-for="item in items" :key="item.id">
             <!-- 目录行 -->
-            <template v-if="item.type === 1">
-              <td class="px-4 py-2.5">
+            <TableRow v-if="item.type === 1" class="group">
+              <TableCell>
                 <button
                   type="button"
                   class="flex items-center gap-2 font-medium hover:text-primary"
@@ -304,11 +309,11 @@ async function copyDefinitionId(definitionId: string) {
                   <Folder :size="16" class="text-warning" />
                   {{ getDeleteItemName(item) }}
                 </button>
-              </td>
-              <td class="px-4 py-2.5 text-muted-foreground">目录</td>
-              <td class="px-4 py-2.5" />
-              <td class="px-4 py-2.5" />
-              <td class="px-4 py-2.5 text-right">
+              </TableCell>
+              <TableCell class="text-muted-foreground">目录</TableCell>
+              <TableCell />
+              <TableCell />
+              <TableCell class="text-right">
                 <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100">
                   <Button variant="ghost" size="icon-xs" title="重命名" @click="openRenameFolder(item)">
                     <Pencil />
@@ -317,20 +322,20 @@ async function copyDefinitionId(definitionId: string) {
                     <Trash2 />
                   </Button>
                 </div>
-              </td>
-            </template>
+              </TableCell>
+            </TableRow>
 
             <!-- 定义行 -->
-            <template v-else>
-              <td class="px-4 py-2.5">
+            <TableRow v-else class="group">
+              <TableCell>
                 <RouterLink
                   :to="`/workspaces/${workspaceId}/definitions/${item.id}`"
                   class="flex items-center gap-2 hover:text-primary"
                 >
                   <Workflow :size="16" class="text-muted-foreground" />
                   <span class="font-medium">{{ getDeleteItemName(item) }}</span>
-                  <span v-if="getDefinitionData(item)?.isSystem" class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">系统</span>
-                  <span v-if="getDefinitionData(item)?.isReadonly" class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">只读</span>
+                  <Badge v-if="getDefinitionData(item)?.isSystem" variant="outline" class="text-xs">系统</Badge>
+                  <Badge v-if="getDefinitionData(item)?.isReadonly" variant="outline" class="text-xs">只读</Badge>
                 </RouterLink>
                 <div
                   v-if="getDefinitionData(item)?.definitionId"
@@ -352,23 +357,23 @@ async function copyDefinitionId(definitionId: string) {
                     <Copy v-else :size="13" />
                   </button>
                 </div>
-              </td>
-              <td class="px-4 py-2.5">
-                <span :class="['rounded px-1.5 py-0.5 text-xs', typeBadgeClass(getDefinitionData(item)?.type)]">
+              </TableCell>
+              <TableCell>
+                <Badge :class="typeBadgeClass(getDefinitionData(item)?.type)">
                   {{ typeLabels[getDefinitionData(item)?.type ?? 0] ?? '未知' }}
-                </span>
-              </td>
-              <td class="px-4 py-2.5 font-mono text-xs">
+                </Badge>
+              </TableCell>
+              <TableCell class="font-mono text-xs">
                 v{{ getDefinitionData(item)?.version }}
-                <span v-if="getDefinitionData(item)?.isLatest" class="ml-1 text-success">最新</span>
-              </td>
-              <td class="px-4 py-2.5">
-                <span v-if="getDefinitionData(item)?.publishedVersion" class="text-success text-xs">
+                <Badge v-if="getDefinitionData(item)?.isLatest" class="ml-1 bg-success/15 text-success border-transparent text-[10px]">最新</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge v-if="getDefinitionData(item)?.publishedVersion" class="bg-success/15 text-success border-transparent">
                   已发布 v{{ getDefinitionData(item)?.publishedVersion }}
-                </span>
+                </Badge>
                 <span v-else class="text-xs text-muted-foreground">未发布</span>
-              </td>
-              <td class="px-4 py-2.5 text-right">
+              </TableCell>
+              <TableCell class="text-right">
                 <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100">
                   <Button variant="ghost" size="icon-xs" title="编辑" @click="openEditDefinition(item)">
                     <Pencil />
@@ -380,11 +385,11 @@ async function copyDefinitionId(definitionId: string) {
                     <Trash2 />
                   </Button>
                 </div>
-              </td>
-            </template>
-          </tr>
-        </tbody>
-      </table>
+              </TableCell>
+            </TableRow>
+          </template>
+        </TableBody>
+      </Table>
     </div>
 
     <!-- 空态 -->
@@ -434,28 +439,28 @@ async function copyDefinitionId(definitionId: string) {
     />
 
     <!-- 删除确认对话框 -->
-    <Dialog v-model:open="deleteDialogOpen">
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>确认删除</DialogTitle>
-          <DialogDescription>
+    <AlertDialog v-model:open="deleteDialogOpen">
+      <AlertDialogContent class="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>确认删除</AlertDialogTitle>
+          <AlertDialogDescription>
             <template v-if="deletingItem?.type === 1">
               确定要删除目录「{{ getDeleteItemName(deletingItem) }}」吗？目录内的定义将被一并删除，此操作不可撤销。
             </template>
             <template v-else>
               确定要删除定义「{{ getDeleteItemName(deletingItem) }}」吗？此操作不可撤销。
             </template>
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
           <Button variant="outline" @click="deleteDialogOpen = false">
             取消
           </Button>
           <Button variant="destructive" :disabled="deleting" @click="confirmDelete">
             {{ deleting ? '删除中...' : '删除' }}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

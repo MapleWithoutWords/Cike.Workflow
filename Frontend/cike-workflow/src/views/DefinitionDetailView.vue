@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router"
 import { Upload, History, Pencil } from "@lucide/vue"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 const route = useRoute()
 const router = useRouter()
@@ -35,48 +46,50 @@ const versions = [
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-xl font-semibold tracking-tight">{{ definition.name }}</h1>
-          <span class="rounded bg-secondary px-1.5 py-0.5 text-xs">{{ definition.type }}</span>
+          <Badge variant="secondary">{{ definition.type }}</Badge>
         </div>
         <p class="mt-1 font-mono text-xs text-muted-foreground">{{ definition.definitionId }}</p>
         <p class="mt-2 text-sm text-muted-foreground">{{ definition.description }}</p>
       </div>
       <div class="flex gap-2">
-        <button
-          class="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent"
+        <Button
+          variant="outline"
           @click="router.push({ name: 'definition-designer', params: route.params })"
         >
           <Pencil :size="14" />
           编辑
-        </button>
-        <button class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        </Button>
+        <Button>
           <Upload :size="14" />
           发布
-        </button>
+        </Button>
       </div>
     </div>
 
     <!-- Info Grid -->
-    <div class="grid gap-4 rounded-lg border p-5 sm:grid-cols-2 lg:grid-cols-4">
-      <div>
-        <p class="text-xs text-muted-foreground">当前版本</p>
-        <p class="mt-1 font-mono text-sm">v{{ definition.version }}</p>
-      </div>
-      <div>
-        <p class="text-xs text-muted-foreground">发布状态</p>
-        <p class="mt-1 text-sm">
-          <span v-if="definition.isPublished" class="text-success">已发布</span>
-          <span v-else class="text-muted-foreground">未发布</span>
-        </p>
-      </div>
-      <div>
-        <p class="text-xs text-muted-foreground">可作为活动</p>
-        <p class="mt-1 text-sm">{{ definition.usableAsActivity ? "是" : "否" }}</p>
-      </div>
-      <div>
-        <p class="text-xs text-muted-foreground">Materializer</p>
-        <p class="mt-1 truncate font-mono text-xs">{{ definition.materializerName }}</p>
-      </div>
-    </div>
+    <Card>
+      <CardContent class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-6">
+        <div>
+          <p class="text-xs text-muted-foreground">当前版本</p>
+          <p class="mt-1 font-mono text-sm">v{{ definition.version }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">发布状态</p>
+          <p class="mt-1 text-sm">
+            <Badge v-if="definition.isPublished" class="bg-success/15 text-success border-transparent">已发布</Badge>
+            <span v-else class="text-muted-foreground">未发布</span>
+          </p>
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">可作为活动</p>
+          <p class="mt-1 text-sm">{{ definition.usableAsActivity ? "是" : "否" }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">Materializer</p>
+          <p class="mt-1 truncate font-mono text-xs">{{ definition.materializerName }}</p>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Version History -->
     <div>
@@ -85,30 +98,32 @@ const versions = [
         <h2 class="font-medium">版本历史</h2>
       </div>
       <div class="rounded-lg border">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b bg-muted/50">
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">版本</th>
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">发布备注</th>
-              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground">发布时间</th>
-              <th class="px-4 py-2.5 text-right font-medium text-muted-foreground">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="v in versions" :key="v.version" class="border-b transition-colors last:border-b-0 hover:bg-muted/30">
-              <td class="px-4 py-2.5">
+        <Table>
+          <TableHeader>
+            <TableRow class="bg-muted/50 hover:bg-muted/50">
+              <TableHead>版本</TableHead>
+              <TableHead>发布备注</TableHead>
+              <TableHead>发布时间</TableHead>
+              <TableHead class="text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="v in versions" :key="v.version">
+              <TableCell>
                 <span class="font-mono text-xs">v{{ v.version }}</span>
-                <span v-if="v.isLatest" class="ml-2 rounded bg-success/15 px-1.5 py-0.5 text-xs text-success">最新</span>
-                <span v-if="v.isPublished" class="ml-1 rounded bg-info/15 px-1.5 py-0.5 text-xs text-info">已发布</span>
-              </td>
-              <td class="px-4 py-2.5 text-muted-foreground">{{ v.publishedNote || "—" }}</td>
-              <td class="px-4 py-2.5 text-xs text-muted-foreground">{{ v.publishedAt || "—" }}</td>
-              <td class="px-4 py-2.5 text-right">
-                <button v-if="!v.isLatest" class="text-xs text-muted-foreground hover:text-foreground">回滚到此版本</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <Badge v-if="v.isLatest" class="ml-2 bg-success/15 text-success border-transparent">最新</Badge>
+                <Badge v-if="v.isPublished" class="ml-1 bg-info/15 text-info border-transparent">已发布</Badge>
+              </TableCell>
+              <TableCell class="text-muted-foreground">{{ v.publishedNote || "—" }}</TableCell>
+              <TableCell class="text-xs text-muted-foreground">{{ v.publishedAt || "—" }}</TableCell>
+              <TableCell class="text-right">
+                <Button v-if="!v.isLatest" variant="ghost" size="sm">
+                  回滚到此版本
+                </Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </div>
   </div>

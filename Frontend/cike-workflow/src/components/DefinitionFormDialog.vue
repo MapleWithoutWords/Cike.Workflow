@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from "vue"
+import { watch } from "vue"
+import { useForm } from "vee-validate"
+import { toTypedSchema } from "@vee-validate/zod"
+import * as z from "zod"
 import {
   Dialog,
   DialogContent,
@@ -9,9 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -25,6 +28,7 @@ import {
   putApiV1WorkflowDefinitionsById,
 } from "@/api"
 import type { WorkflowDefinitionFolderItemDto, WorkflowDefinitionItemDto, WorkflowDefinitionType } from "@/api"
+import { extractApiErrorMessage } from "@/lib/apiError"
 
 const props = defineProps<{
   open: boolean
@@ -47,33 +51,39 @@ const typeOptions = [
   { value: 3, label: "Approval" },
 ] as const
 
-const form = ref({
-  definitionId: "",
-  name: "",
-  description: "",
-  type: 1 as WorkflowDefinitionType,
-  usableAsActivity: false,
-})
+const formSchema = toTypedSchema(
+  z.object({
+    definitionId: z.string().max(200).default(""),
+    name: z.string().min(1, "名称不能为空").max(200),
+    description: z.string().max(2000).default(""),
+    type: z.number().int().min(1).max(3),
+    usableAsActivity: z.boolean().default(false),
+  }),
+)
 
-const submitting = ref(false)
-const errorMessage = ref("")
+const { handleSubmit, resetForm, isSubmitting, setFieldError } = useForm({
+  validationSchema: formSchema,
+})
 
 watch(
   () => props.open,
   (val) => {
     if (val) {
-      errorMessage.value = ""
       if (props.definition?.data) {
         const data = props.definition.data as WorkflowDefinitionItemDto
-        form.value = {
-          definitionId: data.definitionId ?? "",
-          name: data.name ?? "",
-          description: data.description ?? "",
-          type: data.type ?? 1,
-          usableAsActivity: data.usableAsActivity ?? false,
-        }
+        resetForm({
+          values: {
+            definitionId: data.definitionId ?? "",
+            name: data.name ?? "",
+            description: data.description ?? "",
+            type: data.type ?? 1,
+            usableAsActivity: data.usableAsActivity ?? false,
+          },
+        })
       } else {
-        form.value = { definitionId: "", name: "", description: "", type: 1, usableAsActivity: false }
+        resetForm({
+          values: { definitionId: "", name: "", description: "", type: 1, usableAsActivity: false },
+        })
       }
     }
   },
@@ -83,43 +93,35 @@ function close() {
   emit("update:open", false)
 }
 
-async function handleSubmit() {
-  if (!form.value.name.trim()) return
-
-  submitting.value = true
-  errorMessage.value = ""
-  try {
-    const { error } = isEdit()
-      ? await putApiV1WorkflowDefinitionsById({
-          path: { id: props.definition!.id! },
-          body: {
-            name: form.value.name,
-            description: form.value.description,
-            type: form.value.type,
-            usableAsActivity: form.value.usableAsActivity,
-          },
-        })
-      : await postApiV1WorkflowDefinitions({
-          body: {
-            workspaceId: props.workspaceId,
-            folderId: props.folderId,
-            definitionId: form.value.definitionId.trim() || null,
-            name: form.value.name,
-            description: form.value.description,
-            type: form.value.type,
-            usableAsActivity: form.value.usableAsActivity,
-          },
-        })
-    if (error) {
-      errorMessage.value = "保存失败，请稍后重试"
-      return
-    }
-    close()
-    emit("saved")
-  } finally {
-    submitting.value = false
+const onSubmit = handleSubmit(async (values) => {
+  const { error } = isEdit()
+    ? await putApiV1WorkflowDefinitionsById({
+        path: { id: props.definition!.id! },
+        body: {
+          name: values.name,
+          description: values.description,
+          type: values.type as WorkflowDefinitionType,
+          usableAsActivity: values.usableAsActivity,
+        },
+      })
+    : await postApiV1WorkflowDefinitions({
+        body: {
+          workspaceId: props.workspaceId,
+          folderId: props.folderId,
+          definitionId: values.definitionId.trim() || null,
+          name: values.name,
+          description: values.description,
+          type: values.type as WorkflowDefinitionType,
+          usableAsActivity: values.usableAsActivity,
+        },
+      })
+  if (error) {
+    setFieldError("name", extractApiErrorMessage(error, "保存失败，请稍后重试"))
+    return
   }
-}
+  close()
+  emit("saved")
+})
 </script>
 
 <template>
@@ -132,79 +134,90 @@ async function handleSubmit() {
         </DialogDescription>
       </DialogHeader>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div class="space-y-2">
-          <Label for="def-id">定义 ID</Label>
-          <Input
-            id="def-id"
-            v-model="form.definitionId"
-            :disabled="!!definition?.id"
-            placeholder="留空则由系统自动生成"
-          />
-          <p v-if="!definition?.id" class="text-xs text-muted-foreground">
-            可选。自定义工作流定义的唯一标识，留空则由后端自动生成。
-          </p>
-        </div>
+      <form @submit="onSubmit" class="space-y-4 min-w-0">
+        <FormField v-slot="{ componentField }" name="definitionId">
+          <FormItem>
+            <FormLabel>定义 ID</FormLabel>
+            <FormControl>
+              <Input
+                :disabled="!!definition?.id"
+                placeholder="留空则由系统自动生成"
+                v-bind="componentField"
+              />
+            </FormControl>
+            <FormMessage />
+            <p v-if="!definition?.id" class="text-xs text-muted-foreground">
+              可选。自定义工作流定义的唯一标识，留空则由后端自动生成。
+            </p>
+          </FormItem>
+        </FormField>
 
-        <div class="space-y-2">
-          <Label for="def-name">名称 <span class="text-destructive">*</span></Label>
-          <Input
-            id="def-name"
-            v-model="form.name"
-            placeholder="如 月度报销审批"
-            required
-          />
-        </div>
+        <FormField v-slot="{ componentField }" name="name">
+          <FormItem>
+            <FormLabel>名称</FormLabel>
+            <FormControl>
+              <Input placeholder="如 月度报销审批" v-bind="componentField" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
-        <div class="space-y-2">
-          <Label for="def-desc">描述</Label>
-          <Textarea
-            id="def-desc"
-            v-model="form.description"
-            placeholder="简要描述该定义的用途"
-            rows="3"
-          />
-        </div>
+        <FormField v-slot="{ componentField }" name="description">
+          <FormItem>
+            <FormLabel>描述</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="简要描述该定义的用途"
+                rows="3"
+                v-bind="componentField"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
         <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <Label>类型</Label>
-            <Select
-              :model-value="String(form.type)"
-              @update:model-value="form.type = Number($event) as WorkflowDefinitionType"
-            >
-              <SelectTrigger class="w-full">
-                <SelectValue placeholder="选择类型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="opt in typeOptions" :key="opt.value" :value="String(opt.value)">
-                  {{ opt.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <FormField v-slot="{ value, handleChange }" name="type">
+            <FormItem>
+              <FormLabel>类型</FormLabel>
+              <Select :model-value="String(value)" @update:model-value="(v) => handleChange(Number(v))">
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="选择类型" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="opt in typeOptions" :key="opt.value" :value="String(opt.value)">
+                    {{ opt.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-          <div class="space-y-2">
-            <Label>可作为活动使用</Label>
-            <div class="flex h-9 items-center gap-2">
-              <Switch v-model="form.usableAsActivity" />
-              <span class="text-sm text-muted-foreground">
-                {{ form.usableAsActivity ? '是' : '否' }}
-              </span>
-            </div>
-          </div>
+          <FormField v-slot="{ value, handleChange }" name="usableAsActivity">
+            <FormItem>
+              <FormLabel>可作为活动使用</FormLabel>
+              <div class="flex h-9 items-center gap-2">
+                <FormControl>
+                  <Switch :model-value="value" @update:model-value="handleChange" />
+                </FormControl>
+                <span class="text-sm text-muted-foreground">
+                  {{ value ? '是' : '否' }}
+                </span>
+              </div>
+              <FormMessage />
+            </FormItem>
+          </FormField>
         </div>
-
-        <p v-if="errorMessage" class="text-sm text-destructive">
-          {{ errorMessage }}
-        </p>
 
         <DialogFooter>
           <Button type="button" variant="outline" @click="close">
             取消
           </Button>
-          <Button type="submit" :disabled="submitting || !form.name.trim()">
-            {{ submitting ? '提交中...' : (definition?.id ? '保存' : '创建') }}
+          <Button type="submit" :disabled="isSubmitting">
+            {{ isSubmitting ? '提交中...' : (definition?.id ? '保存' : '创建') }}
           </Button>
         </DialogFooter>
       </form>
