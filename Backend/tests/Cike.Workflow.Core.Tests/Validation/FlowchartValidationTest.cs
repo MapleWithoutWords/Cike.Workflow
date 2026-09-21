@@ -66,13 +66,18 @@ public class FlowchartValidationTest
 
         Assert.That(errors.Select(x => x.ActivityId), Has.Some.EqualTo("ghost"));
         Assert.That(errors.Select(x => x.Message), Has.Some.Contains("连线引用了不存在"));
+
+        // 悬空节点无从取 Name/NodeId，报错定位字段允许为空
+        var located = errors.Single(x => x.ActivityId == "ghost" && x.Message.Contains("连线引用了不存在"));
+        Assert.That(located.Name, Is.Null);
+        Assert.That(located.NodeId, Is.Null);
     }
 
     [Test]
     public void Validate_OrphanNode_ReturnsLocatableError()
     {
         var flowchart = WorkflowValidatorTest.CreateValidCanvas();
-        var orphan = new WriteLineStub { Id = "orphan" };
+        var orphan = new WriteLineStub { Id = "orphan", Name = "孤儿节点", NodeId = "node_orphan" };
         flowchart.Activities.Add(orphan);
         var context = new WorkflowValidationContext(flowchart, []);
 
@@ -80,6 +85,10 @@ public class FlowchartValidationTest
 
         Assert.That(errors.Select(x => x.ActivityId), Has.Some.EqualTo("orphan"));
         Assert.That(errors.Select(x => x.Message), Has.Some.Contains("孤立节点"));
+
+        var located = errors.Single(x => x.ActivityId == "orphan" && x.Message.Contains("孤立节点"));
+        Assert.That(located.Name, Is.EqualTo("孤儿节点"));
+        Assert.That(located.NodeId, Is.EqualTo("node_orphan"));
     }
 
     [Test]

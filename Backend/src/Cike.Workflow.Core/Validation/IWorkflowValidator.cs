@@ -19,5 +19,14 @@ public record WorkflowValidationContext(IActivity Root, IReadOnlyList<WorkflowVa
 /// <summary>Core 层的变量定义（定义实体的 Options.Variables 映射而来，避免 Core 反向依赖领域层）。</summary>
 public record WorkflowVariableDefinition(string Id, string Name, string TypeName, bool IsArray);
 
-/// <summary>校验错误：ActivityId 定位到画布上的活动（与活动无关的错误为 null，如变量定义）。</summary>
-public record WorkflowValidationError(string? ActivityId, string Message);
+/// <summary>
+/// 校验错误：ActivityId 定位到画布上的活动（与活动无关的错误为 null，如变量定义）；
+/// NodeId / Name 从被定位活动上原样回显（活动不存在时为 null），供前端错误列表展示与下钻定位。
+/// </summary>
+public record WorkflowValidationError(string? ActivityId, string? NodeId, string? Name, string Message)
+{
+    /// <summary>活动自报家门：从活动实例上取 ActivityId / NodeId / Name 构造错误。</summary>
+    public WorkflowValidationError(IActivity activity, string Message) : this(activity.Id, activity.NodeId, activity.Name, Message)
+    {
+    }
+}

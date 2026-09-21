@@ -75,7 +75,7 @@ public abstract class Activity : IActivity, ISignalHandler
                 continue;
 
             if (property.GetValue(this) == null)
-                context.Errors.Add(new(Id, $"节点 [{Id}] 缺少必填属性 [{property.Name}]。"));
+                context.Errors.Add(new(this, $"节点 [{Id}] 缺少必填属性 [{property.Name}]。"));
         }
     }
 

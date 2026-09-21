@@ -87,7 +87,7 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
         var errors = workflowValidator.Validate(new WorkflowValidationContext(query.Root, variables));
 
         query.Result = errors
-            .Select(x => new WorkflowCanvasValidationErrorDto { ActivityId = x.ActivityId, Message = x.Message })
+            .Select(x => new WorkflowCanvasValidationErrorDto { ActivityId = x.ActivityId, NodeId = x.NodeId, Name = x.Name, Message = x.Message })
             .ToList();
     }
 }

@@ -12,7 +12,7 @@ public class WorkflowValidator : IWorkflowValidator, ISingletonDependency
     {
         if (context.Root is not Flowchart)
         {
-            context.Errors.Add(new(null, "画布根节点必须是流程图（Flowchart）。"));
+            context.Errors.Add(new(null, null, null, "画布根节点必须是流程图（Flowchart）。"));
             return context.Errors;
         }
 
@@ -28,9 +28,9 @@ public class WorkflowValidator : IWorkflowValidator, ISingletonDependency
         {
             var variable = variables[i];
             if (variable.Name.IsNullOrWhiteSpace())
-                errors.Add(new(null, $"第 {i + 1} 个变量定义的名称不能为空。"));
+                errors.Add(new(null, null, null, $"第 {i + 1} 个变量定义的名称不能为空。"));
             if (variable.TypeName.IsNullOrWhiteSpace())
-                errors.Add(new(null, $"变量 [{variable.Name}] 的类型不能为空。"));
+                errors.Add(new(null, null, null, $"变量 [{variable.Name}] 的类型不能为空。"));
         }
 
         var duplicateNames = variables
@@ -38,6 +38,6 @@ public class WorkflowValidator : IWorkflowValidator, ISingletonDependency
             .GroupBy(x => x.Name)
             .Where(g => g.Count() > 1);
         foreach (var group in duplicateNames)
-            errors.Add(new(null, $"变量名称 [{group.Key}] 重复，请修改后重试。"));
+            errors.Add(new(null, null, null, $"变量名称 [{group.Key}] 重复，请修改后重试。"));
     }
 }

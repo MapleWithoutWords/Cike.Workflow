@@ -24,7 +24,7 @@ public class WorkflowCanvasValidationTest : WorkflowDefinitionTestBase
                 activities = new object[]
                 {
                     new { type = "Cike.Start", id = "v_start" },
-                    new { type = "Cike.End", id = "v_orphan" },
+                    new { type = "Cike.End", id = "v_orphan", name = "孤儿节点", nodeId = "node_orphan" },
                 },
                 connections = Array.Empty<object>(),
             },
@@ -36,6 +36,8 @@ public class WorkflowCanvasValidationTest : WorkflowDefinitionTestBase
         Assert.That(errors, Has.Count.EqualTo(1));
         Assert.That(GetString(errors[0], "activityId"), Is.EqualTo("v_orphan"));
         Assert.That(GetString(errors[0], "message"), Does.Contain("孤立节点"));
+        Assert.That(GetString(errors[0], "name"), Is.EqualTo("孤儿节点"));
+        Assert.That(GetString(errors[0], "nodeId"), Is.EqualTo("node_orphan"));
     }
 
     [Test]

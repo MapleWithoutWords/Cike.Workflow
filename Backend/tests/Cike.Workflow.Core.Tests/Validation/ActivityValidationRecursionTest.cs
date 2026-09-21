@@ -19,7 +19,7 @@ public class ActivityValidationRecursionTest
     {
         var flowchart = WorkflowValidatorTest.CreateValidCanvas();
         var sequence = new Sequence { Id = "sequence" };
-        var bad = new InputHolderActivity { Id = "bad" };
+        var bad = new InputHolderActivity { Id = "bad", Name = "坏节点", NodeId = "node_bad" };
         sequence.Activities.Add(bad);
         flowchart.Activities.Add(sequence);
         flowchart.Connections.Add(new ActivityConnection(new ActivityEndpoint("start"), new ActivityEndpoint("sequence")));
@@ -29,6 +29,10 @@ public class ActivityValidationRecursionTest
 
         Assert.That(errors.Select(x => x.ActivityId), Has.Some.EqualTo("bad"));
         Assert.That(errors.Select(x => x.Message), Has.Some.Contains("必填属性"));
+
+        var located = errors.Single(x => x.ActivityId == "bad" && x.Message.Contains("必填属性"));
+        Assert.That(located.Name, Is.EqualTo("坏节点"));
+        Assert.That(located.NodeId, Is.EqualTo("node_bad"));
     }
 
     [Test]
@@ -144,7 +148,7 @@ public class ActivityValidationRecursionTest
             base.Validate(context);
 
             if (!Metadata.ContainsKey("guard"))
-                context.Errors.Add(new(Id, $"节点 [{Id}] 缺少守护配置。"));
+                context.Errors.Add(new(this, $"节点 [{Id}] 缺少守护配置。"));
         }
     }
 
