@@ -37,7 +37,10 @@ public class ExceptionRunWorkflowInstanceMiddleware(
             var activity = context.Workflow;
             var incident = new ActivityIncident(activity.Id, activity.NodeId, activity.Type, e.Message, exceptionState, now);
             context.Incidents.Add(incident);
-            context.TransitionTo(WorkflowStatus.Faulted);
+            // 活动故障路径可能已把工作流转为 Faulted（活动异常中间件的 errorHandler），
+            // 同态再迁移会抛异常并掩盖原始异常，这里与活动侧同款 IsFinished 守卫
+            if (!context.Status.IsFinished())
+                context.TransitionTo(WorkflowStatus.Faulted);
             context.AddExecutionLogEntry("工作流运行失败", e.Message, exceptionState);
         }
     }
