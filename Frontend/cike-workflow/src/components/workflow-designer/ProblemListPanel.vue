@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, ListChecks, LoaderCircle } from "@lucide/vue"
+import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, ListChecks, LoaderCircle, Pin, PinOff } from "@lucide/vue"
 import type { ValidationProblem } from "@/composables/useWorkflowDesigner"
+import { useDockState } from "@/composables/useDockState"
 
 /**
  * Canvas-bottom "problem list" dock — the single outlet for canvas validation
@@ -13,13 +14,16 @@ const props = defineProps<{
   problems: ValidationProblem[]
   validating: boolean
   validationError: string | null
-  open: boolean
 }>()
 
 const emit = defineEmits<{
-  "update:open": [open: boolean]
   reveal: [problem: ValidationProblem]
 }>()
+
+const dock = useDockState()
+/** Open/pin state lives in the shared dock layer (ADR 0006), not in props. */
+const open = dock.open.problems
+const pinned = dock.pinned.problems
 
 const count = computed(() => props.problems.length)
 
@@ -35,20 +39,31 @@ function onRowClick(problem: ValidationProblem): void {
 
 <template>
   <div class="flex shrink-0 flex-col border-t bg-background">
-    <button
-      type="button"
-      class="flex h-8 w-full items-center gap-2 px-3 text-xs hover:bg-muted/50"
-      :aria-expanded="open"
-      @click="emit('update:open', !open)"
-    >
-      <LoaderCircle v-if="validating" :size="14" class="shrink-0 animate-spin text-muted-foreground" />
-      <ListChecks v-else :size="14" class="shrink-0 text-muted-foreground" />
-      <span v-if="count > 0" class="font-medium text-destructive">{{ count }} 个问题</span>
-      <span v-else-if="validationError" class="font-medium text-warning">校验失败</span>
-      <span v-else class="font-medium text-muted-foreground">校验通过</span>
-      <span class="ml-auto shrink-0 text-muted-foreground">{{ open ? "收起" : "展开" }}</span>
-      <component :is="open ? ChevronDown : ChevronUp" :size="14" class="shrink-0 text-muted-foreground" />
-    </button>
+    <div class="flex h-8 shrink-0 items-center">
+      <button
+        type="button"
+        class="flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs hover:bg-muted/50"
+        :aria-expanded="open"
+        @click="dock.toggleOpen('problems')"
+      >
+        <LoaderCircle v-if="validating" :size="14" class="shrink-0 animate-spin text-muted-foreground" />
+        <ListChecks v-else :size="14" class="shrink-0 text-muted-foreground" />
+        <span v-if="count > 0" class="font-medium text-destructive">{{ count }} 个问题</span>
+        <span v-else-if="validationError" class="font-medium text-warning">校验失败</span>
+        <span v-else class="font-medium text-muted-foreground">校验通过</span>
+        <span class="ml-auto shrink-0 text-muted-foreground">{{ open ? "收起" : "展开" }}</span>
+        <component :is="open ? ChevronDown : ChevronUp" :size="14" class="shrink-0 text-muted-foreground" />
+      </button>
+      <button
+        type="button"
+        class="mr-2 shrink-0 rounded p-0.5 hover:bg-muted hover:text-foreground"
+        :class="pinned && 'text-foreground'"
+        :title="pinned ? '取消固定问题清单' : '固定问题清单'"
+        @click="dock.togglePin('problems')"
+      >
+        <component :is="pinned ? Pin : PinOff" :size="14" />
+      </button>
+    </div>
 
     <div v-if="open" class="max-h-56 overflow-y-auto border-t">
       <p v-if="validationError" class="px-3 py-2 text-xs text-warning">

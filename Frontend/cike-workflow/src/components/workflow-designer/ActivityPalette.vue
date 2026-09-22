@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue"
-import { PanelLeftClose, PanelLeftOpen } from "@lucide/vue"
+import { PanelLeftClose, PanelLeftOpen, Pin, PinOff } from "@lucide/vue"
 import type { PaletteGroup } from "@/core/designer/palette"
+import { useDockState } from "@/composables/useDockState"
 import { resolveActivityIcon } from "./nodes/icons"
 
 defineProps<{ groups: PaletteGroup[] }>()
 
+const dock = useDockState()
 /** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
-const open = ref(true)
+const open = dock.open.palette
+const pinned = dock.pinned.palette
 
 const emit = defineEmits<{
   add: [typeName: string]
@@ -28,8 +30,17 @@ function onDragStart(typeName: string, event: DragEvent): void {
       <button
         type="button"
         class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
+        :class="pinned && 'text-foreground'"
+        :title="pinned ? '取消固定活动面板' : '固定活动面板'"
+        @click="dock.togglePin('palette')"
+      >
+        <component :is="pinned ? Pin : PinOff" :size="14" />
+      </button>
+      <button
+        type="button"
+        class="rounded p-0.5 hover:bg-muted hover:text-foreground"
         title="收起活动面板"
-        @click="open = false"
+        @click="dock.setOpen('palette', false)"
       >
         <PanelLeftClose :size="14" />
       </button>
@@ -62,9 +73,18 @@ function onDragStart(typeName: string, event: DragEvent): void {
       type="button"
       class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
       title="展开活动面板"
-      @click="open = true"
+      @click="dock.setOpen('palette', true)"
     >
       <PanelLeftOpen :size="15" />
+    </button>
+    <button
+      type="button"
+      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      :class="pinned && 'text-foreground'"
+      :title="pinned ? '取消固定活动面板' : '固定活动面板'"
+      @click="dock.togglePin('palette')"
+    >
+      <component :is="pinned ? Pin : PinOff" :size="15" />
     </button>
   </aside>
 </template>

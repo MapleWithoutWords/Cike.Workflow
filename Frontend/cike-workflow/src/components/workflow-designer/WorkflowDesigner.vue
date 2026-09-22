@@ -5,6 +5,7 @@ import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload, Va
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import { useDockState } from "@/composables/useDockState"
 import type { DesignerCommand } from "@/core/designer/commands"
 import type { WorkflowDefinitionFolderItemDto } from "@/api/generated"
 import DefinitionFormDialog from "@/components/DefinitionFormDialog.vue"
@@ -29,18 +30,17 @@ const variablesOpen = ref(false)
 const publishOpen = ref(false)
 const historyOpen = ref(false)
 const editOpen = ref(false)
-/** Problem list dock open state; auto-expands when validation finds problems. */
-const problemPanelOpen = ref(false)
+/** Shared dock state layer: pin/auto-hide semantics live in useDockState (ADR 0006). */
+const dock = useDockState()
 
-// Keep the dock in sync with validation results without fighting the user:
-// reveal newly-appearing problems (0→N) and auto-collapse once clean (→0), but
-// leave N→M transitions alone so a manual collapse sticks while editing.
+// Feed the dock's relevance inputs; the dock owns every expand/collapse rule.
 watch(
   () => props.designer.problems.value.length,
-  (count, prev) => {
-    if (prev === 0 && count > 0) problemPanelOpen.value = true
-    else if (count === 0) problemPanelOpen.value = false
-  },
+  (count) => dock.notifyProblemCount(count),
+)
+watch(
+  () => props.designer.selectedActivityId.value,
+  (selectedId) => dock.notifySelectionChanged(selectedId),
 )
 
 /** Publish is gated by validation: check first, then either reveal problems or
@@ -48,14 +48,14 @@ watch(
 async function onPublishClick(): Promise<void> {
   const found = await props.designer.validate()
   if (found.length > 0) {
-    problemPanelOpen.value = true
+    dock.revealProblems()
     const first = found.find((problem) => problem.nodeId || problem.activityId)
     if (first) props.designer.revealActivity(first)
     return
   }
   if (props.designer.validationError.value) {
     // Could not verify the canvas — surface the transport error, do not publish.
-    problemPanelOpen.value = true
+    dock.revealProblems()
     return
   }
   publishOpen.value = true
@@ -236,8 +236,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       :problems="designer.problems.value"
       :validating="designer.validating.value"
       :validation-error="designer.validationError.value"
-      :open="problemPanelOpen"
-      @update:open="(open: boolean) => (problemPanelOpen = open)"
       @reveal="(problem) => designer.revealActivity(problem)"
     />
 
