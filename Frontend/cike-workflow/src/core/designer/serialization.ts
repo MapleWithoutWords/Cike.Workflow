@@ -5,6 +5,7 @@ import { Flowchart } from "../activities/Flowchart";
 import { ActivityConnection } from "../models/ActivityConnection";
 import { ActivityEndpoint } from "../models/ActivityEndpoint";
 import { resolveActivityClass } from "./registry";
+import { computeNodeId } from "./nodeId";
 
 /**
  * Wire-format (de)serialization between the backend activity-tree JSON and the
@@ -115,27 +116,40 @@ function toWireConnection(connection: ActivityConnection) {
   };
 }
 
-export function fromWireActivity(json: WireActivity): Activity {
-  const type = typeof json.type === "string" && json.type ? json.type : "Cike.Unknown";
-  const Ctor = resolveActivityClass(type);
-  const activity: Activity = Ctor ? new Ctor() : new GenericActivity(type, { ...json });
+/** Hydrates a wire activities array, dropping null/non-object slots. */
+function hydrateChildren(raw: unknown, parentNodeId?: string | null): Activity[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(isWireActivity).map((child) => fromWireActivity(child, parentNodeId));
+}
 
-  if (json.id != null) activity.id = String(json.id);
-  activity.nodeId = json.nodeId != null ? String(json.nodeId) : null;
-  if (json.code != null) activity.code = String(json.code);
-  if (json.name != null) activity.name = String(json.name);
-  if (json.version != null) activity.version = Number(json.version);
-  activity.customProperties = (json.customProperties as Record<string, unknown>) ?? {};
-  activity.metadata = (json.metadata as Record<string, unknown>) ?? {};
+export function fromWireActivity(json: WireActivity, parentNodeId?: string | null): Activity {
+  // Backend data may contain a null/non-object slot (e.g. inside an activities
+  // array); coerce it to an empty unknown activity instead of crashing.
+  const source = (json && typeof json === "object" ? json : {}) as WireActivity;
+  const type = typeof source.type === "string" && source.type ? source.type : "Cike.Unknown";
+  const Ctor = resolveActivityClass(type);
+  const activity: Activity = Ctor ? new Ctor() : new GenericActivity(type, { ...source });
+
+  if (source.id != null) activity.id = String(source.id);
+  // NodeId is a structural path identity: recompute it from containment rather
+  // than trusting any wire value, so the frontend stays byte-for-byte consistent
+  // with the backend even for drafts saved before this scheme (ADR 0003). This
+  // rides the recursion fromWireActivity already walks — no extra tree pass.
+  activity.nodeId = computeNodeId(parentNodeId, activity.id);
+  if (source.code != null) activity.code = String(source.code);
+  if (source.name != null) activity.name = String(source.name);
+  if (source.version != null) activity.version = Number(source.version);
+  activity.customProperties = (source.customProperties as Record<string, unknown>) ?? {};
+  activity.metadata = (source.metadata as Record<string, unknown>) ?? {};
 
   const extra: Record<string, unknown> = {};
   const declaredFields = new Set(Object.keys(activity));
   const handledKeys = new Set<string>(["type", "activities", "connections"]);
 
-  for (const [key, value] of Object.entries(json)) {
+  for (const [key, value] of Object.entries(source)) {
     if (BASE_FIELDS.has(key) || handledKeys.has(key)) continue;
     if (isWireActivity(value)) {
-      Object.assign(activity, { [key]: fromWireActivity(value) });
+      Object.assign(activity, { [key]: fromWireActivity(value, activity.nodeId) });
       continue;
     }
     if (declaredFields.has(key)) {
@@ -147,17 +161,14 @@ export function fromWireActivity(json: WireActivity): Activity {
   extraStore.set(activity, extra);
 
   if (activity instanceof ContainerActivity) {
-    const wireChildren = Array.isArray(json.activities) ? json.activities : [];
-    activity.activities = wireChildren.map((child) => fromWireActivity(child as WireActivity));
+    activity.activities = hydrateChildren(source.activities, activity.nodeId);
   }
   if (activity instanceof Flowchart) {
-    activity.connections = fromWireConnections(json.connections);
+    activity.connections = fromWireConnections(source.connections);
   }
   if (activity instanceof GenericActivity) {
-    activity.activities = (Array.isArray(json.activities) ? json.activities : []).map((child) =>
-      fromWireActivity(child as WireActivity),
-    );
-    activity.connections = fromWireConnections(json.connections);
+    activity.activities = hydrateChildren(source.activities, activity.nodeId);
+    activity.connections = fromWireConnections(source.connections);
   }
 
   return activity;

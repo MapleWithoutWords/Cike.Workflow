@@ -87,6 +87,24 @@ describe("serialization", () => {
     expect(forEach.body).toBeInstanceOf(Flowchart);
     expect((forEach.body as Flowchart).id).toBe("body-1");
   });
+
+  it("FromWire_NullChildInActivities_IsFilteredOut", () => {
+    // Backend may emit a null entry in an activities array; hydration must not
+    // crash and must drop the bogus child.
+    const root = fromWireActivity({
+      type: "Cike.Flowchart",
+      id: "fc-root",
+      activities: [
+        { type: "Cike.Start", id: "a-start" },
+        null,
+        { type: "Cike.End", id: "a-end" },
+      ] as unknown as WireActivity["activities"],
+      connections: [],
+    }) as Flowchart;
+    expect(root.activities.length).toBe(2);
+    expect(root.activities[0]).toBeInstanceOf(Start);
+    expect(root.activities[1]).toBeInstanceOf(End);
+  });
 });
 
 describe("metadata", () => {

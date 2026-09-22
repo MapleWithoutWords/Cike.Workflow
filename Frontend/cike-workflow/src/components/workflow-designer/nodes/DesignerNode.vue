@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { Node } from "@antv/x6"
+import { CircleAlert } from "@lucide/vue"
 import type { DesignerNodeData } from "@/core/designer/projection"
 import { ACTIVITY_STATUS_UI } from "@/core/designer/execution"
 import { resolveActivityIcon } from "./icons"
@@ -19,13 +20,23 @@ const statusUi = computed(() => (data.value.status != null ? ACTIVITY_STATUS_UI[
     class="flex h-full w-full items-center gap-2 rounded-md border bg-background px-3 shadow-sm transition-shadow"
     :class="[
       data.isGeneric ? 'border-dashed' : '',
-      data.selected ? 'border-primary ring-2 ring-primary' : '',
+      data.selected
+        ? 'border-primary ring-2 ring-primary'
+        : data.hasError
+          ? 'border-destructive ring-1 ring-destructive'
+          : '',
     ]"
   >
     <component :is="icon" :size="14" class="shrink-0 text-muted-foreground" />
     <span class="min-w-0 truncate text-xs font-medium text-foreground">{{ data.name }}</span>
+    <CircleAlert
+      v-if="data.hasError"
+      :size="14"
+      class="ml-auto shrink-0 text-destructive"
+      aria-label="校验问题"
+    />
     <span
-      v-if="statusUi"
+      v-else-if="statusUi"
       class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
       :class="statusUi.class"
     >{{ statusUi.label }}</span>

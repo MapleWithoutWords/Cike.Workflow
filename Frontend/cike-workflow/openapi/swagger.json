@@ -539,6 +539,41 @@
         }
       }
     },
+    "/api/v1/WorkflowDefinitions/ValidateCanvas": {
+      "post": {
+        "tags": [
+          "WorkflowDefinitionService"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateWorkflowCanvasDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowCanvasValidationErrorDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/WorkflowDefinitions/Move/{id}": {
       "post": {
         "tags": [
@@ -681,6 +716,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WorkflowInstanceDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/WorkflowInstances/Logs/{id}": {
+      "get": {
+        "tags": [
+          "WorkflowInstanceService"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "activityInstanceId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowExecutionLogEntry"
+                  }
                 }
               }
             }
@@ -1735,6 +1814,18 @@
         },
         "additionalProperties": false
       },
+      "ValidateWorkflowCanvasDto": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "$ref": "#/components/schemas/IActivity"
+          },
+          "options": {
+            "$ref": "#/components/schemas/WorkflowDefinitionOptionsValueObject"
+          }
+        },
+        "additionalProperties": false
+      },
       "Variable": {
         "type": "object",
         "properties": {
@@ -1790,6 +1881,27 @@
             "additionalProperties": false
           }
         ]
+      },
+      "WorkflowCanvasValidationErrorDto": {
+        "type": "object",
+        "properties": {
+          "activityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "WorkflowDefinitionDetailDto": {
         "type": "object",
@@ -2052,6 +2164,61 @@
           "publishedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowExecutionLogEntry": {
+        "type": "object",
+        "properties": {
+          "activityInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentActivityInstanceId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "activityId": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "activityTypeVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activityName": {
+            "type": "string",
+            "nullable": true
+          },
+          "nodeId": {
+            "type": "string"
+          },
+          "workflowInstanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventName": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "string",
+            "nullable": true
+          },
+          "logLevel": {
+            "type": "string"
           }
         },
         "additionalProperties": false

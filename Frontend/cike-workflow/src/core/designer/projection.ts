@@ -31,6 +31,8 @@ export interface DesignerNodeData {
   canDrill: boolean;
   /** Run status when shown on a read-only instance canvas (0..4); else absent. */
   status?: import("@/api/generated").ActivityStatus | null;
+  /** True when backend canvas validation flagged this activity (error badge). */
+  hasError?: boolean;
 }
 
 export interface ProjectedNode {

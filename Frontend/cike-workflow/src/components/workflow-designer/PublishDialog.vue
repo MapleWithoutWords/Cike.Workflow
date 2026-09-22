@@ -27,8 +27,8 @@ watch(
 )
 
 async function confirm() {
-  await props.designer.publish(note.value.trim() || undefined)
-  if (!props.designer.saveError.value) emit("update:open", false)
+  const ok = await props.designer.publish(note.value.trim() || undefined)
+  if (ok) emit("update:open", false)
 }
 </script>
 
@@ -52,16 +52,13 @@ async function confirm() {
         />
       </div>
 
-      <p v-if="designer.missingStartNode.value" class="text-xs text-warning">
-        画布缺少开始节点，发布前需添加。
-      </p>
       <p v-if="designer.saveError.value" class="text-xs text-destructive">
         {{ designer.saveError.value }}
       </p>
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">取消</Button>
-        <Button :disabled="designer.saving.value || designer.missingStartNode.value" @click="confirm">
+        <Button :disabled="designer.saving.value" @click="confirm">
           {{ designer.saving.value ? "发布中…" : "发布" }}
         </Button>
       </DialogFooter>

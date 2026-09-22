@@ -6,8 +6,9 @@ import {
   postApiV1WorkflowDefinitionsPublishById,
   postApiV1WorkflowDefinitionsRollback,
   postApiV1WorkflowDefinitionsSaveById,
+  postApiV1WorkflowDefinitionsValidateCanvas,
 } from "@/api/generated"
-import type { WorkflowDefinitionType, WorkflowDefinitionVersionItemDto } from "@/api/generated"
+import type { WorkflowCanvasValidationErrorDto, WorkflowDefinitionType, WorkflowDefinitionVersionItemDto } from "@/api/generated"
 import type { Activity, IActivity } from "@/core/abstracts/Activity"
 import { Activity as ActivityClass } from "@/core/abstracts/Activity"
 import { Flowchart } from "@/core/activities/Flowchart"
@@ -25,9 +26,11 @@ import {
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
 import type { InputDescriptor, VariableDefinition } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
+import { resolveRevealPath } from "@/core/designer/reveal"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
 import { activityShortName, resolveActivityClass } from "@/core/designer/registry"
 import { fromWireActivity, toWireActivity, type WireActivity } from "@/core/designer/serialization"
+import { computeNodeId } from "@/core/designer/nodeId"
 import { getCanvasState, setCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
 
 /** One drill-down level: the container owning the canvas content. */
@@ -37,6 +40,21 @@ export interface DrillEntry {
   title: string
   /** When set, this level is an ordered chain (no connections in the model). */
   chainChildren?: IActivity[]
+}
+
+/**
+ * A single canvas validation problem, normalized from the backend
+ * `WorkflowCanvasValidationErrorDto`. The backend is the single source of truth
+ * for validation rules (ADR 0002); the frontend only renders what it returns.
+ */
+export interface ValidationProblem {
+  /** Offending activity id; null for workflow-level problems (e.g. variables). */
+  activityId: string | null
+  /** Structural path (ADR 0003) used to drill to the activity across containers. */
+  nodeId: string | null
+  /** Display name of the offending activity, when the backend provides one. */
+  name: string | null
+  message: string
 }
 
 export function useWorkflowDesigner() {
@@ -80,6 +98,16 @@ export function useWorkflowDesigner() {
   const iconByType = shallowRef<Map<string, string>>(new Map())
   /** Options-level workflow variables. */
   const variables = shallowRef<VariableDefinition[]>([])
+  /** Canvas validation problems; the problem list panel is their only outlet. */
+  const problems = ref<ValidationProblem[]>([])
+  /** True while a ValidateCanvas request is in flight. */
+  const validating = ref(false)
+  /** Transport failure of the last validation — distinct from a clean canvas. */
+  const validationError = ref<string | null>(null)
+  /** Monotonic guard so only the latest validation response is applied. */
+  let validationSeq = 0
+  /** Debounce handle coalescing rapid edits into one validation request. */
+  let validateTimer: ReturnType<typeof setTimeout> | null = null
 
   const currentEntry = computed<DrillEntry | null>(() => drillStack.value[drillStack.value.length - 1] ?? null)
 
@@ -88,6 +116,11 @@ export function useWorkflowDesigner() {
   const projection = computed<CanvasProjection>(() => {
     void revision.value
     const icons = iconByType.value
+    // Reading problems here makes the projection reactive to validation results,
+    // overlaying error markers by activityId (same pattern as run status).
+    const errorIds = new Set(
+      problems.value.map((problem) => problem.activityId).filter((id): id is string => id != null),
+    )
     const entry = currentEntry.value
     if (!entry) return { nodes: [], edges: [] }
     const base = entry.chainChildren
@@ -108,7 +141,7 @@ export function useWorkflowDesigner() {
       edges: base.edges,
       nodes: base.nodes.map((node) => ({
         ...node,
-        data: { ...node.data, icon: icons.get(node.data.type) ?? null },
+        data: { ...node.data, icon: icons.get(node.data.type) ?? null, hasError: errorIds.has(node.data.activityId) },
       })),
     }
   })
@@ -128,13 +161,6 @@ export function useWorkflowDesigner() {
     return currentChildren.value.find((child) => child.id === selectedActivityId.value) ?? null
   })
 
-  /** Current level misses a Start node (backend publish validation gate). */
-  const missingStartNode = computed(() => {
-    const children = currentChildren.value
-    if (children.length === 0) return false
-    return !children.some((child) => activityShortName(child.type) === "Start")
-  })
-
   /** Inbound edge count per activity id on the current level (MergeMode UI gate). */
   const connectionTargets = computed(() => {
     const map = new Map<string, number>()
@@ -147,6 +173,14 @@ export function useWorkflowDesigner() {
   async function load(definitionRowId: string): Promise<void> {
     loading.value = true
     loadError.value = null
+    // A reload supersedes any in-flight edit validation and clears stale results
+    // so a readonly/historic view never shows the previous version's problems.
+    if (validateTimer) {
+      clearTimeout(validateTimer)
+      validateTimer = null
+    }
+    problems.value = []
+    validationError.value = null
     try {
       const { data, error } = await getApiV1WorkflowDefinitionsById({ path: { id: definitionRowId } })
       if (error || !data) {
@@ -174,6 +208,9 @@ export function useWorkflowDesigner() {
       refreshUndoFlags()
       void loadPalette()
       void loadVersions()
+      // Validate once on open (non-blocking) so a loaded draft's existing
+      // problems surface immediately. No-op in readonly mode.
+      void validate()
     } finally {
       loading.value = false
     }
@@ -198,6 +235,23 @@ export function useWorkflowDesigner() {
     selectedActivityId.value = null
   }
 
+  /**
+   * Drills to and selects the node a validation problem points at, resolving the
+   * location from its NodeId chain (or activityId fallback). Returns false when
+   * the problem cannot be located (workflow-level, or a stale node reference) —
+   * the problem list renders such rows as non-clickable.
+   */
+  function revealActivity(problem: ValidationProblem): boolean {
+    if (!root.value) return false
+    const path = resolveRevealPath(root.value, problem.nodeId, problem.activityId)
+    if (!path) return false
+    // Reset to the root level, then replay the drill steps to reach the target.
+    popTo(0)
+    for (const target of path.drillTargets) drillInto(target)
+    selectedActivityId.value = path.targetId
+    return true
+  }
+
   function refreshUndoFlags(): void {
     canUndo.value = commandStack.canUndo()
     canRedo.value = commandStack.canRedo()
@@ -207,18 +261,21 @@ export function useWorkflowDesigner() {
     commandStack.execute(command)
     revision.value++
     refreshUndoFlags()
+    scheduleValidation()
   }
 
   function undo(): void {
     commandStack.undo()
     revision.value++
     refreshUndoFlags()
+    scheduleValidation()
   }
 
   function redo(): void {
     commandStack.redo()
     revision.value++
     refreshUndoFlags()
+    scheduleValidation()
   }
 
   function moveNode(payload: { id: string; x: number; y: number; from: { x: number; y: number } | null }): void {
@@ -275,6 +332,10 @@ export function useWorkflowDesigner() {
     const entry = currentEntry.value
     if (!entry || entry.chainChildren) return
     const activity = new Ctor()
+    // NodeId is a structural path identity: derive it O(1) from the parent
+    // container's NodeId (ADR 0003), consistent with the backend materializer
+    // and with the load-time computation folded into fromWireActivity.
+    activity.nodeId = computeNodeId(entry.activity.nodeId, activity.id)
     const occupied = new Set(projection.value.nodes.map((node) => `${Math.round(node.x)},${Math.round(node.y)}`))
     let position = { x: Math.round(point.x), y: Math.round(point.y) }
     while (occupied.has(`${position.x},${position.y}`)) {
@@ -358,6 +419,62 @@ export function useWorkflowDesigner() {
     return getCanvasState(entry.activity)
   }
 
+  /** Debounce window coalescing rapid edits into a single validation request. */
+  const VALIDATE_DEBOUNCE_MS = 500
+
+  /**
+   * Runs backend canvas validation — the single source of truth for rules
+   * (ADR 0002) — and stores the structured problems. Read-only: it never creates
+   * a version or mutates the draft. A monotonic sequence guard drops stale
+   * responses so a slow request cannot overwrite a newer result.
+   */
+  async function validate(): Promise<ValidationProblem[]> {
+    if (!root.value || readonly.value) return problems.value
+    const seq = ++validationSeq
+    validating.value = true
+    try {
+      const { data, error } = await postApiV1WorkflowDefinitionsValidateCanvas({
+        body: {
+          root: toWireActivity(root.value) as never,
+          options: savedOptions.value as never,
+        },
+      })
+      if (seq !== validationSeq) return problems.value
+      if (error) {
+        validationError.value = typeof error === "string" ? error : JSON.stringify(error)
+        return problems.value
+      }
+      validationError.value = null
+      const list = (data ?? []) as WorkflowCanvasValidationErrorDto[]
+      problems.value = list.map((item) => ({
+        activityId: item.activityId ?? null,
+        nodeId: item.nodeId ?? null,
+        name: item.name ?? null,
+        message: item.message ?? "",
+      }))
+      return problems.value
+    } catch (err) {
+      if (seq !== validationSeq) return problems.value
+      validationError.value = String(err)
+      return problems.value
+    } finally {
+      if (seq === validationSeq) validating.value = false
+    }
+  }
+
+  /**
+   * Schedules a debounced re-validation after a designer edit. No-op in readonly
+   * mode (historic versions and instance traces are never validated).
+   */
+  function scheduleValidation(): void {
+    if (readonly.value) return
+    if (validateTimer) clearTimeout(validateTimer)
+    validateTimer = setTimeout(() => {
+      validateTimer = null
+      void validate()
+    }, VALIDATE_DEBOUNCE_MS)
+  }
+
   async function save(): Promise<void> {
     if (!root.value || rowId.value == null || saving.value || readonly.value) return
     saving.value = true
@@ -410,9 +527,17 @@ export function useWorkflowDesigner() {
     if (latest?.id) await load(String(latest.id))
   }
 
-  /** Publishes the current canvas (root + options) with an optional note. */
-  async function publish(publishedNote?: string): Promise<void> {
-    if (!root.value || rowId.value == null || saving.value || readonly.value) return
+  /**
+   * Publishes the current canvas (root + options) with an optional note.
+   * Validates first as a pre-publish gate: if the canvas has problems it does not
+   * publish and returns false (the UI reveals them from `problems`). Returns true
+   * only when the backend accepted the publish.
+   */
+  async function publish(publishedNote?: string): Promise<boolean> {
+    if (!root.value || rowId.value == null || saving.value || readonly.value) return false
+    // Pre-publish gate — same rules the backend enforces on publish (ADR 0002).
+    const found = await validate()
+    if (found.length > 0) return false
     saving.value = true
     saveError.value = null
     try {
@@ -426,13 +551,19 @@ export function useWorkflowDesigner() {
       })
       if (error) {
         saveError.value = typeof error === "string" ? error : JSON.stringify(error)
-        return
+        // Backend hard gate rejected: re-validate to backfill structured problems
+        // so the designer shows which nodes failed, not just a flattened message.
+        await validate()
+        return false
       }
       // Reload to refresh version state (published flag / new version row).
       const publishedRowId = data != null ? String(data) : rowId.value
       await load(publishedRowId)
+      return true
     } catch (err) {
       saveError.value = String(err)
+      await validate()
+      return false
     } finally {
       saving.value = false
     }
@@ -475,7 +606,10 @@ export function useWorkflowDesigner() {
     currentChildren,
     breadcrumb,
     projection,
-    missingStartNode,
+    problems,
+    validating,
+    validationError,
+    validate,
     saving,
     saveError,
     lastSavedAt,
@@ -498,6 +632,7 @@ export function useWorkflowDesigner() {
     rollback,
     drillInto,
     popTo,
+    revealActivity,
     executeCommand,
     buildRemoveCommand,
     removeNode,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload, Variable } from "@lucide/vue"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import PropertyPanel from "./PropertyPanel.vue"
 import RemoveNodeDialog from "./RemoveNodeDialog.vue"
 import VariablesDialog from "./VariablesDialog.vue"
 import PublishDialog from "./PublishDialog.vue"
+import ProblemListPanel from "./ProblemListPanel.vue"
 import VersionHistorySheet from "./VersionHistorySheet.vue"
 
 const props = defineProps<{ designer: WorkflowDesignerState }>()
@@ -28,6 +29,35 @@ const variablesOpen = ref(false)
 const publishOpen = ref(false)
 const historyOpen = ref(false)
 const editOpen = ref(false)
+/** Problem list dock open state; auto-expands when validation finds problems. */
+const problemPanelOpen = ref(false)
+
+// Keep the dock in sync with validation results: expand when problems appear,
+// collapse when the canvas becomes clean (positive “校验通过” feedback).
+watch(
+  () => props.designer.problems.value.length,
+  (count) => {
+    problemPanelOpen.value = count > 0
+  },
+)
+
+/** Publish is gated by validation: check first, then either reveal problems or
+ *  open the note dialog only when the canvas is clean (ADR 0002). */
+async function onPublishClick(): Promise<void> {
+  const found = await props.designer.validate()
+  if (found.length > 0) {
+    problemPanelOpen.value = true
+    const first = found.find((problem) => problem.nodeId || problem.activityId)
+    if (first) props.designer.revealActivity(first)
+    return
+  }
+  if (props.designer.validationError.value) {
+    // Could not verify the canvas — surface the transport error, do not publish.
+    problemPanelOpen.value = true
+    return
+  }
+  publishOpen.value = true
+}
 
 /** Synthetic shape for the reused metadata dialog (edit mode keyed by row id). */
 const editDefinition = computed<WorkflowDefinitionFolderItemDto>(() => ({
@@ -130,12 +160,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
             <RotateCcw :size="12" /> 返回最新
           </button>
         </span>
-        <span
-          v-else-if="designer.missingStartNode.value"
-          class="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-xs text-warning"
-        >
-          画布缺少开始节点，发布前需添加
-        </span>
       </div>
       <div class="flex shrink-0 items-center gap-2">
         <Button variant="ghost" size="icon" :disabled="!designer.canUndo.value || designer.readonly.value" title="撤销" @click="designer.undo()">
@@ -166,7 +190,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         <Button size="sm" variant="ghost" :disabled="designer.saving.value || designer.readonly.value" @click="designer.save()">
           {{ designer.saving.value ? "保存中…" : "保存" }}
         </Button>
-        <Button size="sm" :disabled="designer.readonly.value" @click="publishOpen = true">
+        <Button size="sm" :disabled="designer.readonly.value || designer.saving.value" @click="onPublishClick">
           <Upload :size="14" /> 发布
         </Button>
       </div>
@@ -204,6 +228,16 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
       </div>
       <PropertyPanel :activity="designer.selectedActivity.value" :designer="designer" />
     </div>
+
+    <ProblemListPanel
+      v-if="!designer.readonly.value"
+      :problems="designer.problems.value"
+      :validating="designer.validating.value"
+      :validation-error="designer.validationError.value"
+      :open="problemPanelOpen"
+      @update:open="(open: boolean) => (problemPanelOpen = open)"
+      @reveal="(problem) => designer.revealActivity(problem)"
+    />
 
     <RemoveNodeDialog
       :open="removeDialogOpen"

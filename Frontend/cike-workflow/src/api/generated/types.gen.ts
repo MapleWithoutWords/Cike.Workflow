@@ -295,6 +295,11 @@ export type UpdateWorkspaceDto = {
     description?: string;
 };
 
+export type ValidateWorkflowCanvasDto = {
+    root?: IActivity;
+    options?: WorkflowDefinitionOptionsValueObject;
+};
+
 export type Variable = {
     id?: string;
     name?: string;
@@ -312,6 +317,13 @@ export type VariableDefinition = {
 };
 
 export type Variable1 = Variable & {};
+
+export type WorkflowCanvasValidationErrorDto = {
+    activityId?: string | null;
+    nodeId?: string | null;
+    name?: string | null;
+    message?: string;
+};
 
 export type WorkflowDefinitionDetailDto = {
     id?: string;
@@ -395,6 +407,22 @@ export type WorkflowDefinitionVersionItemDto = {
     publishedNote?: string;
     publishedBy?: string;
     publishedAt?: string;
+};
+
+export type WorkflowExecutionLogEntry = {
+    activityInstanceId?: string;
+    parentActivityInstanceId?: string | null;
+    activityId?: string;
+    activityType?: string;
+    activityTypeVersion?: number;
+    activityName?: string | null;
+    nodeId?: string;
+    workflowInstanceId?: string;
+    timestamp?: string;
+    eventName?: string | null;
+    message?: string | null;
+    payload?: string | null;
+    logLevel?: string;
 };
 
 export type WorkflowInstanceDetailDto = WorkflowInstanceItemDto & {
@@ -883,6 +911,29 @@ export type PostApiV1WorkflowDefinitionsPublishByIdResponses = {
 
 export type PostApiV1WorkflowDefinitionsPublishByIdResponse = PostApiV1WorkflowDefinitionsPublishByIdResponses[keyof PostApiV1WorkflowDefinitionsPublishByIdResponses];
 
+export type PostApiV1WorkflowDefinitionsValidateCanvasData = {
+    body: ValidateWorkflowCanvasDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/WorkflowDefinitions/ValidateCanvas';
+};
+
+export type PostApiV1WorkflowDefinitionsValidateCanvasErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type PostApiV1WorkflowDefinitionsValidateCanvasResponses = {
+    /**
+     * OK
+     */
+    200: Array<WorkflowCanvasValidationErrorDto>;
+};
+
+export type PostApiV1WorkflowDefinitionsValidateCanvasResponse = PostApiV1WorkflowDefinitionsValidateCanvasResponses[keyof PostApiV1WorkflowDefinitionsValidateCanvasResponses];
+
 export type PostApiV1WorkflowDefinitionsMoveByIdData = {
     body: MoveWorkflowDefinitionDto;
     path: {
@@ -978,6 +1029,33 @@ export type GetApiV1WorkflowInstancesByIdResponses = {
 };
 
 export type GetApiV1WorkflowInstancesByIdResponse = GetApiV1WorkflowInstancesByIdResponses[keyof GetApiV1WorkflowInstancesByIdResponses];
+
+export type GetApiV1WorkflowInstancesLogsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        activityInstanceId?: string;
+    };
+    url: '/api/v1/WorkflowInstances/Logs/{id}';
+};
+
+export type GetApiV1WorkflowInstancesLogsByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1WorkflowInstancesLogsByIdResponses = {
+    /**
+     * OK
+     */
+    200: Array<WorkflowExecutionLogEntry>;
+};
+
+export type GetApiV1WorkflowInstancesLogsByIdResponse = GetApiV1WorkflowInstancesLogsByIdResponses[keyof GetApiV1WorkflowInstancesLogsByIdResponses];
 
 export type GetApiV1WorkspacesPagedListData = {
     body?: never;

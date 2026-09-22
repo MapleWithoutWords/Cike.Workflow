@@ -13,6 +13,7 @@ const save = vi.fn()
 const publish = vi.fn()
 const rollback = vi.fn()
 const versionList = vi.fn()
+const validateCanvas = vi.fn()
 
 vi.mock("@/api/generated", () => ({
   getApiV1WorkflowDefinitionsById: (...args: unknown[]) => getById(...args),
@@ -21,6 +22,7 @@ vi.mock("@/api/generated", () => ({
   postApiV1WorkflowDefinitionsPublishById: (...args: unknown[]) => publish(...args),
   postApiV1WorkflowDefinitionsRollback: (...args: unknown[]) => rollback(...args),
   getApiV1WorkflowDefinitionsVersionList: (...args: unknown[]) => versionList(...args),
+  postApiV1WorkflowDefinitionsValidateCanvas: (...args: unknown[]) => validateCanvas(...args),
 }))
 
 import { useWorkflowDesigner } from "@/composables/useWorkflowDesigner"
@@ -67,7 +69,9 @@ beforeEach(() => {
   publish.mockReset()
   rollback.mockReset()
   versionList.mockReset()
+  validateCanvas.mockReset()
   getDescriptors.mockResolvedValue({ data: [] })
+  validateCanvas.mockResolvedValue({ data: [] })
   versionList.mockResolvedValue({
     data: [{ id: "100", version: 1, isLatest: true, isPublished: false }],
   })
@@ -164,6 +168,31 @@ describe("useWorkflowDesigner publish", () => {
   })
 })
 
+describe("useWorkflowDesigner nodeId", () => {
+  it("Load_ComputesNodeIdsAcrossTree", async () => {
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const root = designer.root.value as unknown as {
+      nodeId?: string | null
+      activities: Array<{ id: string; nodeId?: string | null }>
+    }
+    expect(root.nodeId).toBe("fc-root")
+    expect(root.activities[0]!.nodeId).toBe("fc-root:a-start")
+  })
+
+  it("AddNode_ComputesNodeIdFromParent", async () => {
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    designer.addNode("Cike.End", { x: 0, y: 0 })
+    const root = designer.root.value as unknown as {
+      activities: Array<{ id: string; nodeId?: string | null }>
+    }
+    const added = root.activities[root.activities.length - 1]!
+    // New node's NodeId is derived O(1) from its parent's, not left null.
+    expect(added.nodeId).toBe(`fc-root:${added.id}`)
+  })
+})
+
 describe("useWorkflowDesigner versions", () => {
   it("Rollback_PostsDefinitionIdAndVersionId", async () => {
     rollback.mockResolvedValue({ data: undefined, error: undefined })
@@ -196,5 +225,216 @@ describe("useWorkflowDesigner versions", () => {
     await designer.returnToLatest()
     expect(designer.rowId.value).toBe("200")
     expect(designer.readonly.value).toBe(false)
+  })
+})
+
+describe("useWorkflowDesigner validation", () => {
+  it("Load_TriggersValidationOnce", async () => {
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    // Opening a canvas validates once (non-blocking) so the designer reflects
+    // any problems the loaded draft already has.
+    expect(validateCanvas).toHaveBeenCalledTimes(1)
+    const body = validateCanvas.mock.calls[0][0].body
+    expect(body).toHaveProperty("root")
+    expect(body).toHaveProperty("options")
+  })
+
+  it("Validate_PopulatesProblems", async () => {
+    validateCanvas.mockResolvedValue({
+      data: [{ activityId: "a-start", nodeId: "fc-root:a-start", name: "开始", message: "开始节点缺少连线" }],
+      error: undefined,
+    })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    await designer.validate()
+    expect(designer.problems.value).toEqual([
+      { activityId: "a-start", nodeId: "fc-root:a-start", name: "开始", message: "开始节点缺少连线" },
+    ])
+    expect(designer.validating.value).toBe(false)
+  })
+
+  it("Projection_MarksErrorNodesFromProblems", async () => {
+    validateCanvas.mockResolvedValue({
+      data: [{ activityId: "a-start", nodeId: "fc-root:a-start", name: "开始", message: "缺少连线" }],
+      error: undefined,
+    })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    await designer.validate()
+    // The projected node for the offending activity carries hasError so the
+    // canvas can badge it, reusing the activityId→visual-overlay pattern.
+    const start = designer.projection.value.nodes.find((n) => n.data.activityId === "a-start")
+    expect(start?.data.hasError).toBe(true)
+  })
+
+  it("Validate_TransportError_SetsValidationError", async () => {
+    validateCanvas.mockResolvedValue({ data: undefined, error: "Network Error" })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    await designer.validate()
+    // A failed request must be distinguishable from a clean canvas.
+    expect(designer.validationError.value).toBeTruthy()
+  })
+
+  it("Validate_WhenReadonly_DoesNotCallApi", async () => {
+    getById.mockResolvedValue({ data: makeDetail({ id: "90", isLatest: false }), error: undefined })
+    const designer = useWorkflowDesigner()
+    await designer.viewVersion("90")
+    expect(validateCanvas).not.toHaveBeenCalled()
+  })
+
+  it("Validate_OnlyLatestResponseWins", async () => {
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    validateCanvas.mockReset()
+    let resolveStale: (value: unknown) => void = () => {}
+    validateCanvas.mockImplementationOnce(() => new Promise((resolve) => { resolveStale = resolve }))
+    validateCanvas.mockImplementationOnce(() => Promise.resolve({ data: [], error: undefined }))
+    const stale = designer.validate()
+    const latest = designer.validate()
+    // The slow (stale) request resolves after the latest one; it must be dropped.
+    resolveStale({ data: [{ activityId: "old", nodeId: null, name: null, message: "过期结果" }], error: undefined })
+    await stale
+    await latest
+    expect(designer.problems.value).toEqual([])
+  })
+
+  it("Edit_SchedulesDebouncedValidation", async () => {
+    vi.useFakeTimers()
+    try {
+      const designer = useWorkflowDesigner()
+      await designer.load("100")
+      validateCanvas.mockClear()
+      designer.addNode("Cike.End", { x: 0, y: 0 })
+      // Debounced: not fired synchronously on edit.
+      expect(validateCanvas).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(validateCanvas).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("Edit_Burst_CoalescesIntoOneValidation", async () => {
+    vi.useFakeTimers()
+    try {
+      const designer = useWorkflowDesigner()
+      await designer.load("100")
+      validateCanvas.mockClear()
+      designer.addNode("Cike.End", { x: 0, y: 0 })
+      designer.addNode("Cike.End", { x: 40, y: 40 })
+      designer.addNode("Cike.End", { x: 80, y: 80 })
+      await vi.advanceTimersByTimeAsync(500)
+      expect(validateCanvas).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("Undo_SchedulesDebouncedValidation", async () => {
+    vi.useFakeTimers()
+    try {
+      const designer = useWorkflowDesigner()
+      await designer.load("100")
+      designer.addNode("Cike.End", { x: 0, y: 0 })
+      await vi.advanceTimersByTimeAsync(500)
+      validateCanvas.mockClear()
+      designer.undo()
+      expect(validateCanvas).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(validateCanvas).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("Publish_WhenValidationErrors_DoesNotCallBackend", async () => {
+    validateCanvas.mockResolvedValue({
+      data: [{ activityId: "x", nodeId: null, name: null, message: "孤立节点" }],
+      error: undefined,
+    })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const ok = await designer.publish("note")
+    expect(publish).not.toHaveBeenCalled()
+    expect(ok).toBe(false)
+  })
+
+  it("Publish_WhenClean_CallsBackend", async () => {
+    validateCanvas.mockResolvedValue({ data: [], error: undefined })
+    publish.mockResolvedValue({ data: "100", error: undefined })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const ok = await designer.publish("note")
+    expect(publish).toHaveBeenCalledTimes(1)
+    expect(ok).toBe(true)
+  })
+
+  it("Publish_BackendRejects_BackfillsProblems", async () => {
+    validateCanvas
+      .mockResolvedValueOnce({ data: [], error: undefined }) // load-time
+      .mockResolvedValueOnce({ data: [], error: undefined }) // publish precheck
+      .mockResolvedValueOnce({
+        data: [{ activityId: "a1", nodeId: "fc-root:a1", name: "节点A", message: "后端硬闸门：缺少开始节点" }],
+        error: undefined,
+      }) // backfill after rejection
+    publish.mockResolvedValue({ data: undefined, error: "缺少开始节点" })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const ok = await designer.publish("note")
+    expect(ok).toBe(false)
+    expect(designer.problems.value).toHaveLength(1)
+    expect(designer.problems.value[0]!.message).toBe("后端硬闸门：缺少开始节点")
+    expect(designer.saveError.value).toContain("缺少开始节点")
+  })
+})
+
+describe("useWorkflowDesigner reveal", () => {
+  function makeNestedDetail() {
+    return {
+      ...makeDetail(),
+      root: {
+        type: "Cike.Flowchart",
+        id: "fc-root",
+        name: "示例流程",
+        activities: [
+          {
+            type: "Cike.For",
+            id: "a-for",
+            body: {
+              type: "Cike.Flowchart",
+              id: "body-fc",
+              activities: [{ type: "Cike.Start", id: "inner-start" }],
+              connections: [],
+            },
+          },
+        ],
+        connections: [],
+      },
+    }
+  }
+
+  it("RevealActivity_DrillsToNestedNodeAndSelects", async () => {
+    getById.mockResolvedValue({ data: makeNestedDetail(), error: undefined })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const ok = designer.revealActivity({
+      activityId: "inner-start",
+      nodeId: "fc-root:a-for:body-fc:inner-start",
+      name: "内层开始",
+      message: "缺少连线",
+    })
+    expect(ok).toBe(true)
+    expect(designer.selectedActivityId.value).toBe("inner-start")
+    // Drilled one level into the loop body: root + body-fc.
+    expect(designer.breadcrumb.value).toHaveLength(2)
+  })
+
+  it("RevealActivity_WorkflowLevel_ReturnsFalse", async () => {
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    const ok = designer.revealActivity({ activityId: null, nodeId: null, name: null, message: "变量非法" })
+    expect(ok).toBe(false)
   })
 })
