@@ -32,12 +32,14 @@ const editOpen = ref(false)
 /** Problem list dock open state; auto-expands when validation finds problems. */
 const problemPanelOpen = ref(false)
 
-// Keep the dock in sync with validation results: expand when problems appear,
-// collapse when the canvas becomes clean (positive “校验通过” feedback).
+// Keep the dock in sync with validation results without fighting the user:
+// reveal newly-appearing problems (0→N) and auto-collapse once clean (→0), but
+// leave N→M transitions alone so a manual collapse sticks while editing.
 watch(
   () => props.designer.problems.value.length,
-  (count) => {
-    problemPanelOpen.value = count > 0
+  (count, prev) => {
+    if (prev === 0 && count > 0) problemPanelOpen.value = true
+    else if (count === 0) problemPanelOpen.value = false
   },
 )
 

@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { ref } from "vue"
+import { PanelLeftClose, PanelLeftOpen } from "@lucide/vue"
 import type { PaletteGroup } from "@/core/designer/palette"
 import { resolveActivityIcon } from "./nodes/icons"
 
 defineProps<{ groups: PaletteGroup[] }>()
+
+/** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
+const open = ref(true)
 
 const emit = defineEmits<{
   add: [typeName: string]
@@ -17,8 +22,18 @@ function onDragStart(typeName: string, event: DragEvent): void {
 </script>
 
 <template>
-  <aside class="flex w-56 shrink-0 flex-col overflow-y-auto border-r">
-    <div class="sticky top-0 border-b bg-background px-3 py-2 text-xs font-medium text-muted-foreground">活动</div>
+  <aside v-if="open" class="flex w-56 shrink-0 flex-col overflow-y-auto border-r">
+    <div class="sticky top-0 flex items-center border-b bg-background px-3 py-2 text-xs font-medium text-muted-foreground">
+      活动
+      <button
+        type="button"
+        class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
+        title="收起活动面板"
+        @click="open = false"
+      >
+        <PanelLeftClose :size="14" />
+      </button>
+    </div>
     <div v-if="groups.length === 0" class="px-3 py-6 text-center text-xs text-muted-foreground">活动清单加载中…</div>
     <div v-for="group in groups" :key="group.category" class="border-b last:border-b-0">
       <div class="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -41,5 +56,15 @@ function onDragStart(typeName: string, event: DragEvent): void {
         </div>
       </button>
     </div>
+  </aside>
+  <aside v-else class="flex w-9 shrink-0 flex-col items-center border-r bg-background py-1">
+    <button
+      type="button"
+      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      title="展开活动面板"
+      @click="open = true"
+    >
+      <PanelLeftOpen :size="15" />
+    </button>
   </aside>
 </template>

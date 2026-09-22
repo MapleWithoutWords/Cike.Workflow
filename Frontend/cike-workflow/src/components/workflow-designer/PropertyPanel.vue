@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref } from "vue"
+import { PanelRightClose, PanelRightOpen } from "@lucide/vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,6 +16,9 @@ const props = defineProps<{
   activity: IActivity | null
   designer: WorkflowDesignerState
 }>()
+
+/** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
+const open = ref(true)
 
 const typeShort = computed(() => (props.activity ? activityShortName(props.activity.type) : ""))
 
@@ -56,8 +60,18 @@ function commitMergeMode(mode: string): void {
 </script>
 
 <template>
-  <aside class="flex w-72 shrink-0 flex-col overflow-y-auto border-l">
-    <div class="border-b px-3 py-2 text-xs font-medium text-muted-foreground">属性</div>
+  <aside v-if="open" class="flex w-72 shrink-0 flex-col overflow-y-auto border-l">
+    <div class="flex items-center border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+      属性
+      <button
+        type="button"
+        class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
+        title="收起属性面板"
+        @click="open = false"
+      >
+        <PanelRightClose :size="14" />
+      </button>
+    </div>
     <div v-if="!activity" class="px-3 py-6 text-center text-xs text-muted-foreground">未选中节点</div>
     <div v-else class="space-y-4 px-3 py-3">
       <div class="space-y-1">
@@ -99,5 +113,15 @@ function commitMergeMode(mode: string): void {
         <GenericActivityForm :activity="activity" :descriptors="descriptors" :designer="designer" />
       </div>
     </div>
+  </aside>
+  <aside v-else class="flex w-9 shrink-0 flex-col items-center border-l bg-background py-1">
+    <button
+      type="button"
+      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      title="展开属性面板"
+      @click="open = true"
+    >
+      <PanelRightOpen :size="15" />
+    </button>
   </aside>
 </template>
