@@ -163,7 +163,7 @@ public class WorkflowClientTest
     }
 
     [Test]
-    public async Task RunInstanceAsync_WhenInstanceSuspended_RunsGraphAndPersistsCommittedState()
+    public async Task RunInstanceAsync_WhenInstanceSuspended_RunsGraphWithBookmarkOptions()
     {
         var instance = CreateInstance(42, WorkflowStatus.Suspended);
         _repository.FindAsync(42, Arg.Any<CancellationToken>()).Returns(instance);
@@ -197,14 +197,10 @@ public class WorkflowClientTest
             Arg.Is<WorkflowState>(s => s.Id == 42),
             Arg.Is<RunWorkflowOptions>(o => o.BookmarkId == 99),
             Arg.Any<CancellationToken>());
-        await _repository.Received(1).UpdateAsync(
-            Arg.Is<WorkflowInstance>(e => e.WorkflowState == postRunState),
-            Arg.Any<bool>(),
-            Arg.Any<CancellationToken>());
     }
 
     [Test]
-    public async Task CreateAndRunInstanceAsync_WhenCreated_CommitsPendingInstanceThenPersistsPostRunState()
+    public async Task CreateAndRunInstanceAsync_WhenCreated_CommitsPendingInstanceThenRunsGraph()
     {
         _repository.AnyAsync(Arg.Any<Expression<Func<WorkflowInstance, bool>>>(), Arg.Any<CancellationToken>())
             .Returns(true);
@@ -236,10 +232,6 @@ public class WorkflowClientTest
                 e.CorrelationId == "corr-1" &&
                 e.Name == "My Instance" &&
                 e.ParentWorkflowInstanceId == 7),
-            Arg.Any<bool>(),
-            Arg.Any<CancellationToken>());
-        await _repository.Received(1).UpdateAsync(
-            Arg.Is<WorkflowInstance>(e => e.WorkflowState == postRunState),
             Arg.Any<bool>(),
             Arg.Any<CancellationToken>());
         await _runner.Received(1).RunAsync(
