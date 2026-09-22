@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { PanelRightClose, PanelRightOpen, Pin, PinOff } from "@lucide/vue"
+import { PanelRightClose, PanelRightOpen } from "@lucide/vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import { useDockState } from "@/composables/useDockState"
+import DockPinButton from "./DockPinButton.vue"
 import type { IActivity } from "@/core/abstracts/Activity"
 import { makeEditPropertyCommand } from "@/core/designer/commands"
 import { activityShortName } from "@/core/designer/registry"
@@ -21,7 +22,6 @@ const props = defineProps<{
 const dock = useDockState()
 /** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
 const open = dock.open.property
-const pinned = dock.pinned.property
 
 const typeShort = computed(() => (props.activity ? activityShortName(props.activity.type) : ""))
 
@@ -66,15 +66,7 @@ function commitMergeMode(mode: string): void {
   <aside v-if="open" class="flex w-72 shrink-0 flex-col overflow-y-auto border-l">
     <div class="flex items-center border-b px-3 py-2 text-xs font-medium text-muted-foreground">
       属性
-      <button
-        type="button"
-        class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
-        :class="pinned && 'text-foreground'"
-        :title="pinned ? '取消固定属性面板' : '固定属性面板'"
-        @click="dock.togglePin('property')"
-      >
-        <component :is="pinned ? Pin : PinOff" :size="14" />
-      </button>
+      <DockPinButton panel="property" class="ml-auto p-0.5" />
       <button
         type="button"
         class="rounded p-0.5 hover:bg-muted hover:text-foreground"
@@ -135,14 +127,6 @@ function commitMergeMode(mode: string): void {
     >
       <PanelRightOpen :size="15" />
     </button>
-    <button
-      type="button"
-      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-      :class="pinned && 'text-foreground'"
-      :title="pinned ? '取消固定属性面板' : '固定属性面板'"
-      @click="dock.togglePin('property')"
-    >
-      <component :is="pinned ? Pin : PinOff" :size="15" />
-    </button>
+    <DockPinButton panel="property" :size="15" class="p-1" />
   </aside>
 </template>

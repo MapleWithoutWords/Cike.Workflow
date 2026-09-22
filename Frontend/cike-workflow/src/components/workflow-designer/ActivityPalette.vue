@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { PanelLeftClose, PanelLeftOpen, Pin, PinOff } from "@lucide/vue"
+import { PanelLeftClose, PanelLeftOpen } from "@lucide/vue"
 import type { PaletteGroup } from "@/core/designer/palette"
 import { useDockState } from "@/composables/useDockState"
+import DockPinButton from "./DockPinButton.vue"
 import { resolveActivityIcon } from "./nodes/icons"
 
 defineProps<{ groups: PaletteGroup[] }>()
@@ -9,7 +10,6 @@ defineProps<{ groups: PaletteGroup[] }>()
 const dock = useDockState()
 /** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
 const open = dock.open.palette
-const pinned = dock.pinned.palette
 
 const emit = defineEmits<{
   add: [typeName: string]
@@ -27,15 +27,7 @@ function onDragStart(typeName: string, event: DragEvent): void {
   <aside v-if="open" class="flex w-56 shrink-0 flex-col overflow-y-auto border-r">
     <div class="sticky top-0 flex items-center border-b bg-background px-3 py-2 text-xs font-medium text-muted-foreground">
       活动
-      <button
-        type="button"
-        class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
-        :class="pinned && 'text-foreground'"
-        :title="pinned ? '取消固定活动面板' : '固定活动面板'"
-        @click="dock.togglePin('palette')"
-      >
-        <component :is="pinned ? Pin : PinOff" :size="14" />
-      </button>
+      <DockPinButton panel="palette" class="ml-auto p-0.5" />
       <button
         type="button"
         class="rounded p-0.5 hover:bg-muted hover:text-foreground"
@@ -77,14 +69,6 @@ function onDragStart(typeName: string, event: DragEvent): void {
     >
       <PanelLeftOpen :size="15" />
     </button>
-    <button
-      type="button"
-      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-      :class="pinned && 'text-foreground'"
-      :title="pinned ? '取消固定活动面板' : '固定活动面板'"
-      @click="dock.togglePin('palette')"
-    >
-      <component :is="pinned ? Pin : PinOff" :size="15" />
-    </button>
+    <DockPinButton panel="palette" :size="15" class="p-1" />
   </aside>
 </template>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, ListChecks, LoaderCircle, Pin, PinOff } from "@lucide/vue"
+import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, ListChecks, LoaderCircle } from "@lucide/vue"
 import type { ValidationProblem } from "@/composables/useWorkflowDesigner"
 import { useDockState } from "@/composables/useDockState"
+import DockPinButton from "./DockPinButton.vue"
 
 /**
  * Canvas-bottom "problem list" dock — the single outlet for canvas validation
@@ -23,7 +24,6 @@ const emit = defineEmits<{
 const dock = useDockState()
 /** Open/pin state lives in the shared dock layer (ADR 0006), not in props. */
 const open = dock.open.problems
-const pinned = dock.pinned.problems
 
 const count = computed(() => props.problems.length)
 
@@ -54,15 +54,7 @@ function onRowClick(problem: ValidationProblem): void {
         <span class="ml-auto shrink-0 text-muted-foreground">{{ open ? "收起" : "展开" }}</span>
         <component :is="open ? ChevronDown : ChevronUp" :size="14" class="shrink-0 text-muted-foreground" />
       </button>
-      <button
-        type="button"
-        class="mr-2 shrink-0 rounded p-0.5 hover:bg-muted hover:text-foreground"
-        :class="pinned && 'text-foreground'"
-        :title="pinned ? '取消固定问题清单' : '固定问题清单'"
-        @click="dock.togglePin('problems')"
-      >
-        <component :is="pinned ? Pin : PinOff" :size="14" />
-      </button>
+      <DockPinButton panel="problems" class="mr-2 shrink-0 p-0.5" />
     </div>
 
     <div v-if="open" class="max-h-56 overflow-y-auto border-t">
