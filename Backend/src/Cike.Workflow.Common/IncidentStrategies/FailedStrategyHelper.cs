@@ -15,7 +15,8 @@ public static class FailedStrategyHelper
             catch (Exception ex)
             {
                 exception = ex;
-                Thread.Sleep(interval);
+                if (i < retryCount - 1)
+                    await Task.Delay(interval);
             }
         }
         if (exception != null)
