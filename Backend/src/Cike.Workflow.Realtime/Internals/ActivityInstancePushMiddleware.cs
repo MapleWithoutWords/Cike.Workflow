@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.Contexts;
+
 namespace Cike.Workflow.Realtime.Internals;
 
 /// <summary>
@@ -14,9 +16,7 @@ internal class ActivityInstancePushMiddleware(WorkflowRealtimePusher pusher)
         var context = @event.Context;
         var workflowInstanceId = context.WorkflowExecutionContext.Id;
 
-        await pusher.PushAsync(new WorkflowExecutionProgressEvent(
-            workflowInstanceId, WorkflowExecutionProgressType.ActivityStarted,
-            DateTimeOffset.Now, context.ActivityNode.NodeId, context.Id));
+        await pusher.PushAsync(BuildEvent(workflowInstanceId, context, WorkflowExecutionProgressType.ActivityStarted));
 
         try
         {
@@ -24,17 +24,17 @@ internal class ActivityInstancePushMiddleware(WorkflowRealtimePusher pusher)
 
             if (context.Status == ActivityStatus.Completed)
             {
-                await pusher.PushAsync(new WorkflowExecutionProgressEvent(
-                    workflowInstanceId, WorkflowExecutionProgressType.ActivityCompleted,
-                    DateTimeOffset.Now, context.ActivityNode.NodeId, context.Id));
+                await pusher.PushAsync(BuildEvent(workflowInstanceId, context, WorkflowExecutionProgressType.ActivityCompleted));
             }
         }
         catch
         {
-            await pusher.PushAsync(new WorkflowExecutionProgressEvent(
-                workflowInstanceId, WorkflowExecutionProgressType.ActivityFaulted,
-                DateTimeOffset.Now, context.ActivityNode.NodeId, context.Id));
+            await pusher.PushAsync(BuildEvent(workflowInstanceId, context, WorkflowExecutionProgressType.ActivityFaulted));
             throw;
         }
     }
+
+    private static WorkflowExecutionProgressEvent BuildEvent(
+        long workflowInstanceId, ActivityExecutionContext context, WorkflowExecutionProgressType type)
+        => new(workflowInstanceId, type, DateTimeOffset.Now, context.ActivityNode.NodeId, context.Id);
 }

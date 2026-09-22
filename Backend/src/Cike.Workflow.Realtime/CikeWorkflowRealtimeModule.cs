@@ -1,3 +1,4 @@
+using Cike.AspNetCore.MinimalAPIs.JsonConverts;
 using Cike.Core.Modularity;
 using Cike.Workflow.Core;
 using Microsoft.AspNetCore.Builder;
@@ -19,7 +20,13 @@ public class CikeWorkflowRealtimeModule : CikeModule
 {
     public override async Task ConfigureServicesAsync(ServiceConfigurationContext context)
     {
-        context.Services.AddSignalR();
+        // 与 HTTP 层约定一致：long 序列化为字符串，防前端精度丢失
+        context.Services.AddSignalR()
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new LongToStringConverter());
+                options.PayloadSerializerOptions.Converters.Add(new NullableLongToStringConverter());
+            });
 
         // 与 Core 模块的中间件注册方式一致：注册序即管线序，Core 的异常中间件在外、推送在内
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunWorkflowInstanceCommand>), typeof(WorkflowInstancePushMiddleware), ServiceLifetime.Transient));
