@@ -1,6 +1,7 @@
 using Cike.Locks.Distributed;
 using Cike.Locks.DistributedRedis;
 using Cike.Workflow.Http;
+using Cike.Workflow.Realtime;
 
 namespace Cike.Service.Open;
 
@@ -13,6 +14,7 @@ namespace Cike.Service.Open;
     typeof(CikeWorkflowExpressionLiquidModule),
     typeof(CikeWorkflowExpressionJavascriptModule),
     typeof(CikeWorkflowHttpModule),
+    typeof(CikeWorkflowRealtimeModule),
 
     typeof(CikeLockDistributedRedisModule),
     ])]

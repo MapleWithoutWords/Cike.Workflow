@@ -26,6 +26,7 @@
     <ProjectReference Include="..\Cike.Workflow.Expression.Javascript\Cike.Workflow.Expression.Javascript.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Expression.Liquid\Cike.Workflow.Expression.Liquid.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Http\Cike.Workflow.Http.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Realtime\Cike.Workflow.Realtime.csproj" />
   </ItemGroup>
 
 </Project>

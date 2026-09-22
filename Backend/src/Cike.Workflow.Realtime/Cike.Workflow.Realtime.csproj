@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Cike.Workflow.Realtime.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cike.AspNetCore.MinimalAPIs" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.Core" Version="$(CikeVersion)" />
+    <PackageReference Include="Cike.EventBus.Local" Version="$(CikeVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cike.Workflow.Application\Cike.Workflow.Application.csproj" />
+    <ProjectReference Include="..\Cike.Workflow.Core\Cike.Workflow.Core.csproj" />
+  </ItemGroup>
+</Project>
