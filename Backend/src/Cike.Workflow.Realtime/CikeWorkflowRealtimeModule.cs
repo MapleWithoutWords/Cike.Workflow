@@ -10,7 +10,7 @@ namespace Cike.Workflow.Realtime;
 /// <summary>
 /// 工作流实时推送模块：SignalR Hub 与执行进度推送中间件都收在此模块内，
 /// Core / Application 层不感知 SignalR。Service.Open 引用本模块即完成组装。
-/// 对 Application 仅取取消命令类型（项目引用），不依赖其模块加载。
+/// 三个中间件全部挂在 Core 命令上，模块只依赖 Core。
 /// </summary>
 [DependsOn([
     typeof(CikeWorkflowCoreModule),
@@ -31,7 +31,7 @@ public class CikeWorkflowRealtimeModule : CikeModule
         // 与 Core 模块的中间件注册方式一致：注册序即管线序，Core 的异常中间件在外、推送在内
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunWorkflowInstanceCommand>), typeof(WorkflowInstancePushMiddleware), ServiceLifetime.Transient));
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ActivityInstancePushMiddleware), ServiceLifetime.Transient));
-        context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<CancelWorkflowCommand>), typeof(CancelWorkflowPushMiddleware), ServiceLifetime.Transient));
+        context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunCancelWorkflowCommand>), typeof(CancelWorkflowPushMiddleware), ServiceLifetime.Transient));
 
         await base.ConfigureServicesAsync(context);
     }

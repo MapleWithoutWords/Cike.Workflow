@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Cike.EventBus.Local;
 using Cike.UniversalId.ULong;
 using Cike.Uow;
 using Cike.Workflow.Core.Activities;
@@ -64,7 +65,7 @@ public class WorkflowClientTest
             _runner,
             _identityGenerator,
             _lock,
-            _stateExtractor,
+            Substitute.For<ILocalEventBus>(),
             Substitute.For<IServiceProvider>());
     }
 

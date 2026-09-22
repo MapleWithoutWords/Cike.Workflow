@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Cike.Workflow.Application\Cike.Workflow.Application.csproj" />
     <ProjectReference Include="..\Cike.Workflow.Core\Cike.Workflow.Core.csproj" />
   </ItemGroup>
 </Project>

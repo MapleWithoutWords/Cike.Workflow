@@ -3,8 +3,6 @@ using Cike.Core.Modularity;
 using Cike.Core.ObjectAccessor;
 using Cike.Workflow.Realtime.Tests.Infrastructure;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -54,58 +52,5 @@ public abstract class RealtimeCoreTestBase
 
         var application = Services.GetRequiredService<IApplicationWithExternalServiceProvider>();
         application.InitializeAsync(Services).ConfigureAwait(false).GetAwaiter().GetResult();
-    }
-}
-
-/// <summary>
-/// 全宿主基类：Application 全链路 + Realtime + SQLite in-memory 共享单连接，
-/// 与生产一致地组装模块；取消推送等依赖数据层的行为经公共命令流在此验证。
-/// 每个测试类独享一个宿主（独立 in-memory 库）。
-/// </summary>
-public abstract class RealtimeApplicationTestBase
-{
-    private readonly SqliteConnection _connection = new("DataSource=:memory:");
-    private ServiceProvider _serviceProvider = default!;
-
-    protected IServiceProvider Services => _serviceProvider;
-
-    protected RealtimeHubProbe Probe { get; }
-
-    protected RealtimeApplicationTestBase()
-    {
-        _connection.Open();
-
-        var services = new ServiceCollection();
-        services.AddLogging();
-
-        // 空配置占位：模块加载阶段解析连接串（SQLite 覆盖后连接串本身不被使用）
-        var configuration = new ConfigurationManager();
-        configuration["ConnectionStrings:CikeWorkflowDbContenxt"] = "DataSource=:memory:";
-        configuration["ConnectionStrings:Project"] = "DataSource=:memory:";
-        services.ReplaceConfiguration(configuration);
-
-        Probe = new RealtimeHubProbe();
-        services.AddSingleton(Probe);
-
-        RealtimeHostDefaults.Apply(services);
-        services.AddApplicationAsync<CikeWorkflowRealtimeApplicationTestModule>().GetAwaiter().GetResult();
-
-        // 测试专用：把共享的 in-memory 连接注入 DbContextOptions，覆盖模块默认的 MySQL 方言
-        services.Configure<CikeDbContextOptions>(options =>
-        {
-            options.Configure(context => context.DbContextOptionsBuilder.UseSqlite(_connection));
-        });
-
-        _serviceProvider = services.BuildServiceProvider();
-
-        var application = _serviceProvider.GetRequiredService<IApplicationWithExternalServiceProvider>();
-        application.InitializeAsync(_serviceProvider).ConfigureAwait(false).GetAwaiter().GetResult();
-
-        // 建表
-        using (var scope = _serviceProvider.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<CikeWorkflowDbContext>();
-            dbContext.Database.EnsureCreatedAsync().GetAwaiter().GetResult();
-        }
     }
 }

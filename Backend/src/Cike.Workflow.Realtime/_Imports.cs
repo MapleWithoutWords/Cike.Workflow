@@ -2,7 +2,6 @@ global using Cike.Core.DependencyInjection;
 global using Cike.EventBus.Local;
 global using Cike.EventBus.Local.Enums;
 global using Cike.EventBus.Local.LocalEventMiddlewares;
-global using Cike.Workflow.Application.WorkflowInstances.Commands;
 global using Cike.Workflow.Core.Enums;
 global using Cike.Workflow.Realtime.Internals;
 global using Cike.Workflow.Realtime.Models;

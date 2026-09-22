@@ -1,9 +1,11 @@
+using Cike.EventBus.Local;
 using Cike.Locks.Abstracts;
 using Cike.UniversalId.ULong;
 using Cike.Workflow.Core.Contexts;
 using Cike.Workflow.Core.Enums;
 using Cike.Workflow.Core.Models;
 using Cike.Workflow.Core.Runners;
+using Cike.Workflow.Core.Runners.Internals.Commands;
 using Cike.Workflow.Core.Runners.Models;
 using Cike.Workflow.Core.WorkflowGraphs.Models;
 using Cike.Workflow.Domain.Managers;
@@ -19,7 +21,7 @@ internal class WorkflowClient(
     IWorkflowRunner workflowRunner,
     ISnowflakeIdGenerator identityGenerator,
     ILock lockService,
-    IWorkflowStateExtractor workflowStateExtractor,
+    ILocalEventBus localEventBus,
     IServiceProvider serviceProvider
     ) : IWorkflowClient
 {
@@ -33,9 +35,7 @@ internal class WorkflowClient(
         if (workflowInstance.Status.GetMainStatus() != WorkflowMainStatus.Running) return;
         var workflowGraph = await workflowDefinitionService.GetWorkflowGraphAsync(WorkflowDefinitionHandle.ByDefinitionVersionId(workflowInstance.DefinitionVersionId), cancellationToken);
         var workflowExecutionContext = await WorkflowExecutionContext.CreateAsync(serviceProvider, workflowGraph, workflowInstance.WorkflowState, cancellationToken: cancellationToken);
-        workflowExecutionContext.Cancel();
-        var workflowState = workflowStateExtractor.Extract(workflowExecutionContext);
-        await workflowInstanceManager.SaveAsync(workflowState, cancellationToken);
+        await localEventBus.PublishAsync(new RunCancelWorkflowCommand(workflowExecutionContext), cancellationToken);
     }
 
     public Task<RunWorkflowInstanceResponse> CreateAndRunInstanceAsync(CreateAndRunWorkflowInstanceRequest request, CancellationToken cancellationToken = default)
