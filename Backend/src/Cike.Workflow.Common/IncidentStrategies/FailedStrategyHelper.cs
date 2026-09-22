@@ -5,7 +5,7 @@ public static class FailedStrategyHelper
     public static async ValueTask ExecuteAsync(Func<Task> action, Action<Exception> errorHandler, int interval = 0, int retryCount = 1)
     {
         Exception? exception = null;
-        for (int i = 0; i < interval; i++)
+        for (int i = 0; i < retryCount; i++)
         {
             try
             {
@@ -15,6 +15,7 @@ public static class FailedStrategyHelper
             catch (Exception ex)
             {
                 exception = ex;
+                Thread.Sleep(interval);
             }
         }
         if (exception != null)
