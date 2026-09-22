@@ -12,13 +12,28 @@ internal class WorkflowInstancePushMiddleware(WorkflowRealtimePusher pusher)
     public async Task HandleAsync(RunWorkflowInstanceCommand @event, EventHandlerDelegate next)
     {
         var context = @event.Context;
-        await next();
+        try
+        {
+            await next();
+        }
+        catch
+        {
+            // 异常经本中间件后由外层异常中间件转换成状态并吞掉；活动故障路径此刻
+            // 状态已是 Faulted（活动侧 errorHandler 所置），按当下状态如实补推终态
+            var type = ResolveTerminalType(context.Status);
+            if (type.HasValue)
+            {
+                await pusher.PushAsync(new WorkflowExecutionProgressEvent(
+                    context.Id, type.Value, DateTimeOffset.Now));
+            }
+            throw;
+        }
 
-        var type = ResolveTerminalType(context.Status);
-        if (type.HasValue)
+        var terminalType = ResolveTerminalType(context.Status);
+        if (terminalType.HasValue)
         {
             await pusher.PushAsync(new WorkflowExecutionProgressEvent(
-                context.Id, type.Value, DateTimeOffset.Now));
+                context.Id, terminalType.Value, DateTimeOffset.Now));
         }
     }
 

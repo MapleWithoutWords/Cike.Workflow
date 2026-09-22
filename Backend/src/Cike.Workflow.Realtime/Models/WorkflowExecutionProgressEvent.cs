@@ -1,13 +1,15 @@
 namespace Cike.Workflow.Realtime.Models;
 
 /// <summary>
-/// 执行进度推送类型：节点级三种（开始 / 完成 / 失败）与实例终态四种（完成 / 挂起 / 失败 / 取消）。
+/// 执行进度推送类型：节点级四种（开始 / 完成 / 挂起 / 失败）与实例终态四种（完成 / 挂起 / 失败 / 取消）。
 /// </summary>
 public enum WorkflowExecutionProgressType
 {
     ActivityStarted,
 
     ActivityCompleted,
+
+    ActivitySuspended,
 
     ActivityFaulted,
 

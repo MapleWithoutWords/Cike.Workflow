@@ -53,27 +53,24 @@ public class WorkflowRunPushTest : RealtimeCoreTestBase
     }
 
     [Test]
-    public async Task RunAsync_WhenActivityFaults_PushesActivityFaulted()
+    public async Task RunAsync_WhenActivityFaults_PushesActivityFaultedAndWorkflowFaulted()
     {
-        // 说明：当前引擎在活动故障后的续延阶段会在 Faulted 状态上再次迁移并抛
-        // "Cannot transition from Faulted to Faulted"（已向用户报告，待引擎侧修复）。
-        // 这里先以该异常为前提，锁定 ActivityFaulted 推送行为；引擎修复后应改为
-        // 正常断言运行结束并推送 WorkflowFaulted 终态。
         var workflow = new WorkflowActivity(new Sequence
         {
             Activities = { new WriteLine("Before"), Fault.Create("TestFault", "Test", "System", "boom") }
         });
 
-        Assert.ThrowsAsync<Exception>(async () => await Runner.RunAsync(workflow));
+        var result = await Runner.RunAsync(workflow);
+        var instanceId = result.WorkflowExecutionContext.Id;
 
-        var faultedNodeIds = Probe.Events
-            .Where(e => e.Type == WorkflowExecutionProgressType.ActivityFaulted)
-            .Select(e => e.ActivityNodeId)
-            .ToList();
-        Assert.That(faultedNodeIds, Does.Contain("Workflow1:Sequence1:Fault1"));
+        Assert.That(Probe.Events, Has.All.Property("WorkflowInstanceId").EqualTo(instanceId));
+        Assert.That(Probe.Events[^1].Type, Is.EqualTo(WorkflowExecutionProgressType.WorkflowFaulted));
+
+        var faulted = Probe.Events.Single(e => e.Type == WorkflowExecutionProgressType.ActivityFaulted);
+        Assert.That(faulted.ActivityNodeId, Is.EqualTo("Workflow1:Sequence1:Fault1"));
         // 失败节点也推送过开始事件，且携带活动实例 Id
-        var faulted = Probe.Events.First(e => e.Type == WorkflowExecutionProgressType.ActivityFaulted);
-        var startedEvent = Probe.Events.Single(e => e.Type == WorkflowExecutionProgressType.ActivityStarted && e.ActivityNodeId == faulted.ActivityNodeId);
+        var startedEvent = Probe.Events.Single(e =>
+            e.Type == WorkflowExecutionProgressType.ActivityStarted && e.ActivityNodeId == faulted.ActivityNodeId);
         Assert.That(faulted.ActivityInstanceId, Is.EqualTo(startedEvent.ActivityInstanceId));
     }
 }
