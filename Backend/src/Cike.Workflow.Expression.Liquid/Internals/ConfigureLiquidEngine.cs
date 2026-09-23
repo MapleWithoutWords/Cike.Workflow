@@ -1,13 +1,10 @@
+using Microsoft.Extensions.Logging;
+
 namespace Cike.Workflow.Expression.Liquid.Internals;
 
-internal class ConfigureLiquidEngine : IScopedDependency
+internal class ConfigureLiquidEngine(ISerializationTypeRegistry serializationTypeRegistry, ILogger<ConfigureLiquidEngine> logger) : IScopedDependency
 {
-    private readonly ISerializationTypeRegistry _serializationTypeRegistry;
-
-    public ConfigureLiquidEngine(ISerializationTypeRegistry serializationTypeRegistry)
-    {
-        _serializationTypeRegistry = serializationTypeRegistry;
-    }
+    private readonly ISerializationTypeRegistry _serializationTypeRegistry = serializationTypeRegistry;
 
     public Task HandleAsync(TemplateContext context, CancellationToken cancellationToken)
     {
@@ -39,8 +36,20 @@ internal class ConfigureLiquidEngine : IScopedDependency
         memberAccessStrategy.Register<ExpressionExecutionContext, LiquidPropertyAccessor>("Inputs", x => new LiquidPropertyAccessor(name => GetInput(x, name, options)));
 
         // Register all variable types.
+        // The serialization type registry is shared across modules (the JS module registers Jint exception
+        // types), and some types have members Fluid cannot reflect on (e.g. by-ref generic arguments).
+        // Skip a type when its registration fails instead of crashing the whole template rendering.
         foreach (var type in _serializationTypeRegistry.ListTypes().Where(x => x is { IsClass: true, ContainsGenericParameters: false }))
-            memberAccessStrategy.Register(type);
+        {
+            try
+            {
+                memberAccessStrategy.Register(type);
+            }
+            catch (ArgumentException e)
+            {
+                logger.LogWarning(e, "Failed to register type {TypeName} on the Liquid member access strategy. The type will not be accessible in Liquid templates.", type.Name);
+            }
+        }
 
         return Task.CompletedTask;
     }
