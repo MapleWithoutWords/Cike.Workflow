@@ -139,9 +139,14 @@ function updateOutcome(index: number, value: string): void {
 // --- Type selector options ---
 const typeOptions = computed(() => props.designer.variableTypes.value)
 
+// --- Storage driver selector options ---
+/** Sentinel Select value meaning "no explicit driver" (backend default). */
+const DEFAULT_STORAGE_DRIVER = "__default__"
+const storageDriverOptions = computed(() => props.designer.storageDrivers.value)
+
 // --- Default expression editing (ADR 0009) ---
 /** Input defaults may only be Literal/Liquid/JavaScript; outputs allow all types. */
-const INPUT_DEFAULT_ALLOWED_TYPES = ["Literal", "Liquid", "JavaScript"]
+const INPUT_DEFAULT_ALLOWED_TYPES = ["Literal", "Liquid", "Javascript"]
 
 /**
  * Materializes an argument's defaultValue into a live expression object so the
@@ -332,13 +337,21 @@ const definitionTypeLabel = computed(() => {
             </div>
             <div class="space-y-0.5">
               <Label class="text-[10px]">存储驱动</Label>
-              <UiInput
-                :model-value="variable.storageDriverType ?? ''"
-                class="h-6 text-xs"
-                placeholder="（默认）"
+              <Select
+                :model-value="variable.storageDriverType ?? DEFAULT_STORAGE_DRIVER"
                 :disabled="isReadonly"
-                @change="(e: Event) => updateVariable(index, { storageDriverType: (e.target as HTMLInputElement).value || null })"
-              />
+                @update:model-value="(v) => updateVariable(index, { storageDriverType: v === DEFAULT_STORAGE_DRIVER ? null : String(v) })"
+              >
+                <SelectTrigger size="sm" class="h-6 w-full text-[11px]">
+                  <SelectValue class="block! min-w-0 truncate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">（默认）</SelectItem>
+                  <SelectItem v-for="d in storageDriverOptions" :key="d.type" :value="d.type!" class="text-[11px]">
+                    {{ d.displayName ?? d.type }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -450,13 +463,21 @@ const definitionTypeLabel = computed(() => {
             </div>
             <div class="space-y-0.5">
               <Label class="text-[10px]">存储驱动</Label>
-              <UiInput
-                :model-value="input.storageDriverType ?? ''"
-                class="h-6 text-xs"
-                placeholder="（默认）"
+              <Select
+                :model-value="input.storageDriverType ?? DEFAULT_STORAGE_DRIVER"
                 :disabled="isReadonly"
-                @change="(e: Event) => updateInput(index, { storageDriverType: (e.target as HTMLInputElement).value || null })"
-              />
+                @update:model-value="(v) => updateInput(index, { storageDriverType: v === DEFAULT_STORAGE_DRIVER ? null : String(v) })"
+              >
+                <SelectTrigger size="sm" class="h-6 w-full text-[11px]">
+                  <SelectValue class="block! min-w-0 truncate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">（默认）</SelectItem>
+                  <SelectItem v-for="d in storageDriverOptions" :key="d.type" :value="d.type!" class="text-[11px]">
+                    {{ d.displayName ?? d.type }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

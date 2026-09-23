@@ -2,6 +2,7 @@ import { computed, ref, shallowRef } from "vue"
 import {
   getApiV1CommonsActivityDescriptors,
   getApiV1CommonsExpressionDescriptors,
+  getApiV1CommonsStorageDriverDescriptors,
   getApiV1CommonsVarialbeTypes,
   getApiV1WorkflowDefinitionsById,
   getApiV1WorkflowDefinitionsVersionList,
@@ -26,7 +27,7 @@ import {
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
-import type { ExpressionDescriptor, InputDefinition, InputDescriptor, OutputDefinition, VariableDefinition, VariableTypeDescriptor } from "@/api/generated"
+import type { ExpressionDescriptor, InputDefinition, InputDescriptor, OutputDefinition, StorageDriverDescriptor, VariableDefinition, VariableTypeDescriptor } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { resolveRevealPath } from "@/core/designer/reveal"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
@@ -109,6 +110,8 @@ export function useWorkflowDesigner() {
   const outcomes = shallowRef<string[]>([])
   /** Backend-registered variable/argument types for type selectors. */
   const variableTypes = shallowRef<VariableTypeDescriptor[]>([])
+  /** Backend-registered storage drivers for storage-driver selectors. */
+  const storageDrivers = shallowRef<StorageDriverDescriptor[]>([])
   /** Backend-registered expression types; drive the ExpressionEditor type list. */
   const expressionDescriptors = shallowRef<ExpressionDescriptor[]>([])
   /** Canvas validation problems; the problem list panel is their only outlet. */
@@ -229,6 +232,7 @@ export function useWorkflowDesigner() {
       void loadPalette()
       void loadExpressionDescriptors()
       void loadVariableTypes()
+      void loadStorageDrivers()
       void loadVersions()
       // Validate once on open (non-blocking) so a loaded draft's existing
       // problems surface immediately. No-op in readonly mode.
@@ -365,6 +369,17 @@ export function useWorkflowDesigner() {
       variableTypes.value = (data ?? []) as VariableTypeDescriptor[]
     } catch {
       variableTypes.value = []
+    }
+  }
+
+  /** Fetches the backend-registered storage drivers once. */
+  async function loadStorageDrivers(): Promise<void> {
+    if (storageDrivers.value.length > 0) return
+    try {
+      const { data } = await getApiV1CommonsStorageDriverDescriptors({})
+      storageDrivers.value = (data ?? []) as StorageDriverDescriptor[]
+    } catch {
+      storageDrivers.value = []
     }
   }
 
@@ -790,6 +805,7 @@ export function useWorkflowDesigner() {
     outputs,
     outcomes,
     variableTypes,
+    storageDrivers,
     expressionDescriptors,
     setVariables,
     setInputs,

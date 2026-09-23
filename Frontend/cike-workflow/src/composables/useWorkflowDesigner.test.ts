@@ -11,6 +11,7 @@ const getById = vi.fn()
 const getDescriptors = vi.fn()
 const getExpressionDescriptors = vi.fn()
 const getVarialbeTypes = vi.fn()
+const getStorageDriverDescriptors = vi.fn()
 const save = vi.fn()
 const publish = vi.fn()
 const rollback = vi.fn()
@@ -22,6 +23,7 @@ vi.mock("@/api/generated", () => ({
   getApiV1CommonsActivityDescriptors: (...args: unknown[]) => getDescriptors(...args),
   getApiV1CommonsExpressionDescriptors: (...args: unknown[]) => getExpressionDescriptors(...args),
   getApiV1CommonsVarialbeTypes: (...args: unknown[]) => getVarialbeTypes(...args),
+  getApiV1CommonsStorageDriverDescriptors: (...args: unknown[]) => getStorageDriverDescriptors(...args),
   postApiV1WorkflowDefinitionsSaveById: (...args: unknown[]) => save(...args),
   postApiV1WorkflowDefinitionsPublishById: (...args: unknown[]) => publish(...args),
   postApiV1WorkflowDefinitionsRollback: (...args: unknown[]) => rollback(...args),
@@ -71,6 +73,7 @@ beforeEach(() => {
   getDescriptors.mockReset()
   getExpressionDescriptors.mockReset()
   getVarialbeTypes.mockReset()
+  getStorageDriverDescriptors.mockReset()
   save.mockReset()
   publish.mockReset()
   rollback.mockReset()
@@ -79,6 +82,7 @@ beforeEach(() => {
   getDescriptors.mockResolvedValue({ data: [] })
   getExpressionDescriptors.mockResolvedValue({ data: [] })
   getVarialbeTypes.mockResolvedValue({ data: [] })
+  getStorageDriverDescriptors.mockResolvedValue({ data: [] })
   validateCanvas.mockResolvedValue({ data: [] })
   versionList.mockResolvedValue({
     data: [{ id: "100", version: 1, isLatest: true, isPublished: false }],
@@ -545,6 +549,16 @@ describe("useWorkflowDesigner workflow config state", () => {
     await designer.load("100")
     expect(designer.variableTypes.value).toHaveLength(2)
     expect(designer.variableTypes.value[0].displayName).toBe("String")
+  })
+
+  it("LoadStorageDrivers_PopulatesFromApi", async () => {
+    getStorageDriverDescriptors.mockResolvedValue({
+      data: [{ type: "Memory", displayName: "内存" }, { type: "Redis", displayName: "Redis" }],
+    })
+    const designer = useWorkflowDesigner()
+    await designer.load("100")
+    expect(designer.storageDrivers.value).toHaveLength(2)
+    expect(designer.storageDrivers.value[0].displayName).toBe("内存")
   })
 
   it("RenameReference_CascadesStructuredExpressions", async () => {
