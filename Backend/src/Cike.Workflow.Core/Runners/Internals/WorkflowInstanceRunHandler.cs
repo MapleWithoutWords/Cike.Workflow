@@ -4,13 +4,20 @@ using System.Diagnostics;
 
 namespace Cike.Workflow.Core.Runners.Internals;
 
-internal class WorkflowInstanceRunHandler(ILocalEventBus localEventBus, ILogger<WorkflowInstanceRunHandler> logger)
+internal class WorkflowInstanceRunHandler(
+    ILocalEventBus localEventBus,
+    WorkflowArgumentDefaultMaterializer argumentDefaultMaterializer,
+    ILogger<WorkflowInstanceRunHandler> logger)
 {
     [LocalEventHandler]
     public async Task RunWorkflowInstanceAsync(RunWorkflowInstanceCommand command, CancellationToken cancellationToken)
     {
         var context = command.Context;
         var scheduler = context.Scheduler;
+
+        // Materialize defaults for workflow inputs the caller did not provide (first start only).
+        if (command.IsStarting)
+            await argumentDefaultMaterializer.MaterializeInputDefaultsAsync(context);
 
         context.TransitionTo(WorkflowStatus.Executing);
         //await ConditionallyCommitStateAsync(context, WorkflowLifetimeEvent.WorkflowExecuting);
@@ -26,7 +33,16 @@ internal class WorkflowInstanceRunHandler(ILocalEventBus localEventBus, ILogger<
         }
 
         if (context.Status.GetMainStatus() == WorkflowMainStatus.Running)
-            context.TransitionTo(context.ActivityExecutionContexts.All(x => x.IsCompleted) ? WorkflowStatus.Finished : WorkflowStatus.Suspended);
+        {
+            var isFinished = context.ActivityExecutionContexts.All(x => x.IsCompleted);
+
+            // Materialize defaults for workflow outputs that were never written, before transitioning
+            // to Finished — a default evaluation failure must still be able to fault the workflow.
+            if (isFinished)
+                await argumentDefaultMaterializer.MaterializeOutputDefaultsAsync(context);
+
+            context.TransitionTo(isFinished ? WorkflowStatus.Finished : WorkflowStatus.Suspended);
+        }
     }
 
     [LocalEventHandler]

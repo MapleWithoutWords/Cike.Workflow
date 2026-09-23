@@ -177,7 +177,7 @@ public class WorkflowRunner(
             workflowExecutionContext.TransitionTo(WorkflowStatus.Executing);
         }
 
-        await localEventBus.PublishAsync(new RunWorkflowInstanceCommand(workflowExecutionContext));
+        await localEventBus.PublishAsync(new RunWorkflowInstanceCommand(workflowExecutionContext, isStarting));
 
         var workflowState = workflowStateExtractor.Extract(workflowExecutionContext);
 
