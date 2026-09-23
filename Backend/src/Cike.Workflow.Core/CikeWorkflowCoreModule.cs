@@ -31,7 +31,11 @@ public class CikeWorkflowCoreModule : CikeModule
             Factory = serviceProvider => serviceProvider.GetRequiredService<WorkflowInstanceStorageDriver>()
         });
 
+        // Registration order is the wrapping order (first registered is outermost): the argument
+        // default middleware sits inside the exception middleware so that its evaluation failures
+        // are caught and transition the workflow to Faulted.
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunWorkflowInstanceCommand>), typeof(ExceptionRunWorkflowInstanceMiddleware), ServiceLifetime.Transient));
+        context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunWorkflowInstanceCommand>), typeof(WorkflowArgumentDefaultMiddleware), ServiceLifetime.Transient));
 
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ExceptionRunActivityInstanceMiddleware), ServiceLifetime.Transient));
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ActivityInstanceExecutionLogMiddleware), ServiceLifetime.Transient));

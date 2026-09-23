@@ -1,3 +1,5 @@
+using Cike.Workflow.Core.Contexts;
+
 namespace Cike.Workflow.Realtime.Internals;
 
 /// <summary>
@@ -29,12 +31,26 @@ internal class WorkflowInstancePushMiddleware(WorkflowRealtimePusher pusher)
             throw;
         }
 
-        var terminalType = ResolveTerminalType(context.Status);
+        var terminalType = ResolveTerminalType(context.Status) ?? ResolveRunningOutcome(context);
         if (terminalType.HasValue)
         {
             await pusher.PushAsync(new WorkflowExecutionProgressEvent(
                 context.Id, terminalType.Value, DateTimeOffset.Now));
         }
+    }
+
+    /// <summary>
+    /// Running（状态未定型）实例按完成事实推导终态：全部活动执行上下文完成即完成，否则挂起。
+    /// 终态转换由外层的参数默认值中间件执行，本中间件不依赖状态迁移已发生。
+    /// </summary>
+    private static WorkflowExecutionProgressType? ResolveRunningOutcome(WorkflowExecutionContext context)
+    {
+        if (context.Status.GetMainStatus() != WorkflowMainStatus.Running)
+            return null;
+
+        return context.ActivityExecutionContexts.All(x => x.IsCompleted)
+            ? WorkflowExecutionProgressType.WorkflowFinished
+            : WorkflowExecutionProgressType.WorkflowSuspended;
     }
 
     /// <summary>状态 → 终态推送类型；非终态（执行中 / 中断）不推送。</summary>
