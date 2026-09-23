@@ -48,14 +48,14 @@ const currentValue = computed(() => {
 // Fallback display names for the five known types, used when the backend
 // descriptor list has not loaded or omits a type the model already references.
 const KNOWN_TYPE_NAMES: Record<string, string> = {
-  Literal: "字面量",
-  Javascript: "JavaScript 表达式",
-  Liquid: "Liquid 表达式",
-  Variable: "变量",
+  Literal: "瀛楅潰閲?,
+  JavaScript: "JavaScript 琛ㄨ揪寮?,
+  Liquid: "Liquid 琛ㄨ揪寮?,
+  Variable: "鍙橀噺",
   // The backend registers the workflow-input expression under Type "Input"
-  // (DisplayName "输入参数"); "WorkflowInput" is kept as a legacy alias.
-  Input: "输入参数",
-  WorkflowInput: "输入参数",
+  // (DisplayName "杈撳叆鍙傛暟"); "WorkflowInput" is kept as a legacy alias.
+  Input: "杈撳叆鍙傛暟",
+  WorkflowInput: "杈撳叆鍙傛暟",
 }
 
 // Backend-registered types; a Literal-only fallback covers the pre-fetch moment.
@@ -95,7 +95,7 @@ const currentOption = computed(() => typeOptions.value.find((o) => o.type === cu
 const currentIcon = computed(() => resolveExpressionIcon(currentOption.value?.icon))
 const currentTypeName = computed(() => currentOption.value?.displayName ?? currentType.value)
 
-const isMonacoType = computed(() => currentType.value === "Javascript" || currentType.value === "Liquid")
+const isMonacoType = computed(() => currentType.value === "JavaScript" || currentType.value === "Liquid")
 // Name-referencing types resolve to a dropdown of definition names. The backend
 // registers the workflow-input type as "Input"; "WorkflowInput" is a legacy alias.
 const isNameType = computed(() =>
@@ -103,7 +103,7 @@ const isNameType = computed(() =>
 )
 
 function languageFor(type: string): string {
-  if (type === "Javascript") return "javascript"
+  if (type === "JavaScript") return "javascript"
   if (type === "Liquid") return "liquid"
   return "plaintext"
 }
@@ -175,7 +175,7 @@ function onTypeChange(type: string): void {
           @update:model-value="(n) => commitValue(String(n))"
         >
           <SelectTrigger size="sm" class="w-full text-xs">
-            <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '选择…' : '（暂无可选项）'" />
+            <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '閫夋嫨鈥? : '锛堟殏鏃犲彲閫夐」锛?" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>

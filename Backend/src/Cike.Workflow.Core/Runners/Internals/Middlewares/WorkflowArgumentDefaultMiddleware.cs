@@ -79,8 +79,18 @@ internal class WorkflowArgumentDefaultMiddleware(
     /// which means "no default configured". Treating it as absent keeps unconfigured inputs/outputs
     /// missing (rather than materialized as null) and preserves the pre-existing observable behavior.
     /// </summary>
-    private static bool HasConfiguredDefault(ArgumentDefinition definition) =>
-        definition.DefaultValue is not { Type: "Literal", Value: null };
+    private static bool HasConfiguredDefault(ArgumentDefinition definition)
+    {
+        if (definition is InputDefinition inputDefinition)
+        {
+            return inputDefinition.DefaultValue is { Value: not null } && new string[] { "Literal", "Javascript", "Liquid" }.Contains(inputDefinition.DefaultValue.Type);
+        }
+        else if (definition is OutputDefinition outputDefinition)
+        {
+            return outputDefinition.DefaultValue is not null && outputDefinition.DefaultValue.Value is not null;
+        }
+        return true;
+    }
 
     private async ValueTask<object?> EvaluateDefaultAsync(ArgumentDefinition definition, ExpressionExecutionContext expressionContext)
     {

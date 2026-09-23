@@ -1,0 +1,168 @@
+<script setup lang="ts">
+import { computed, ref } from "vue"
+import { PanelRightClose, PanelRightOpen } from "@lucide/vue"
+import { Input as UiInput } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { usePanelResize } from "@/composables/usePanelResize"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { IActivity } from "@/core/abstracts/Activity"
+import { makeEditPropertyCommand } from "@/core/designer/commands"
+import { activityShortName } from "@/core/designer/registry"
+import { getMergeMode, MERGE_MODES, setMergeMode } from "@/core/designer/form"
+import { FORM_REGISTRY } from "./forms"
+import GenericActivityForm from "./forms/GenericActivityForm.vue"
+
+const props = defineProps<{
+  activity: IActivity | null
+  designer: WorkflowDesignerState
+}>()
+
+/** Collapsible like an IDE side panel: collapsed leaves a thin rail to reopen. */
+const open = ref(true)
+
+/** 灞曞紑鎬佸搴︼細宸︾紭鎷栨嫿璋冩暣銆佸弻鍑诲浣嶏紝璺ㄤ細璇濇寔涔呭寲銆?*/
+const { size: panelWidth, onPointerDown: onResizeStart, onDoubleClick: onResizeReset } = usePanelResize({
+  axis: "width",
+  invert: true,
+  defaultSize: 288,
+  min: 240,
+  max: 480,
+  storageKey: "cike.dock.size.property",
+})
+
+const typeShort = computed(() => (props.activity ? activityShortName(props.activity.type) : ""))
+
+const dedicatedForm = computed(() => FORM_REGISTRY[typeShort.value] ?? null)
+
+const descriptors = computed(() => {
+  if (!props.activity) return []
+  const map = props.designer.descriptorByType.value
+  const descriptor = map.get(props.activity.type) ?? map.get(`Cike.${typeShort.value}`) ?? null
+  return descriptor?.inputs ?? []
+})
+
+const inboundCount = computed(() => {
+  if (!props.activity) return 0
+  return props.designer.connectionTargets.value.get(props.activity.id) ?? 0
+})
+
+const currentMergeMode = computed(() => (props.activity ? getMergeMode(props.activity) : null))
+
+function commitName(value: string): void {
+  const activity = props.activity
+  if (!activity) return
+  const from = activity.name ?? null
+  const to = value === "" ? null : value
+  props.designer.executeCommand(
+    makeEditPropertyCommand(activity as unknown as Record<string, unknown>, "name", from, to),
+  )
+}
+
+/** Code is the activity's stable business identifier (serialized to the wire),
+ *  distinct from the display name; kept a non-empty string. */
+function commitCode(value: string): void {
+  const activity = props.activity
+  if (!activity) return
+  const from = activity.code ?? null
+  const to = value.trim()
+  if (to === "" || to === from) return
+  props.designer.executeCommand(
+    makeEditPropertyCommand(activity as unknown as Record<string, unknown>, "code", from, to),
+  )
+}
+
+function commitMergeMode(mode: string): void {
+  const activity = props.activity
+  if (!activity) return
+  const from = getMergeMode(activity)
+  setMergeMode(activity as IActivity, mode)
+  props.designer.executeCommand(
+    makeEditPropertyCommand(activity.customProperties as Record<string, unknown>, "mergeMode", from, mode),
+  )
+}
+</script>
+
+<template>
+  <aside v-if="open" class="relative flex shrink-0 flex-col border-l" :style="{ width: `${panelWidth}px` }">
+    <div class="flex shrink-0 items-center border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+      灞炴€?      <button
+        type="button"
+        class="ml-auto rounded p-0.5 hover:bg-muted hover:text-foreground"
+        title="鏀惰捣灞炴€ч潰鏉?
+        @click="open = false"
+      >
+        <PanelRightClose :size="14" />
+      </button>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <div v-if="!activity" class="px-3 py-6 text-center text-xs text-muted-foreground">鏈€変腑鑺傜偣</div>
+      <div v-else class="space-y-4 px-3 py-3">
+        <div class="space-y-1">
+          <div class="text-sm font-medium text-foreground">{{ activity.name ?? activityShortName(activity.type) }}</div>
+          <div class="font-mono text-xs text-muted-foreground">{{ activity.type }}</div>
+        </div>
+
+        <div class="space-y-1">
+          <Label class="text-xs">鍚嶇О</Label>
+          <UiInput
+            :model-value="activity.name ?? ''"
+            :placeholder="activityShortName(activity.type)"
+            @change="(event: Event) => commitName((event.target as HTMLInputElement).value)"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <Label class="text-xs">鏍囪瘑锛圕ode锛?/Label>
+          <UiInput
+            :model-value="activity.code ?? ''"
+            :placeholder="activityShortName(activity.type)"
+            @change="(event: Event) => commitCode((event.target as HTMLInputElement).value)"
+          />
+          <div class="text-[10px] text-muted-foreground">鑺傜偣鐨勭ǔ瀹氭爣璇嗭紝鐢ㄤ簬娴佺▼寮曠敤</div>
+        </div>
+
+        <div v-if="inboundCount >= 2" class="space-y-1">
+          <Label class="text-xs">鍚堝苟妯″紡</Label>
+          <Select :model-value="currentMergeMode ?? ''" @update:model-value="(mode) => commitMergeMode(String(mode))">
+            <SelectTrigger class="h-8 text-xs">
+              <SelectValue placeholder="鏈缃紙鎸?Stream锛? />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="mode in MERGE_MODES" :key="mode" :value="mode">{{ mode }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div class="text-[10px] text-muted-foreground">澶氬叆杈硅妭鐐圭殑姹囪仛璇箟</div>
+        </div>
+
+        <component
+          :is="dedicatedForm"
+          v-if="dedicatedForm"
+          :activity="activity"
+          :descriptors="descriptors"
+          :designer="designer"
+        />
+        <div v-else class="space-y-2">
+          <div class="text-xs font-medium text-muted-foreground">杈撳叆灞炴€?/div>
+          <GenericActivityForm :activity="activity" :descriptors="descriptors" :designer="designer" />
+        </div>
+      </div>
+    </div>
+    <div
+      class="absolute bottom-0 left-0 top-0 w-1 cursor-col-resize touch-none hover:bg-primary/30"
+      title="鎷栨嫿璋冩暣瀹藉害锛屽弻鍑诲浣?
+      @pointerdown="onResizeStart"
+      @dblclick="onResizeReset"
+    />
+  </aside>
+  <aside v-else class="flex w-9 shrink-0 flex-col items-center border-l bg-background py-1">
+    <button
+      type="button"
+      class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      title="灞曞紑灞炴€ч潰鏉?
+      @click="open = true"
+    >
+      <PanelRightOpen :size="15" />
+    </button>
+  </aside>
+</template>

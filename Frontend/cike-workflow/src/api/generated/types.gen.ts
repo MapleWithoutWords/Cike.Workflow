@@ -269,6 +269,11 @@ export type SaveWorkflowDefinitionDto = {
     options?: WorkflowDefinitionOptionsValueObject;
 };
 
+export type StorageDriverDescriptor = {
+    type?: string;
+    displayName?: string;
+};
+
 export type TimestampFilter = {
     column: string;
     operator: TimestampFilterOperator;
@@ -579,6 +584,29 @@ export type GetApiV1CommonsExpressionDescriptorsResponses = {
 };
 
 export type GetApiV1CommonsExpressionDescriptorsResponse = GetApiV1CommonsExpressionDescriptorsResponses[keyof GetApiV1CommonsExpressionDescriptorsResponses];
+
+export type GetApiV1CommonsStorageDriverDescriptorsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/Commons/StorageDriverDescriptors';
+};
+
+export type GetApiV1CommonsStorageDriverDescriptorsErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1CommonsStorageDriverDescriptorsResponses = {
+    /**
+     * OK
+     */
+    200: Array<StorageDriverDescriptor>;
+};
+
+export type GetApiV1CommonsStorageDriverDescriptorsResponse = GetApiV1CommonsStorageDriverDescriptorsResponses[keyof GetApiV1CommonsStorageDriverDescriptorsResponses];
 
 export type GetApiV1CommonsActivityDescriptorsData = {
     body?: never;

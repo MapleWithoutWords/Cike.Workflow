@@ -1,0 +1,461 @@
+commit ffad1375829ea10e88c8535b421b2dcd79252599
+Author: Lemon.Li <lemon.li@dida.com>
+Date:   Wed Sep 23 18:09:44 2026 +0800
+
+    feat(designer): add right tool dock with workflow configuration panel
+    
+    Replace the standalone PropertyPanel with a right tool dock (ADR 0008) that switches between workflow configuration and node properties.
+    
+    - Add WorkflowConfigPanel: read-only basic info plus CRUD for variables, inputs, outputs and outcomes, all through the command stack (undo/redo)
+    
+    - Add cascadeRename in core/designer to rewrite structured Variable/Input references on rename (JS/Liquid text untouched)
+    
+    - Extend useWorkflowDesigner with outputs/outcomes/variableTypes state and setInputs/setOutputs/setOutcomes/renameReference
+    
+    - Add ExpressionEditor allowedTypes prop; input defaults limited to Literal/Liquid/JavaScript, outputs allow all types (ADR 0009)
+    
+    - Extract NodePropertyPanel from PropertyPanel; remove dead PropertyPanel and VariablesDialog
+    
+    Closes #18
+
+diff --git a/Frontend/cike-workflow/docs/adr/0007-expression-type-switcher-icon-picker.md b/Frontend/cike-workflow/docs/adr/0007-expression-type-switcher-icon-picker.md
+new file mode 100644
+index 0000000..eb0a2ce
+--- /dev/null
++++ b/Frontend/cike-workflow/docs/adr/0007-expression-type-switcher-icon-picker.md
+@@ -0,0 +1,7 @@
++# 琛ㄨ揪寮忕被鍨嬪垏鎹㈠櫒锛氬浘鏍囪Е鍙戠殑鍗曢€?popover锛堟敹鏁?ADR 0004 鐨勪笅鎷夋锛?+
++ADR 0004 璁?`ExpressionEditor` 鐙崰绫诲瀷閫夋嫨鍣紝鍒濈増瀹炵幇涓轰竴涓?`w-40` 鐨勬枃瀛椾笅鎷夋锛岄拤鍦ㄦ瘡涓?Input 琛屽彸涓婅銆傚畠涓戙€佷笖闈㈡澘涓€鎸ゅ氨婧㈠嚭銆傛垜浠敼涓猴細绫诲瀷鍒囨崲鍣ㄦ槸涓€涓?*鍙樉绀哄綋鍓嶇被鍨嬪浘鏍囩殑鍥炬爣鎸夐挳**锛堝浘鏍囧悕鏉ヨ嚜鍚庣 `ExpressionDescriptor.icon`锛宭ucide kebab-case锛岀敱鍓嶇 `resolveExpressionIcon` 鏄犲皠鍒?`@lucide/vue` 缁勪欢锛夛紝缃簬 **value 鎺т欢鍚岃鐨勫彸渚?*锛圡onaco 澶氳鏃跺浘鏍囬《閮ㄥ榻愶級锛涚偣鍑诲睍寮€涓€涓垪鍑哄叏閮ㄧ被鍨?`[鍥炬爣 + 鍚嶇О]` 鐨勫崟閫?popover锛岄€変腑鍗宠Е鍙戞棦鏈夌殑澶嶅悎鍙挙閿€鍒囨崲鍛戒护锛坴alue 鎸?ADR 0005 閲嶇疆锛夈€傚綋鍓嶇被鍨嬪悕涓嶅啀甯搁┗鐣岄潰锛屼粎鐢卞浘鏍囨寜閽殑鍘熺敓 `title` 涓庤彍鍗曢」鍚嶇О鎵胯浇銆?+
++搴曞骇**澶嶇敤鐜版湁 reka-ui `Select`**锛?浠庝竴缁勯噷鍗曢€変竴涓被鍨?姝ｆ槸 Select 鐨勮涔夛級锛岃Е鍙戝櫒鏀逛负鏃?chevron銆佹棤杈规鐨?ghost 鍥炬爣鎸夐挳鈥斺€旇€?*涓嶆槸**鏂板 `dropdown-menu` 缁勪欢锛堥偅鏄姩浣滃垪琛ㄨ涔夛紝涓旇澶氬姞涓€濂?`ui/` 缁勪欢锛夈€傚浘鏍囧悕鏄犲皠娌跨敤 activity `icons.ts` 鐨勬ā寮忥細鍓嶇鍙В鏋愯嚜宸辨墦鍖呯殑鏈夐檺鍚嶅瓧闆嗭紝鏈懡涓?鎷夊彇鍓嶇敤 fallback 鍥炬爣鍏滃簳銆?+
++鎷掔粷鐨勬柟妗堬細鐐瑰嚮鍥炬爣鍦ㄧ被鍨嬮棿寰幆锛? 绉嶇被鍨嬭澶氭鐐癸紝涓旀瘡娆″垏鎹㈤兘鎸?ADR 0005 閲嶇疆 value銆佸弽澶嶆薄鏌?undo 鏍堬級锛涘浘鏍囩粷瀵瑰畾浣嶆偓娴湪 value 缂栬緫鍖哄彸涓婅锛堜細閬綇 Monaco 鍐呭锛夛紱鍥炬爣鏃佸父椹荤被鍨嬫枃瀛楋紙鍙堟妸"鍗犲/婧㈠嚭"鐨勮€侀棶棰樻嬀鍥炴潵锛夛紱鏂板 dropdown-menu 缁勪欢锛堣涔変笉绗︿笖缁勪欢闈㈡墿澶э級銆?diff --git a/Frontend/cike-workflow/src/components/workflow-designer/ExpressionEditor.vue b/Frontend/cike-workflow/src/components/workflow-designer/ExpressionEditor.vue
+index d9ab5bf..66df2c4 100644
+--- a/Frontend/cike-workflow/src/components/workflow-designer/ExpressionEditor.vue
++++ b/Frontend/cike-workflow/src/components/workflow-designer/ExpressionEditor.vue
+@@ -1,11 +1,13 @@
+ <script setup lang="ts">
+ import { computed, ref, watch } from "vue"
++import { SelectTrigger as SelectTriggerPrimitive } from "reka-ui"
+ import { Input as UiInput } from "@/components/ui/input"
+ import { Label } from "@/components/ui/label"
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+ import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+ import { makeEditPropertyCommand } from "@/core/designer/commands"
+ import { LITERAL_TYPE, isLiteral, makeSwitchExpressionTypeCommand, type ExpressionLike } from "@/core/designer/expression"
++import { resolveExpressionIcon } from "./expressionIcons"
+ import MonacoEditor from "./MonacoEditor.vue"
+ 
+ /**
+@@ -23,6 +25,9 @@ const props = defineProps<{
+   /** Concrete zero/default value used when switching *to* Literal (ADR 0005). */
+   literalDefault?: unknown
+   readonly?: boolean
++  /** Whitelist of selectable types; the current type always stays visible
++   *  even when excluded, so a stored value never becomes unselectable. */
++  allowedTypes?: string[]
+ }>()
+ 
+ const isReadonly = computed(() => props.readonly ?? props.designer.readonly.value)
+@@ -54,27 +59,42 @@ const KNOWN_TYPE_NAMES: Record<string, string> = {
+ }
+ 
+ // Backend-registered types; a Literal-only fallback covers the pre-fetch moment.
++// Each option carries the backend icon name (lucide) resolved for the trigger
++// and menu items.
+ const typeOptions = computed(() => {
+   const list = props.designer.expressionDescriptors.value
++  const allowed = props.allowedTypes
+   const options =
+     list.length === 0
+-      ? [{ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE] }]
++      ? [{ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE], icon: "type" as string | null }]
+       : list
+-          .filter((d): d is { type: string; displayName?: string } => !!d.type)
++          .filter((d): d is { type: string; displayName?: string; icon?: string | null } => !!d.type)
++          .filter((d) => !allowed || allowed.includes(d.type as string))
+           .map((d) => ({
+             type: d.type as string,
+             displayName: d.displayName ?? KNOWN_TYPE_NAMES[d.type as string] ?? d.type,
++            icon: d.icon ?? null,
+           }))
++  // A filtered list may drop Literal while the value is still concrete:
++  // keep the Literal editor usable as the fallback for the default slot.
++  if (allowed && !allowed.includes(LITERAL_TYPE) && !options.some((o) => o.type === LITERAL_TYPE)) {
++    options.unshift({ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE], icon: "type" })
++  }
+   // Always keep the current type visible/selectable even if the backend list
+-  // does not include it (e.g. a saved Variable input), otherwise the trigger's
+-  // SelectValue finds no match and renders blank.
++  // does not include it (e.g. a saved Variable input), otherwise the trigger
++  // shows no icon and the type cannot be re-selected.
+   const current = currentType.value
+   if (current && !options.some((o) => o.type === current)) {
+-    options.push({ type: current, displayName: KNOWN_TYPE_NAMES[current] ?? current })
++    options.push({ type: current, displayName: KNOWN_TYPE_NAMES[current] ?? current, icon: null })
+   }
+   return options
+ })
+ 
++// Current type's descriptor projection, for the trigger icon and its title.
++const currentOption = computed(() => typeOptions.value.find((o) => o.type === currentType.value))
++const currentIcon = computed(() => resolveExpressionIcon(currentOption.value?.icon))
++const currentTypeName = computed(() => currentOption.value?.displayName ?? currentType.value)
++
+ const isMonacoType = computed(() => currentType.value === "JavaScript" || currentType.value === "Liquid")
+ // Name-referencing types resolve to a dropdown of definition names. The backend
+ // registers the workflow-input type as "Input"; "WorkflowInput" is a legacy alias.
+@@ -131,61 +151,70 @@ function onTypeChange(type: string): void {
+ 
+ <template>
+   <div class="space-y-1">
+-    <div class="flex items-center gap-2">
+-      <Label v-if="label" class="text-xs" :title="description ?? undefined">{{ label }}</Label>
+-      <div class="ml-auto">
++    <Label v-if="label" class="text-xs" :title="description ?? undefined">{{ label }}</Label>
++
++    <div class="flex items-start gap-2">
++      <div class="min-w-0 flex-1">
++        <!-- Literal: the caller-provided value editor (only the node knows T). -->
++        <slot v-if="isLiteral(currentType)" :value="currentValue" :commit="commitValue" :readonly="isReadonly" />
++
++        <!-- JavaScript / Liquid: Monaco, committed on blur. -->
++        <MonacoEditor
++          v-else-if="isMonacoType"
++          v-model="draft"
++          :language="languageFor(currentType)"
++          :readonly="isReadonly"
++          @blur="commitDraft"
++        />
++
++        <!-- Variable / WorkflowInput: reference a definition by name. -->
+         <Select
+-          :model-value="currentType"
++          v-else-if="isNameType"
++          :model-value="nameValue"
+           :disabled="isReadonly"
+-          @update:model-value="(t) => onTypeChange(String(t))"
++          @update:model-value="(n) => commitValue(String(n))"
+         >
+-          <SelectTrigger size="sm" class="w-40 text-xs">
+-            <SelectValue class="block! min-w-0 truncate" placeholder="绫诲瀷" />
++          <SelectTrigger size="sm" class="w-full text-xs">
++            <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '閫夋嫨鈥? : '锛堟殏鏃犲彲閫夐」锛?" />
+           </SelectTrigger>
+           <SelectContent>
+-            <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type" class="text-xs">
+-              {{ opt.displayName }}
+-            </SelectItem>
++            <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>
+           </SelectContent>
+         </Select>
++
++        <!-- Any other string-valued type: plain text fallback. -->
++        <UiInput
++          v-else
++          class="font-mono text-xs"
++          :model-value="draft"
++          :disabled="isReadonly"
++          @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
++          @blur="commitDraft"
++        />
+       </div>
+-    </div>
+ 
+-    <!-- Literal: the caller-provided value editor (only the node knows T). -->
+-    <slot v-if="isLiteral(currentType)" :value="currentValue" :commit="commitValue" :readonly="isReadonly" />
+-
+-    <!-- JavaScript / Liquid: Monaco, committed on blur. -->
+-    <MonacoEditor
+-      v-else-if="isMonacoType"
+-      v-model="draft"
+-      :language="languageFor(currentType)"
+-      :readonly="isReadonly"
+-      @blur="commitDraft"
+-    />
+-
+-    <!-- Variable / WorkflowInput: reference a definition by name. -->
+-    <Select
+-      v-else-if="isNameType"
+-      :model-value="nameValue"
+-      :disabled="isReadonly"
+-      @update:model-value="(n) => commitValue(String(n))"
+-    >
+-      <SelectTrigger size="sm" class="w-full text-xs">
+-        <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '閫夋嫨鈥? : '锛堟殏鏃犲彲閫夐」锛?" />
+-      </SelectTrigger>
+-      <SelectContent>
+-        <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>
+-      </SelectContent>
+-    </Select>
+-
+-    <!-- Any other string-valued type: plain text fallback. -->
+-    <UiInput
+-      v-else
+-      class="font-mono text-xs"
+-      :model-value="draft"
+-      :disabled="isReadonly"
+-      @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
+-      @blur="commitDraft"
+-    />
++      <!-- Type switcher: icon-only trigger opening a single-select picker (ADR 0007). -->
++      <Select
++        :model-value="currentType"
++        :disabled="isReadonly"
++        @update:model-value="(t) => onTypeChange(String(t))"
++      >
++        <SelectTriggerPrimitive
++          :title="currentTypeName"
++          class="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
++        >
++          <component :is="currentIcon" />
++        </SelectTriggerPrimitive>
++        <SelectContent>
++          <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type" class="text-xs">
++            <span class="flex items-center gap-2">
++              <component :is="resolveExpressionIcon(opt.icon)" class="size-4 shrink-0 text-muted-foreground" />
++              {{ opt.displayName }}
++            </span>
++          </SelectItem>
++        </SelectContent>
++      </Select>
++    </div>
+   </div>
+ </template>
++
+diff --git a/Frontend/cike-workflow/src/components/workflow-designer/NodePropertyPanel.vue b/Frontend/cike-workflow/src/components/workflow-designer/NodePropertyPanel.vue
+new file mode 100644
+index 0000000..6cd876b
+--- /dev/null
++++ b/Frontend/cike-workflow/src/components/workflow-designer/NodePropertyPanel.vue
+@@ -0,0 +1,125 @@
++<script setup lang="ts">
++import { computed } from "vue"
++import { Input as UiInput } from "@/components/ui/input"
++import { Label } from "@/components/ui/label"
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
++import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
++import type { IActivity } from "@/core/abstracts/Activity"
++import { makeEditPropertyCommand } from "@/core/designer/commands"
++import { activityShortName } from "@/core/designer/registry"
++import { getMergeMode, MERGE_MODES, setMergeMode } from "@/core/designer/form"
++import { FORM_REGISTRY } from "./forms"
++import GenericActivityForm from "./forms/GenericActivityForm.vue"
++
++/**
++ * Node property content panel 鈥?renders the selected activity's form.
++ * Extracted from the former PropertyPanel.vue; dock shell lives in RightToolDock.
++ */
++const props = defineProps<{
++  activity: IActivity | null
++  designer: WorkflowDesignerState
++}>()
++
++const typeShort = computed(() => (props.activity ? activityShortName(props.activity.type) : ""))
++
++const dedicatedForm = computed(() => FORM_REGISTRY[typeShort.value] ?? null)
++
++const descriptors = computed(() => {
++  if (!props.activity) return []
++  const map = props.designer.descriptorByType.value
++  const descriptor = map.get(props.activity.type) ?? map.get(`Cike.${typeShort.value}`) ?? null
++  return descriptor?.inputs ?? []
++})
++
++const inboundCount = computed(() => {
++  if (!props.activity) return 0
++  return props.designer.connectionTargets.value.get(props.activity.id) ?? 0
++})
++
++const currentMergeMode = computed(() => (props.activity ? getMergeMode(props.activity) : null))
++
++function commitName(value: string): void {
++  const activity = props.activity
++  if (!activity) return
++  const from = activity.name ?? null
++  const to = value === "" ? null : value
++  props.designer.executeCommand(
++    makeEditPropertyCommand(activity as unknown as Record<string, unknown>, "name", from, to),
++  )
++}
++
++function commitCode(value: string): void {
++  const activity = props.activity
++  if (!activity) return
++  const from = activity.code ?? null
++  const to = value.trim()
++  if (to === "" || to === from) return
++  props.designer.executeCommand(
++    makeEditPropertyCommand(activity as unknown as Record<string, unknown>, "code", from, to),
++  )
++}
++
++function commitMergeMode(mode: string): void {
++  const activity = props.activity
++  if (!activity) return
++  const from = getMergeMode(activity)
++  setMergeMode(activity as IActivity, mode)
++  props.designer.executeCommand(
++    makeEditPropertyCommand(activity.customProperties as Record<string, unknown>, "mergeMode", from, mode),
++  )
++}
++</script>
++
++<template>
++  <div v-if="!activity" class="px-3 py-6 text-center text-xs text-muted-foreground">鏈€変腑鑺傜偣</div>
++  <div v-else class="space-y-4 px-3 py-3">
++    <div class="space-y-1">
++      <div class="text-sm font-medium text-foreground">{{ activity.name ?? activityShortName(activity.type) }}</div>
++      <div class="font-mono text-xs text-muted-foreground">{{ activity.type }}</div>
++    </div>
++
++    <div class="space-y-1">
++      <Label class="text-xs">鍚嶇О</Label>
++      <UiInput
++        :model-value="activity.name ?? ''"
++        :placeholder="activityShortName(activity.type)"
++        @change="(event: Event) => commitName((event.target as HTMLInputElement).value)"
++      />
++    </div>
++
++    <div class="space-y-1">
++      <Label class="text-xs">鏍囪瘑锛圕ode锛?/Label>
++      <UiInput
++        :model-value="activity.code ?? ''"
++        :placeholder="activityShortName(activity.type)"
++        @change="(event: Event) => commitCode((event.target as HTMLInputElement).value)"
++      />
++      <div class="text-[10px] text-muted-foreground">鑺傜偣鐨勭ǔ瀹氭爣璇嗭紝鐢ㄤ簬娴佺▼寮曠敤</div>
++    </div>
++
++    <div v-if="inboundCount >= 2" class="space-y-1">
++      <Label class="text-xs">鍚堝苟妯″紡</Label>
++      <Select :model-value="currentMergeMode ?? ''" @update:model-value="(mode) => commitMergeMode(String(mode))">
++        <SelectTrigger size="sm" class="w-full text-xs">
++          <SelectValue class="block! min-w-0 truncate" placeholder="鏈缃紙鎸?Stream锛? />
++        </SelectTrigger>
++        <SelectContent>
++          <SelectItem v-for="mode in MERGE_MODES" :key="mode" :value="mode">{{ mode }}</SelectItem>
++        </SelectContent>
++      </Select>
++      <div class="text-[10px] text-muted-foreground">澶氬叆杈硅妭鐐圭殑姹囪仛璇箟</div>
++    </div>
++
++    <component
++      :is="dedicatedForm"
++      v-if="dedicatedForm"
++      :activity="activity"
++      :descriptors="descriptors"
++      :designer="designer"
++    />
++    <div v-else class="space-y-2">
++      <div class="text-xs font-medium text-muted-foreground">杈撳叆灞炴€?/div>
++      <GenericActivityForm :activity="activity" :descriptors="descriptors" :designer="designer" />
++    </div>
++  </div>
++</template>
+diff --git a/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.test.ts b/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.test.ts
+new file mode 100644
+index 0000000..ce8db49
+--- /dev/null
++++ b/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.test.ts
+@@ -0,0 +1,19 @@
++import { describe, expect, it } from "vitest"
++import { Code, Type as TypeIcon } from "@lucide/vue"
++import { FALLBACK_EXPRESSION_ICON, resolveExpressionIcon } from "./expressionIcons"
++
++describe("resolveExpressionIcon", () => {
++  it("maps a bundled backend icon name to its lucide component", () => {
++    expect(resolveExpressionIcon("type")).toBe(TypeIcon)
++    expect(resolveExpressionIcon("code")).toBe(Code)
++  })
++
++  it("falls back for unbundled names", () => {
++    expect(resolveExpressionIcon("no-such-icon")).toBe(FALLBACK_EXPRESSION_ICON)
++  })
++
++  it("falls back for null/undefined", () => {
++    expect(resolveExpressionIcon(null)).toBe(FALLBACK_EXPRESSION_ICON)
++    expect(resolveExpressionIcon(undefined)).toBe(FALLBACK_EXPRESSION_ICON)
++  })
++})
+diff --git a/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.ts b/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.ts
+new file mode 100644
+index 0000000..b79f4f3
+--- /dev/null
++++ b/Frontend/cike-workflow/src/components/workflow-designer/expressionIcons.ts
+@@ -0,0 +1,32 @@
++import type { Component } from "vue"
++import {
++  Braces,
++  Code,
++  Droplet,
++  LogIn,
++  Type as TypeIcon,
++  Variable,
++} from "@lucide/vue"
++
++/**
++ * Maps backend-provided expression-type icon names (ExpressionDescriptor.icon,
++ * lucide kebab-case) to concrete @lucide/vue components. Mirrors the activity
++ * icons.ts pattern: the icon *assignment* lives in the backend; the frontend
++ * only resolves the bounded set of names it bundles. Backend currently emits
++ * type鈫?type", variable鈫?variable", log-in (Input), droplet (Liquid),
++ * code (JavaScript).
++ */
++const ICON_BY_NAME: Record<string, Component> = {
++  type: TypeIcon,
++  variable: Variable,
++  "log-in": LogIn,
++  droplet: Droplet,
++  code: Code,
++}
++
++/** Fallback for types without (or with an unbundled) icon name. */
++export const FALLBACK_EXPRESSION_ICON: Component = Braces
++
++export function resolveExpressionIcon(name?: string | null): Component {
++  return (name ? ICON_BY_NAME[name] : undefined) ?? FALLBACK_EXPRESSION_ICON
++}
+diff --git a/Frontend/cike-workflow/src/components/workflow-designer/forms/SendHttpRequestForm.vue b/Frontend/cike-workflow/src/components/workflow-designer/forms/SendHttpRequestForm.vue
+index e970982..d614172 100644
+--- a/Frontend/cike-workflow/src/components/workflow-designer/forms/SendHttpRequestForm.vue
++++ b/Frontend/cike-workflow/src/components/workflow-designer/forms/SendHttpRequestForm.vue
+@@ -41,11 +41,13 @@ function coerce(key: string, from: unknown, raw: string): unknown {
+ <template>
+   <div class="space-y-2">
+     <div class="flex items-start gap-2">
+-      <div class="w-32">
++      <div class="w-36 shrink-0">
+         <ExpressionEditor :expression="expr('method')" :designer="designer" label="鏂规硶" literal-default="GET">
+           <template #default="{ value, commit }">
+             <Select :model-value="text(value)" @update:model-value="(v) => commit(String(v))">
+-              <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
++              <SelectTrigger size="sm" class="w-full text-xs">
++                <SelectValue class="block! min-w-0 truncate" />
++              </SelectTrigger>
+               <SelectContent>
+                 <SelectItem v-for="method in METHODS" :key="method" :value="method">{{ method }}</SelectItem>
+               </SelectContent>
+@@ -53,7 +55,7 @@ function coerce(key: string, from: unknown, raw: string): unknown {
+           </template>
+         </ExpressionEditor>
+       </div>
+-      <div class="flex-1">
++      <div class="min-w-0 flex-1">
+         <ExpressionEditor :expression="expr('url')" :designer="designer" label="URL" literal-default="">
+           <template #default="{ value, commit }">
+             <UiInput
+diff --git a/Frontend/cike-workflow/src/components/workflow-designer/forms/SwitchForm.vue b/Frontend/cike-workflow/src/components/workflow-designer/forms/SwitchForm.vue
+index cbb41a1..1d0699a 100644
+--- a/Frontend/cike-workflow/src/components/workflow-designer/forms/SwitchForm.vue
++++ b/Frontend/cike-workflow/src/components/workflow-designer/forms/SwitchForm.vue
+@@ -62,7 +62,9 @@ function removeRow(index: number): void {
+     <ExpressionEditor v-if="modeExpr" :expression="modeExpr" :designer="designer" label="鍖归厤妯″紡" :literal-default="0">
+       <template #default="{ value, commit }">
+         <Select :model-value="String(value ?? 0)" @update:model-value="(v) => commit(Number(String(v)))">
+-          <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
++          <SelectTrigger size="sm" class="w-full text-xs">
++            <SelectValue class="block! min-w-0 truncate" />
++          </SelectTrigger>
+           <SelectContent>
+             <SelectItem value="0">MatchFirst锛堥涓尮閰嶏級</SelectItem>
+             <SelectItem value="1">MatchAny锛堜换涓€鍖归厤锛?/SelectItem>

@@ -49,6 +49,31 @@
         }
       }
     },
+    "/api/v1/Commons/StorageDriverDescriptors": {
+      "get": {
+        "tags": [
+          "CommonService"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StorageDriverDescriptor"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/Commons/ActivityDescriptors": {
       "get": {
         "tags": [
@@ -1766,6 +1791,18 @@
           },
           "options": {
             "$ref": "#/components/schemas/WorkflowDefinitionOptionsValueObject"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StorageDriverDescriptor": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
           }
         },
         "additionalProperties": false

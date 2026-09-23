@@ -6,5 +6,6 @@ public class StorageDriverDescriptor
 
     public string DisplayName { get; set; } = default!;
 
+    [JsonIgnore]
     public Func<IServiceProvider, IStorageDriver> Factory { get; set; } = default!;
 }
