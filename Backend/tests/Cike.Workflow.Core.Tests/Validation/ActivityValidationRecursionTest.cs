@@ -33,6 +33,10 @@ public class ActivityValidationRecursionTest
         var located = errors.Single(x => x.ActivityId == "bad" && x.Message.Contains("必填属性"));
         Assert.That(located.Name, Is.EqualTo("坏节点"));
         Assert.That(located.NodeId, Is.EqualTo("node_bad"));
+
+        // 消息面向人：显示名称而非 id
+        Assert.That(located.Message, Does.Contain("坏节点"));
+        Assert.That(located.Message, Does.Not.Contain("[bad]"));
     }
 
     [Test]
@@ -148,7 +152,7 @@ public class ActivityValidationRecursionTest
             base.Validate(context);
 
             if (!Metadata.ContainsKey("guard"))
-                context.Errors.Add(new(this, $"节点 [{Id}] 缺少守护配置。"));
+                context.Errors.Add(new(this, $"节点 [{GetDisplayName()}] 缺少守护配置。"));
         }
     }
 

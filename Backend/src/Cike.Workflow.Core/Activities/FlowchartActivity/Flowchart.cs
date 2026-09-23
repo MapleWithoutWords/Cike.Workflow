@@ -417,9 +417,9 @@ public class Flowchart : ContainerActivity
         foreach (var connection in Connections)
         {
             if (!activityIds.Contains(connection.Source.ActivityId))
-                context.Errors.Add(new(connection.Source.ActivityId, null, null, $"连线引用了不存在的源节点 [{connection.Source.ActivityId}]。"));
+                context.Errors.Add(new(connection.Source.ActivityId, null, null, "连线引用了不存在的源节点，请检查连线。"));
             if (!activityIds.Contains(connection.Target.ActivityId))
-                context.Errors.Add(new(connection.Target.ActivityId, null, null, $"连线引用了不存在的目标节点 [{connection.Target.ActivityId}]。"));
+                context.Errors.Add(new(connection.Target.ActivityId, null, null, "连线引用了不存在的目标节点，请检查连线。"));
         }
     }
 
@@ -439,7 +439,7 @@ public class Flowchart : ContainerActivity
             if (activity is Start || activity.GetCanStartWorkflow() || ReferenceEquals(activity, Start))
                 continue;
 
-            context.Errors.Add(new(activity, $"节点 [{activity.Id}] 是孤立节点，请将其接入流程或删除。"));
+            context.Errors.Add(new(activity, $"节点 [{activity.GetDisplayName()}] 是孤立节点，请将其接入流程或删除。"));
         }
     }
 }

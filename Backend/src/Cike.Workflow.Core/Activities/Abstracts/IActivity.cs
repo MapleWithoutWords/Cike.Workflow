@@ -78,6 +78,11 @@ public interface IActivity
 
     public bool GetCanStartWorkflow() => CustomProperties.GetValueOrDefault(CanStartWorkflowPropertyName, () => false);
 
+    /// <summary>
+    /// 面向人的显示身份（校验消息、错误列表用）：优先名称，其次编码，最后回退类型名。
+    /// </summary>
+    public string GetDisplayName();
+
     public void SetCanStartWorkflow(bool value) => CustomProperties[CanStartWorkflowPropertyName[0]] = value;
 
     public MergeMode? GetMergeMode()

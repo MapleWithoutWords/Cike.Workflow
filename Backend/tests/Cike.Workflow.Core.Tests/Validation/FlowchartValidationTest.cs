@@ -71,6 +71,9 @@ public class FlowchartValidationTest
         var located = errors.Single(x => x.ActivityId == "ghost" && x.Message.Contains("连线引用了不存在"));
         Assert.That(located.Name, Is.Null);
         Assert.That(located.NodeId, Is.Null);
+
+        // 消息面向人：不放 id
+        Assert.That(located.Message, Does.Not.Contain("ghost"));
     }
 
     [Test]
@@ -89,6 +92,25 @@ public class FlowchartValidationTest
         var located = errors.Single(x => x.ActivityId == "orphan" && x.Message.Contains("孤立节点"));
         Assert.That(located.Name, Is.EqualTo("孤儿节点"));
         Assert.That(located.NodeId, Is.EqualTo("node_orphan"));
+
+        // 消息面向人：显示名称而非 id
+        Assert.That(located.Message, Does.Contain("孤儿节点"));
+        Assert.That(located.Message, Does.Not.Contain("[orphan]"));
+    }
+
+    [Test]
+    public void Validate_OrphanNodeWithoutName_FallsBackToCodeInMessage()
+    {
+        var flowchart = WorkflowValidatorTest.CreateValidCanvas();
+        var orphan = new WriteLineStub { Id = "orphan", Code = "ORPHAN_CODE" };
+        flowchart.Activities.Add(orphan);
+        var context = new WorkflowValidationContext(flowchart, []);
+
+        var errors = _validator.Validate(context);
+
+        var located = errors.Single(x => x.ActivityId == "orphan" && x.Message.Contains("孤立节点"));
+        Assert.That(located.Message, Does.Contain("ORPHAN_CODE"));
+        Assert.That(located.Message, Does.Not.Contain("[orphan]"));
     }
 
     [Test]

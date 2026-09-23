@@ -38,6 +38,12 @@ public abstract class Activity : IActivity, ISignalHandler
     [JsonIgnore]
     public ICollection<IBehavior> Behaviors { get; } = new List<IBehavior>();
 
+    /// <inheritdoc />
+    public string GetDisplayName() =>
+        !string.IsNullOrWhiteSpace(Name) ? Name
+        : !string.IsNullOrWhiteSpace(Code) ? Code
+        : Type;
+
     async ValueTask<bool> IActivity.CanExecuteAsync(ActivityExecutionContext context)
     {
         return await CanExecuteAsync(context);
@@ -75,7 +81,7 @@ public abstract class Activity : IActivity, ISignalHandler
                 continue;
 
             if (property.GetValue(this) == null)
-                context.Errors.Add(new(this, $"节点 [{Id}] 缺少必填属性 [{property.Name}]。"));
+                context.Errors.Add(new(this, $"节点 [{GetDisplayName()}] 缺少必填属性 [{property.Name}]。"));
         }
     }
 

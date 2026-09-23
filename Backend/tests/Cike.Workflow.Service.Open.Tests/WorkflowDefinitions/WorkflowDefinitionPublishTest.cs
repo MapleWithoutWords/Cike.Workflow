@@ -111,7 +111,8 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var message = await response.Content.ReadAsStringAsync();
         Assert.That(message, Does.Contain("孤立节点"));
-        Assert.That(message, Does.Contain("orphan_isolated"));
+        Assert.That(message, Does.Contain("WriteLine"));
+        Assert.That(message, Does.Not.Contain("orphan_isolated"));
     }
 
     [Test]
@@ -158,7 +159,8 @@ internal class WorkflowDefinitionPublishTest : WorkflowDefinitionTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         var message = await response.Content.ReadAsStringAsync();
         Assert.That(message, Does.Contain("必填属性"));
-        Assert.That(message, Does.Contain("req_write"));
+        Assert.That(message, Does.Contain("WriteLine"));
+        Assert.That(message, Does.Not.Contain("req_write"));
     }
 
     [Test]
