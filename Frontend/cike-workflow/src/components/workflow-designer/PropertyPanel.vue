@@ -127,6 +127,5 @@ function commitMergeMode(mode: string): void {
     >
       <PanelRightOpen :size="15" />
     </button>
-    <DockPinButton panel="property" :size="15" class="p-1" />
   </aside>
 </template>

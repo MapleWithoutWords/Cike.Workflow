@@ -69,6 +69,5 @@ function onDragStart(typeName: string, event: DragEvent): void {
     >
       <PanelLeftOpen :size="15" />
     </button>
-    <DockPinButton panel="palette" :size="15" class="p-1" />
   </aside>
 </template>
