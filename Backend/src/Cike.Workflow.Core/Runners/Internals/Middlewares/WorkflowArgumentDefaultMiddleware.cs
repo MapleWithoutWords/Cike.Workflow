@@ -9,14 +9,10 @@ using Cike.Workflow.Core.Runners.Internals.Commands;
 namespace Cike.Workflow.Core.Runners.Internals.Middlewares;
 
 /// <summary>
-/// Materializes workflow argument (input/output) default values around the instance run and
-/// performs the terminal status transition:
+/// Materializes workflow argument (input/output) default values around the instance run:
 /// - before the run (first start only): evaluate defaults for inputs the caller did not provide;
-/// - after the scheduler drains: evaluate defaults for outputs that were never written, then
-///   transition the instance to Finished/Suspended. An evaluation failure propagates to the
-///   exception middleware which transitions the workflow to Faulted.
-/// Downstream status observers must derive terminal state from the completion fact
-/// (all activity execution contexts completed) rather than from the status flag alone.
+/// - after the run finished: evaluate defaults for outputs that were never written.
+/// The terminal status transition itself stays in the instance run handler.
 /// </summary>
 internal class WorkflowArgumentDefaultMiddleware(
     IExpressionEvaluator expressionEvaluator,
@@ -36,15 +32,10 @@ internal class WorkflowArgumentDefaultMiddleware(
 
         await next();
 
-        if (context.Status.GetMainStatus() == WorkflowMainStatus.Running)
-        {
-            var isFinished = context.ActivityExecutionContexts.All(x => x.IsCompleted);
-
-            if (isFinished)
-                await MaterializeOutputDefaultsAsync(context);
-
-            context.TransitionTo(isFinished ? WorkflowStatus.Finished : WorkflowStatus.Suspended);
-        }
+        // Assign default values to outputs that were never written once the workflow has
+        // finished; cancelled / faulted / suspended instances get no default outputs.
+        if (context.Status == WorkflowStatus.Finished)
+            await MaterializeOutputDefaultsAsync(context);
     }
 
     private async Task MaterializeInputDefaultsAsync(WorkflowExecutionContext context)

@@ -25,9 +25,8 @@ internal class WorkflowInstanceRunHandler(ILocalEventBus localEventBus, ILogger<
             await ExecuteWorkItemAsync(context, currentWorkItem, cancellationToken);
         }
 
-        // The terminal transition (Finished/Suspended) lives in WorkflowArgumentDefaultMiddleware:
-        // output defaults must be materialized before the transition, so both belong to the same
-        // middleware; downstream status observers derive terminal state from the completion fact.
+        if (context.Status.GetMainStatus() == WorkflowMainStatus.Running)
+            context.TransitionTo(context.ActivityExecutionContexts.All(x => x.IsCompleted) ? WorkflowStatus.Finished : WorkflowStatus.Suspended);
     }
 
     [LocalEventHandler]

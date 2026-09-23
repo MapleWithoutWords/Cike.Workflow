@@ -229,7 +229,7 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
     }
 
     [Test]
-    public async Task RunAsync_WithFailingJavaScriptOutputDefault_FaultsWorkflowWithIncident()
+    public async Task RunAsync_WithFailingJavaScriptOutputDefault_RecordsIncidentAndKeepsFinished()
     {
         var workflow = new WorkflowActivity(new WriteLine("Hello"));
         workflow.Outputs.Add(new OutputDefinition
@@ -241,7 +241,8 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
 
         var result = await realRunner.RunAsync(workflow);
 
-        Assert.That(result.WorkflowState.Status, Is.EqualTo(WorkflowStatus.Faulted));
+        // 终态转换在 handler 内已完成，输出默认值求值失败由异常中间件记录 incident，不改变状态。
+        Assert.That(result.WorkflowState.Status, Is.EqualTo(WorkflowStatus.Finished));
         Assert.That(result.WorkflowState.Incidents, Is.Not.Empty);
         Assert.That(result.WorkflowState.Incidents.Single().Message, Does.Contain("Broken"));
     }
