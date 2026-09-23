@@ -180,6 +180,7 @@ export type Expression = {
 export type ExpressionDescriptor = {
     type?: string;
     displayName?: string;
+    icon?: string | null;
 };
 
 export type FolderDetailDto = {
@@ -314,6 +315,11 @@ export type VariableDefinition = {
     isArray?: boolean;
     defaultValue?: string | null;
     storageDriverType?: string | null;
+};
+
+export type VariableTypeDescriptor = {
+    typeName?: string;
+    displayName?: string;
 };
 
 export type Variable1 = Variable & {};
@@ -596,6 +602,29 @@ export type GetApiV1CommonsActivityDescriptorsResponses = {
 };
 
 export type GetApiV1CommonsActivityDescriptorsResponse = GetApiV1CommonsActivityDescriptorsResponses[keyof GetApiV1CommonsActivityDescriptorsResponses];
+
+export type GetApiV1CommonsVarialbeTypesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/Commons/VarialbeTypes';
+};
+
+export type GetApiV1CommonsVarialbeTypesErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type GetApiV1CommonsVarialbeTypesResponses = {
+    /**
+     * OK
+     */
+    200: Array<VariableTypeDescriptor>;
+};
+
+export type GetApiV1CommonsVarialbeTypesResponse = GetApiV1CommonsVarialbeTypesResponses[keyof GetApiV1CommonsVarialbeTypesResponses];
 
 export type DeleteApiV1FoldersData = {
     body?: never;

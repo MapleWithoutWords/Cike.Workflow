@@ -62,7 +62,9 @@ function removeRow(index: number): void {
     <ExpressionEditor v-if="modeExpr" :expression="modeExpr" :designer="designer" label="匹配模式" :literal-default="0">
       <template #default="{ value, commit }">
         <Select :model-value="String(value ?? 0)" @update:model-value="(v) => commit(Number(String(v)))">
-          <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger size="sm" class="w-full text-xs">
+            <SelectValue class="block! min-w-0 truncate" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="0">MatchFirst（首个匹配）</SelectItem>
             <SelectItem value="1">MatchAny（任一匹配）</SelectItem>

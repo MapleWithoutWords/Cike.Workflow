@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload, Variable } from "@lucide/vue"
+import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload } from "@lucide/vue"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
@@ -11,8 +11,7 @@ import ThemeToggle from "@/components/layout/ThemeToggle.vue"
 import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
-import PropertyPanel from "./PropertyPanel.vue"
-import VariablesDialog from "./VariablesDialog.vue"
+import RightToolDock from "./RightToolDock.vue"
 import PublishDialog from "./PublishDialog.vue"
 import ProblemListPanel from "./ProblemListPanel.vue"
 import VersionHistorySheet from "./VersionHistorySheet.vue"
@@ -24,7 +23,6 @@ const router = useRouter()
 const workspaceId = computed(() => route.params.workspaceId as string)
 
 const canvasRef = ref<InstanceType<typeof DesignerCanvas> | null>(null)
-const variablesOpen = ref(false)
 const publishOpen = ref(false)
 const historyOpen = ref(false)
 const editOpen = ref(false)
@@ -167,9 +165,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
         >
           <Trash2 :size="16" />
         </Button>
-        <Button variant="ghost" size="icon" title="工作流变量" @click="variablesOpen = true">
-          <Variable :size="16" />
-        </Button>
         <div class="mx-1 h-5 w-px bg-border" />
         <ThemeToggle />
         <Button variant="ghost" size="icon" title="历史版本" @click="historyOpen = true">
@@ -229,10 +224,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
           @reveal="(problem) => designer.revealActivity(problem)"
         />
       </div>
-      <PropertyPanel :activity="designer.selectedActivity.value" :designer="designer" />
+      <RightToolDock :designer="designer" />
     </div>
-
-    <VariablesDialog :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
 
     <PublishDialog :designer="designer" :open="publishOpen" @update:open="(open: boolean) => (publishOpen = open)" />
 

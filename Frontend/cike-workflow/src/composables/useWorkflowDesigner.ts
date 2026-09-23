@@ -2,6 +2,7 @@ import { computed, ref, shallowRef } from "vue"
 import {
   getApiV1CommonsActivityDescriptors,
   getApiV1CommonsExpressionDescriptors,
+  getApiV1CommonsVarialbeTypes,
   getApiV1WorkflowDefinitionsById,
   getApiV1WorkflowDefinitionsVersionList,
   postApiV1WorkflowDefinitionsPublishById,
@@ -25,7 +26,7 @@ import {
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
-import type { ExpressionDescriptor, InputDefinition, InputDescriptor, VariableDefinition } from "@/api/generated"
+import type { ExpressionDescriptor, InputDefinition, InputDescriptor, OutputDefinition, VariableDefinition, VariableTypeDescriptor } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { resolveRevealPath } from "@/core/designer/reveal"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
@@ -33,6 +34,7 @@ import { activityShortName, resolveActivityClass } from "@/core/designer/registr
 import { fromWireActivity, toWireActivity, type WireActivity } from "@/core/designer/serialization"
 import { computeNodeId } from "@/core/designer/nodeId"
 import { getCanvasState, setCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
+import { cascadeRename, type ReferenceKind } from "@/core/designer/rename"
 
 /** One drill-down level: the container owning the canvas content. */
 export interface DrillEntry {
@@ -101,6 +103,12 @@ export function useWorkflowDesigner() {
   const variables = shallowRef<VariableDefinition[]>([])
   /** Options-level workflow inputs; drive the WorkflowInput expression picker. */
   const inputs = shallowRef<InputDefinition[]>([])
+  /** Options-level workflow outputs. */
+  const outputs = shallowRef<OutputDefinition[]>([])
+  /** Options-level workflow outcomes (control-flow results). */
+  const outcomes = shallowRef<string[]>([])
+  /** Backend-registered variable/argument types for type selectors. */
+  const variableTypes = shallowRef<VariableTypeDescriptor[]>([])
   /** Backend-registered expression types; drive the ExpressionEditor type list. */
   const expressionDescriptors = shallowRef<ExpressionDescriptor[]>([])
   /** Canvas validation problems; the problem list panel is their only outlet. */
@@ -200,6 +208,8 @@ export function useWorkflowDesigner() {
       savedOptions.value = (data.options ?? {}) as Record<string, unknown>
       variables.value = ((data.options as { variables?: VariableDefinition[] } | null)?.variables ?? []) as VariableDefinition[]
       inputs.value = ((data.options as { inputs?: InputDefinition[] } | null)?.inputs ?? []) as InputDefinition[]
+      outputs.value = ((data.options as { outputs?: OutputDefinition[] } | null)?.outputs ?? []) as OutputDefinition[]
+      outcomes.value = ((data.options as { outcomes?: string[] } | null)?.outcomes ?? []) as string[]
       definitionName.value = data.name || data.definitionId || "未命名"
       definitionId.value = data.definitionId ?? ""
       description.value = data.description ?? ""
@@ -218,6 +228,7 @@ export function useWorkflowDesigner() {
       refreshUndoFlags()
       void loadPalette()
       void loadExpressionDescriptors()
+      void loadVariableTypes()
       void loadVersions()
       // Validate once on open (non-blocking) so a loaded draft's existing
       // problems surface immediately. No-op in readonly mode.
@@ -346,6 +357,17 @@ export function useWorkflowDesigner() {
     }
   }
 
+  /** Fetches the backend-registered variable/argument types once. */
+  async function loadVariableTypes(): Promise<void> {
+    if (variableTypes.value.length > 0) return
+    try {
+      const { data } = await getApiV1CommonsVarialbeTypes({})
+      variableTypes.value = (data ?? []) as VariableTypeDescriptor[]
+    } catch {
+      variableTypes.value = []
+    }
+  }
+
   /** Adds a node of the given wire type; point is canvas-local, auto-staggered
    *  down-right while it would overlap an existing node. */
   function addNode(typeName: string, point: { x: number; y: number }): void {
@@ -368,28 +390,150 @@ export function useWorkflowDesigner() {
     selectedActivityId.value = activity.id
   }
 
-  /** Replaces the options-level variables through the command stack so the
-   *  edit participates in undo/redo like every other designer edit. */
-  function setVariables(list: VariableDefinition[]): void {
-    const from = savedOptions.value["variables"] as VariableDefinition[] | undefined
+  /** Replaces an options-level array field through the command stack. */
+  function setOptionField<T>(key: string, list: T[], localRef: { value: T[] }, label: string): void {
+    const from = savedOptions.value[key] as T[] | undefined
     executeCommand({
-      label: "编辑工作流变量",
+      label,
       apply: () => {
-        savedOptions.value = { ...savedOptions.value, variables: list }
-        variables.value = list
+        savedOptions.value = { ...savedOptions.value, [key]: list }
+        localRef.value = list
       },
       undo: () => {
         const restored = { ...savedOptions.value }
-        if (from == null) delete restored["variables"]
-        else restored["variables"] = from
+        if (from == null) delete restored[key]
+        else restored[key] = from
         savedOptions.value = restored
-        variables.value = from ?? []
+        localRef.value = from ?? []
       },
       redo: () => {
-        savedOptions.value = { ...savedOptions.value, variables: list }
-        variables.value = list
+        savedOptions.value = { ...savedOptions.value, [key]: list }
+        localRef.value = list
       },
     })
+  }
+
+  function setVariables(list: VariableDefinition[]): void {
+    setOptionField("variables", list, variables as { value: VariableDefinition[] }, "编辑工作流变量")
+  }
+
+  function setInputs(list: InputDefinition[]): void {
+    setOptionField("inputs", list, inputs as { value: InputDefinition[] }, "编辑工作流输入")
+  }
+
+  function setOutputs(list: OutputDefinition[]): void {
+    setOptionField("outputs", list, outputs as { value: OutputDefinition[] }, "编辑工作流输出")
+  }
+
+  function setOutcomes(list: string[]): void {
+    setOptionField("outcomes", list, outcomes as { value: string[] }, "编辑工作流结果")
+  }
+
+  /**
+   * Renames a variable or input and cascades the change to all structured
+   * Expression references in the activity tree. The rename + cascade is merged
+   * into a single undo step (spec decision).
+   */
+  function renameReference(kind: ReferenceKind, oldName: string, newName: string): void {
+    if (!root.value || oldName === newName || !oldName) return
+    const list = kind === "Variable" ? variables.value : inputs.value
+    const updated = list.map((item) =>
+      item.name === oldName ? { ...item, name: newName } : item,
+    )
+    const fromOptions = savedOptions.value[kind === "Variable" ? "variables" : "inputs"] as typeof list | undefined
+    const localRef = kind === "Variable" ? variables : inputs
+    const key = kind === "Variable" ? "variables" : "inputs"
+
+    // Snapshot expression values before cascade so undo can restore them.
+    const exprSnapshots: Array<{ expr: { value?: unknown }; old: unknown }> = []
+    collectExpressions(root.value, kind, oldName, exprSnapshots)
+
+    executeCommand({
+      label: `重命名${kind === "Variable" ? "变量" : "输入"} ${oldName}`,
+      apply: () => {
+        savedOptions.value = { ...savedOptions.value, [key]: updated }
+        localRef.value = updated as never
+        cascadeRename(root.value!, { kind, oldName, newName })
+      },
+      undo: () => {
+        const restored = { ...savedOptions.value }
+        if (fromOptions == null) delete restored[key]
+        else restored[key] = fromOptions
+        savedOptions.value = restored
+        localRef.value = (fromOptions ?? []) as never
+        for (const snap of exprSnapshots) snap.expr.value = snap.old
+      },
+      redo: () => {
+        savedOptions.value = { ...savedOptions.value, [key]: updated }
+        localRef.value = updated as never
+        cascadeRename(root.value!, { kind, oldName, newName })
+      },
+    })
+  }
+
+  /** Collects existing expression values matching the rename target for undo. */
+  function collectExpressions(
+    activity: IActivity,
+    kind: ReferenceKind,
+    oldName: string,
+    out: Array<{ expr: { value?: unknown }; old: unknown }>,
+  ): void {
+    const record = activity as unknown as Record<string, unknown>
+    for (const key of Object.keys(record)) {
+      if (key === "type" || key === "id" || key === "nodeId") continue
+      const value = record[key]
+      if (isExprLike(value)) {
+        if (value.type === kind && value.value === oldName) out.push({ expr: value, old: value.value })
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (isExprLike(item)) {
+            if (item.type === kind && item.value === oldName) out.push({ expr: item, old: item.value })
+          } else if (isActivityLike(item)) {
+            collectExpressions(item as unknown as IActivity, kind, oldName, out)
+          }
+        }
+      } else if (isActivityLike(value)) {
+        collectExpressions(value as unknown as IActivity, kind, oldName, out)
+      } else if (value != null && typeof value === "object") {
+        collectFromPlain(value as Record<string, unknown>, kind, oldName, out)
+      }
+    }
+  }
+
+  function collectFromPlain(
+    obj: Record<string, unknown>,
+    kind: ReferenceKind,
+    oldName: string,
+    out: Array<{ expr: { value?: unknown }; old: unknown }>,
+  ): void {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key]
+      if (isExprLike(value)) {
+        if (value.type === kind && value.value === oldName) out.push({ expr: value, old: value.value })
+      } else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (isExprLike(item)) {
+            if (item.type === kind && item.value === oldName) out.push({ expr: item, old: item.value })
+          } else if (isActivityLike(item)) {
+            collectExpressions(item as unknown as IActivity, kind, oldName, out)
+          } else if (item != null && typeof item === "object") {
+            collectFromPlain(item as Record<string, unknown>, kind, oldName, out)
+          }
+        }
+      } else if (isActivityLike(value)) {
+        collectExpressions(value as unknown as IActivity, kind, oldName, out)
+      } else if (value != null && typeof value === "object") {
+        collectFromPlain(value as Record<string, unknown>, kind, oldName, out)
+      }
+    }
+  }
+
+  function isExprLike(v: unknown): v is { type?: string; value?: unknown } {
+    return v != null && typeof v === "object" && !Array.isArray(v) && "type" in (v as object) && "value" in (v as object)
+  }
+
+  function isActivityLike(v: unknown): boolean {
+    return v != null && typeof v === "object" && !Array.isArray(v) && "type" in (v as object) && "id" in (v as object)
   }
 
   const selectedEdgeId = ref<string | null>(null)
@@ -643,8 +787,15 @@ export function useWorkflowDesigner() {
     connectionTargets,
     variables,
     inputs,
+    outputs,
+    outcomes,
+    variableTypes,
     expressionDescriptors,
     setVariables,
+    setInputs,
+    setOutputs,
+    setOutcomes,
+    renameReference,
     addNode,
     selectedEdgeId,
     connect,

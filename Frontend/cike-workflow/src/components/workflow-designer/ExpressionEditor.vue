@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
+import { SelectTrigger as SelectTriggerPrimitive } from "reka-ui"
 import { Input as UiInput } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import { makeEditPropertyCommand } from "@/core/designer/commands"
 import { LITERAL_TYPE, isLiteral, makeSwitchExpressionTypeCommand, type ExpressionLike } from "@/core/designer/expression"
+import { resolveExpressionIcon } from "./expressionIcons"
 import MonacoEditor from "./MonacoEditor.vue"
 
 /**
@@ -23,6 +25,9 @@ const props = defineProps<{
   /** Concrete zero/default value used when switching *to* Literal (ADR 0005). */
   literalDefault?: unknown
   readonly?: boolean
+  /** Whitelist of selectable types; the current type always stays visible
+   *  even when excluded, so a stored value never becomes unselectable. */
+  allowedTypes?: string[]
 }>()
 
 const isReadonly = computed(() => props.readonly ?? props.designer.readonly.value)
@@ -54,26 +59,41 @@ const KNOWN_TYPE_NAMES: Record<string, string> = {
 }
 
 // Backend-registered types; a Literal-only fallback covers the pre-fetch moment.
+// Each option carries the backend icon name (lucide) resolved for the trigger
+// and menu items.
 const typeOptions = computed(() => {
   const list = props.designer.expressionDescriptors.value
+  const allowed = props.allowedTypes
   const options =
     list.length === 0
-      ? [{ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE] }]
+      ? [{ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE], icon: "type" as string | null }]
       : list
-          .filter((d): d is { type: string; displayName?: string } => !!d.type)
+          .filter((d): d is { type: string; displayName?: string; icon?: string | null } => !!d.type)
+          .filter((d) => !allowed || allowed.includes(d.type as string))
           .map((d) => ({
             type: d.type as string,
             displayName: d.displayName ?? KNOWN_TYPE_NAMES[d.type as string] ?? d.type,
+            icon: d.icon ?? null,
           }))
+  // A filtered list may drop Literal while the value is still concrete:
+  // keep the Literal editor usable as the fallback for the default slot.
+  if (allowed && !allowed.includes(LITERAL_TYPE) && !options.some((o) => o.type === LITERAL_TYPE)) {
+    options.unshift({ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE], icon: "type" })
+  }
   // Always keep the current type visible/selectable even if the backend list
-  // does not include it (e.g. a saved Variable input), otherwise the trigger's
-  // SelectValue finds no match and renders blank.
+  // does not include it (e.g. a saved Variable input), otherwise the trigger
+  // shows no icon and the type cannot be re-selected.
   const current = currentType.value
   if (current && !options.some((o) => o.type === current)) {
-    options.push({ type: current, displayName: KNOWN_TYPE_NAMES[current] ?? current })
+    options.push({ type: current, displayName: KNOWN_TYPE_NAMES[current] ?? current, icon: null })
   }
   return options
 })
+
+// Current type's descriptor projection, for the trigger icon and its title.
+const currentOption = computed(() => typeOptions.value.find((o) => o.type === currentType.value))
+const currentIcon = computed(() => resolveExpressionIcon(currentOption.value?.icon))
+const currentTypeName = computed(() => currentOption.value?.displayName ?? currentType.value)
 
 const isMonacoType = computed(() => currentType.value === "JavaScript" || currentType.value === "Liquid")
 // Name-referencing types resolve to a dropdown of definition names. The backend
@@ -131,61 +151,70 @@ function onTypeChange(type: string): void {
 
 <template>
   <div class="space-y-1">
-    <div class="flex items-center gap-2">
-      <Label v-if="label" class="text-xs" :title="description ?? undefined">{{ label }}</Label>
-      <div class="ml-auto">
+    <Label v-if="label" class="text-xs" :title="description ?? undefined">{{ label }}</Label>
+
+    <div class="flex items-start gap-2">
+      <div class="min-w-0 flex-1">
+        <!-- Literal: the caller-provided value editor (only the node knows T). -->
+        <slot v-if="isLiteral(currentType)" :value="currentValue" :commit="commitValue" :readonly="isReadonly" />
+
+        <!-- JavaScript / Liquid: Monaco, committed on blur. -->
+        <MonacoEditor
+          v-else-if="isMonacoType"
+          v-model="draft"
+          :language="languageFor(currentType)"
+          :readonly="isReadonly"
+          @blur="commitDraft"
+        />
+
+        <!-- Variable / WorkflowInput: reference a definition by name. -->
         <Select
-          :model-value="currentType"
+          v-else-if="isNameType"
+          :model-value="nameValue"
           :disabled="isReadonly"
-          @update:model-value="(t) => onTypeChange(String(t))"
+          @update:model-value="(n) => commitValue(String(n))"
         >
-          <SelectTrigger size="sm" class="w-40 text-xs">
-            <SelectValue class="block! min-w-0 truncate" placeholder="类型" />
+          <SelectTrigger size="sm" class="w-full text-xs">
+            <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '选择…' : '（暂无可选项）'" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type" class="text-xs">
-              {{ opt.displayName }}
-            </SelectItem>
+            <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>
           </SelectContent>
         </Select>
+
+        <!-- Any other string-valued type: plain text fallback. -->
+        <UiInput
+          v-else
+          class="font-mono text-xs"
+          :model-value="draft"
+          :disabled="isReadonly"
+          @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
+          @blur="commitDraft"
+        />
       </div>
+
+      <!-- Type switcher: icon-only trigger opening a single-select picker (ADR 0007). -->
+      <Select
+        :model-value="currentType"
+        :disabled="isReadonly"
+        @update:model-value="(t) => onTypeChange(String(t))"
+      >
+        <SelectTriggerPrimitive
+          :title="currentTypeName"
+          class="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 inline-flex size-8 shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
+        >
+          <component :is="currentIcon" />
+        </SelectTriggerPrimitive>
+        <SelectContent>
+          <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type" class="text-xs">
+            <span class="flex items-center gap-2">
+              <component :is="resolveExpressionIcon(opt.icon)" class="size-4 shrink-0 text-muted-foreground" />
+              {{ opt.displayName }}
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
-
-    <!-- Literal: the caller-provided value editor (only the node knows T). -->
-    <slot v-if="isLiteral(currentType)" :value="currentValue" :commit="commitValue" :readonly="isReadonly" />
-
-    <!-- JavaScript / Liquid: Monaco, committed on blur. -->
-    <MonacoEditor
-      v-else-if="isMonacoType"
-      v-model="draft"
-      :language="languageFor(currentType)"
-      :readonly="isReadonly"
-      @blur="commitDraft"
-    />
-
-    <!-- Variable / WorkflowInput: reference a definition by name. -->
-    <Select
-      v-else-if="isNameType"
-      :model-value="nameValue"
-      :disabled="isReadonly"
-      @update:model-value="(n) => commitValue(String(n))"
-    >
-      <SelectTrigger size="sm" class="w-full text-xs">
-        <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '选择…' : '（暂无可选项）'" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>
-      </SelectContent>
-    </Select>
-
-    <!-- Any other string-valued type: plain text fallback. -->
-    <UiInput
-      v-else
-      class="font-mono text-xs"
-      :model-value="draft"
-      :disabled="isReadonly"
-      @input="(e: Event) => (draft = (e.target as HTMLInputElement).value)"
-      @blur="commitDraft"
-    />
   </div>
 </template>
+

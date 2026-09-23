@@ -41,11 +41,13 @@ function coerce(key: string, from: unknown, raw: string): unknown {
 <template>
   <div class="space-y-2">
     <div class="flex items-start gap-2">
-      <div class="w-32">
+      <div class="w-36 shrink-0">
         <ExpressionEditor :expression="expr('method')" :designer="designer" label="方法" literal-default="GET">
           <template #default="{ value, commit }">
             <Select :model-value="text(value)" @update:model-value="(v) => commit(String(v))">
-              <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger size="sm" class="w-full text-xs">
+                <SelectValue class="block! min-w-0 truncate" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="method in METHODS" :key="method" :value="method">{{ method }}</SelectItem>
               </SelectContent>
@@ -53,7 +55,7 @@ function coerce(key: string, from: unknown, raw: string): unknown {
           </template>
         </ExpressionEditor>
       </div>
-      <div class="flex-1">
+      <div class="min-w-0 flex-1">
         <ExpressionEditor :expression="expr('url')" :designer="designer" label="URL" literal-default="">
           <template #default="{ value, commit }">
             <UiInput

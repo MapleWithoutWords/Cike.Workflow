@@ -74,6 +74,31 @@
         }
       }
     },
+    "/api/v1/Commons/VarialbeTypes": {
+      "get": {
+        "tags": [
+          "CommonService"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VariableTypeDescriptor"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/Folders": {
       "get": {
         "tags": [
@@ -1469,6 +1494,10 @@
           },
           "displayName": {
             "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1867,6 +1896,18 @@
           "storageDriverType": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VariableTypeDescriptor": {
+        "type": "object",
+        "properties": {
+          "typeName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
           }
         },
         "additionalProperties": false
