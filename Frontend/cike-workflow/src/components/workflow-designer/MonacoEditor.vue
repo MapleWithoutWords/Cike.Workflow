@@ -1,0 +1,122 @@
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
+
+/**
+ * Thin Monaco wrapper. Monaco is heavy (~500KB) so it is imported lazily on
+ * first mount and never lands in the initial bundle (ADR 0004: JavaScript /
+ * Liquid expressions use Monaco; Literal stays on plain form controls).
+ */
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    language?: string
+    readonly?: boolean
+    height?: string
+  }>(),
+  {
+    language: "plaintext",
+    readonly: false,
+    height: "120px",
+  },
+)
+
+const emit = defineEmits<{ (e: "update:modelValue", value: string): void; (e: "blur"): void }>()
+
+const container = ref<HTMLDivElement | null>(null)
+const monacoRef = shallowRef<typeof import("monaco-editor") | null>(null)
+const editorRef = shallowRef<import("monaco-editor").editor.IStandaloneCodeEditor | null>(null)
+let disposed = false
+let observer: MutationObserver | null = null
+
+function currentTheme(): string {
+  return document.documentElement.classList.contains("dark") ? "vs-dark" : "vs"
+}
+
+async function setup(): Promise<void> {
+  if (!container.value || disposed) return
+  const [monaco, editorWorker, tsWorker] = await Promise.all([
+    import("monaco-editor"),
+    import("monaco-editor/editor/editor.worker?worker"),
+    import("monaco-editor/languages/features/typescript/ts.worker?worker"),
+  ])
+  if (disposed || !container.value) return
+  // Monaco requests workers by language label; the JavaScript/TypeScript language
+  // service needs ts.worker (diagnostics + completions), everything else uses the
+  // base editor worker. Routing by label avoids unhandled rejections from the JS
+  // language features hitting a worker that does not implement them.
+  ;(self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
+    getWorker: (_workerId: string, label: string) =>
+      label === "typescript" || label === "javascript"
+        ? new tsWorker.default()
+        : new editorWorker.default(),
+  }
+  const editor = monaco.editor.create(container.value, {
+    value: props.modelValue ?? "",
+    language: props.language,
+    theme: currentTheme(),
+    readOnly: props.readonly,
+    automaticLayout: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    fontSize: 12,
+    lineNumbers: "off",
+    tabSize: 2,
+    renderLineHighlight: "none",
+    overviewRulerLanes: 0,
+    hideCursorInOverviewRuler: true,
+    scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+  })
+  editor.onDidChangeModelContent(() => {
+    emit("update:modelValue", editor.getValue())
+  })
+  editor.onDidBlurEditorText(() => emit("blur"))
+  monacoRef.value = monaco
+  editorRef.value = editor
+  // Follow the app light/dark theme live.
+  observer = new MutationObserver(() => monaco.editor.setTheme(currentTheme()))
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+}
+
+onMounted(() => {
+  void setup()
+})
+
+onBeforeUnmount(() => {
+  disposed = true
+  observer?.disconnect()
+  observer = null
+  editorRef.value?.dispose()
+  editorRef.value = null
+  monacoRef.value = null
+})
+
+// External model changes (undo/redo, type switch): only push when different so
+// the cursor is not clobbered during normal typing.
+watch(
+  () => props.modelValue,
+  (next) => {
+    const editor = editorRef.value
+    if (!editor) return
+    if (editor.getValue() !== (next ?? "")) editor.setValue(next ?? "")
+  },
+)
+
+watch(
+  () => props.language,
+  (lang) => {
+    const editor = editorRef.value
+    const monaco = monacoRef.value
+    const model = editor?.getModel()
+    if (editor && monaco && model) monaco.editor.setModelLanguage(model, lang)
+  },
+)
+
+watch(
+  () => props.readonly,
+  (ro) => editorRef.value?.updateOptions({ readOnly: ro }),
+)
+</script>
+
+<template>
+  <div ref="container" class="w-full overflow-hidden rounded-md border" :style="{ height }" />
+</template>

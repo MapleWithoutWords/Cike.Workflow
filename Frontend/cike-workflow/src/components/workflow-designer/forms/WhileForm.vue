@@ -1,25 +1,24 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import type { While } from "@/core/activities/While"
-import { makeEditPropertyCommand } from "@/core/designer/commands"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { ExpressionLike } from "@/core/designer/expression"
+import ExpressionEditor from "../ExpressionEditor.vue"
 
-const props = defineProps<{ activity: unknown; designer: { executeCommand: (command: unknown) => void } }>()
+const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
-const condition = () => (props.activity as While).condition
-
-function commit(value: boolean): void {
-  const expression = condition().expression as unknown as Record<string, unknown>
-  props.designer.executeCommand(makeEditPropertyCommand(expression, "value", expression["value"], value))
-}
+const condition = computed<ExpressionLike>(
+  () => (props.activity as unknown as { condition: { expression: ExpressionLike } }).condition.expression,
+)
 </script>
 
 <template>
-  <div class="space-y-1">
-    <Label class="text-xs">循环条件</Label>
-    <div class="flex items-center gap-2">
-      <Switch :model-value="condition().expression.value === true" @update:model-value="commit" />
-      <span class="text-xs text-muted-foreground">{{ condition().expression.value === true ? "True" : "False" }}</span>
-    </div>
-  </div>
+  <ExpressionEditor :expression="condition" :designer="designer" label="循环条件" :literal-default="false">
+    <template #default="{ value, commit }">
+      <div class="flex items-center gap-2">
+        <Switch :model-value="value === true" @update:model-value="(v: boolean) => commit(v)" />
+        <span class="text-xs text-muted-foreground">{{ value === true ? "True" : "False" }}</span>
+      </div>
+    </template>
+  </ExpressionEditor>
 </template>

@@ -1,47 +1,51 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { makeEditPropertyCommand } from "@/core/designer/commands"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { ExpressionLike } from "@/core/designer/expression"
 import { coerceLiteralValue } from "@/core/designer/form"
+import ExpressionEditor from "../ExpressionEditor.vue"
 
-const props = defineProps<{ activity: unknown; designer: { executeCommand: (command: unknown) => void } }>()
+const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
-const activity = props.activity as unknown as Record<string, { expression: { value?: unknown } }>
+const activity = computed(() => props.activity as unknown as Record<string, { expression: ExpressionLike }>)
 
-function field(key: string) {
-  return activity[key].expression as unknown as Record<string, unknown>
+function expr(key: string): ExpressionLike {
+  return activity.value[key].expression
 }
 
-function display(key: string): string {
-  const value = field(key)["value"]
-  if (key === "possibleOutcomes") {
-    const outcomes = value as unknown
-    return Array.isArray(outcomes) ? outcomes.join(", ") : ""
-  }
+function scriptText(value: unknown): string {
   return value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value)
 }
 
-function commit(key: string, event: Event): void {
-  const raw = (event.target as HTMLInputElement | HTMLTextAreaElement).value
-  const from = field(key)["value"]
-  const to = key === "possibleOutcomes"
-    ? raw.split(",").map((entry) => entry.trim()).filter(Boolean)
-    : coerceLiteralValue(from, raw)
-  if (to === undefined) return
-  props.designer.executeCommand(makeEditPropertyCommand(field(key), "value", from, to))
+function outcomesText(value: unknown): string {
+  return Array.isArray(value) ? value.join(", ") : ""
+}
+
+function parseOutcomes(raw: string): string[] {
+  return raw.split(",").map((entry) => entry.trim()).filter(Boolean)
 }
 </script>
 
 <template>
   <div class="space-y-2">
-    <div class="space-y-1">
-      <Label class="text-xs">脚本</Label>
-      <Textarea class="min-h-28 font-mono text-xs" :model-value="display('script')" @change="commit('script', $event)" />
-    </div>
-    <div class="space-y-1">
-      <Label class="text-xs">可能出端口（逗号分隔）</Label>
-      <UiInput :model-value="display('possibleOutcomes')" @change="commit('possibleOutcomes', $event)" />
-    </div>
+    <ExpressionEditor :expression="expr('script')" :designer="designer" label="脚本" literal-default="">
+      <template #default="{ value, commit }">
+        <Textarea
+          class="min-h-28 font-mono text-xs"
+          :model-value="scriptText(value)"
+          @change="(e: Event) => { const to = coerceLiteralValue(value, (e.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
+        />
+      </template>
+    </ExpressionEditor>
+    <ExpressionEditor :expression="expr('possibleOutcomes')" :designer="designer" label="可能出端口（逗号分隔）" :literal-default="[]">
+      <template #default="{ value, commit }">
+        <UiInput
+          :model-value="outcomesText(value)"
+          @change="(e: Event) => commit(parseOutcomes((e.target as HTMLInputElement).value))"
+        />
+      </template>
+    </ExpressionEditor>
   </div>
 </template>

@@ -1,45 +1,49 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import type { For } from "@/core/activities/For"
-import { makeEditPropertyCommand } from "@/core/designer/commands"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { ExpressionLike } from "@/core/designer/expression"
+import ExpressionEditor from "../ExpressionEditor.vue"
 
-const props = defineProps<{ activity: unknown; designer: { executeCommand: (command: unknown) => void } }>()
+const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
-const fields = (props.activity as For) as unknown as Record<string, { expression: { value?: unknown } }>
+const fields = computed(() => props.activity as unknown as Record<string, { expression: ExpressionLike }>)
 
-function commitNumber(key: string, event: Event): void {
-  const expression = fields[key].expression as unknown as Record<string, unknown>
-  const from = expression["value"]
-  const raw = (event.target as HTMLInputElement).value
-  const to = raw === "" ? null : Number(raw)
-  props.designer.executeCommand(makeEditPropertyCommand(expression, "value", from, to))
+function expr(key: string): ExpressionLike {
+  return fields.value[key].expression
 }
 
-function commitInclusive(value: boolean): void {
-  const expression = fields["outerBoundInclusive"].expression as unknown as Record<string, unknown>
-  props.designer.executeCommand(makeEditPropertyCommand(expression, "value", expression["value"], value))
+function num(value: unknown): string {
+  return value == null ? "" : String(value)
+}
+
+function toNumber(raw: string): unknown {
+  return raw === "" ? null : Number(raw)
 }
 </script>
 
 <template>
   <div class="space-y-2">
-    <div class="space-y-1">
-      <Label class="text-xs">起始值</Label>
-      <UiInput type="number" :model-value="String(fields['start'].expression.value ?? 0)" @change="commitNumber('start', $event)" />
-    </div>
-    <div class="space-y-1">
-      <Label class="text-xs">结束值</Label>
-      <UiInput type="number" :model-value="String(fields['end'].expression.value ?? 0)" @change="commitNumber('end', $event)" />
-    </div>
-    <div class="space-y-1">
-      <Label class="text-xs">步长</Label>
-      <UiInput type="number" :model-value="String(fields['step'].expression.value ?? 1)" @change="commitNumber('step', $event)" />
-    </div>
-    <div class="space-y-1">
-      <Label class="text-xs">含右边界</Label>
-      <Switch :model-value="fields['outerBoundInclusive'].expression.value === true" @update:model-value="commitInclusive" />
-    </div>
+    <ExpressionEditor :expression="expr('start')" :designer="designer" label="起始值" :literal-default="0">
+      <template #default="{ value, commit }">
+        <UiInput type="number" :model-value="num(value)" @change="(e: Event) => commit(toNumber((e.target as HTMLInputElement).value))" />
+      </template>
+    </ExpressionEditor>
+    <ExpressionEditor :expression="expr('end')" :designer="designer" label="结束值" :literal-default="0">
+      <template #default="{ value, commit }">
+        <UiInput type="number" :model-value="num(value)" @change="(e: Event) => commit(toNumber((e.target as HTMLInputElement).value))" />
+      </template>
+    </ExpressionEditor>
+    <ExpressionEditor :expression="expr('step')" :designer="designer" label="步长" :literal-default="1">
+      <template #default="{ value, commit }">
+        <UiInput type="number" :model-value="num(value)" @change="(e: Event) => commit(toNumber((e.target as HTMLInputElement).value))" />
+      </template>
+    </ExpressionEditor>
+    <ExpressionEditor :expression="expr('outerBoundInclusive')" :designer="designer" label="含右边界" :literal-default="false">
+      <template #default="{ value, commit }">
+        <Switch :model-value="value === true" @update:model-value="(v: boolean) => commit(v)" />
+      </template>
+    </ExpressionEditor>
   </div>
 </template>

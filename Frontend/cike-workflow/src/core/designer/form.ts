@@ -11,6 +11,7 @@ export interface InputFieldDescriptorInput {
   displayName?: string | null;
   description?: string | null;
   isReadOnly?: boolean | null;
+  defaultValue?: unknown;
 }
 
 export interface ResolvedInputField {
@@ -19,6 +20,8 @@ export interface ResolvedInputField {
   label: string;
   description: string | null;
   readOnly: boolean;
+  /** Backend-provided default, used as the Literal reset value (ADR 0005). */
+  defaultValue?: unknown;
   /** The Input-shaped value: { memoryBlockReference, expression: { type, value } }. */
   input: { expression: { type: string; value?: unknown } } | null;
 }
@@ -49,6 +52,7 @@ export function resolveInputFields(activity: IActivity, descriptors: InputFieldD
       label: descriptor.displayName ?? descriptor.name ?? field,
       description: descriptor.description ?? null,
       readOnly: descriptor.isReadOnly === true,
+      defaultValue: descriptor.defaultValue,
       input: isInputShaped(value) ? value : null,
     });
   }

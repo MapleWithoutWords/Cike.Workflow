@@ -1,31 +1,32 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import type { ForEach } from "@/core/activities/ForEach"
-import { makeEditPropertyCommand } from "@/core/designer/commands"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { ExpressionLike } from "@/core/designer/expression"
 import { coerceLiteralValue } from "@/core/designer/form"
+import ExpressionEditor from "../ExpressionEditor.vue"
 
-const props = defineProps<{ activity: unknown; designer: { executeCommand: (command: unknown) => void } }>()
+const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
-const items = () => ((props.activity as ForEach).items.expression as unknown as Record<string, unknown>)
+const items = computed<ExpressionLike>(
+  () => (props.activity as unknown as { items: { expression: ExpressionLike } }).items.expression,
+)
 
-function display(): string {
-  const value = items()["value"]
+function text(value: unknown): string {
   return value == null ? "" : JSON.stringify(value)
-}
-
-function commit(event: Event): void {
-  const raw = (event.target as HTMLTextAreaElement).value
-  const to = coerceLiteralValue(items()["value"], raw)
-  if (to === undefined) return
-  props.designer.executeCommand(makeEditPropertyCommand(items(), "value", items()["value"], to))
 }
 </script>
 
 <template>
-  <div class="space-y-1">
-    <Label class="text-xs">迭代集合</Label>
-    <Textarea class="font-mono text-xs" rows="5" :model-value="display()" @change="commit" />
-    <div class="text-[10px] text-muted-foreground">JSON 数组，如 [1, 2, 3] 或表达式返回的集合</div>
-  </div>
+  <ExpressionEditor :expression="items" :designer="designer" label="迭代集合" :literal-default="[]">
+    <template #default="{ value, commit }">
+      <Textarea
+        class="font-mono text-xs"
+        rows="5"
+        :model-value="text(value)"
+        @change="(e: Event) => { const to = coerceLiteralValue(value, (e.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
+      />
+      <div class="text-[10px] text-muted-foreground">JSON 数组，如 [1, 2, 3] 或表达式返回的集合</div>
+    </template>
+  </ExpressionEditor>
 </template>

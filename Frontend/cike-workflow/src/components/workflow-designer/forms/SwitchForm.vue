@@ -6,15 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2 } from "@lucide/vue"
 import { makeEditPropertyCommand } from "@/core/designer/commands"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import type { ExpressionLike } from "@/core/designer/expression"
+import ExpressionEditor from "../ExpressionEditor.vue"
 
-const props = defineProps<{ activity: unknown; designer: { executeCommand: (command: unknown) => void } }>()
+const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
 interface CaseRow {
   label: string
   value: string
 }
 
-const activity = computed(() => props.activity as { cases?: Array<Record<string, unknown>>; mode?: { expression: { value?: unknown } } })
+const activity = computed(() => props.activity as { cases?: Array<Record<string, unknown>>; mode?: { expression: ExpressionLike } })
+
+// `mode` is an Input (expression-backed) → edited through ExpressionEditor.
+// `cases` is a custom array structure, not an Input → left as-is (spec scope).
+const modeExpr = computed<ExpressionLike | null>(() => activity.value.mode?.expression ?? null)
 
 const rows = computed<CaseRow[]>(() =>
   (activity.value.cases ?? []).map((entry) => {
@@ -48,25 +55,22 @@ function addRow(): void {
 function removeRow(index: number): void {
   commitCases(rows.value.filter((_, i) => i !== index))
 }
-
-function commitMode(mode: string): void {
-  const modeField = activity.value.mode!.expression as unknown as Record<string, unknown>
-  props.designer.executeCommand(makeEditPropertyCommand(modeField, "value", modeField["value"], Number(mode)))
-}
 </script>
 
 <template>
   <div class="space-y-3">
-    <div class="space-y-1">
-      <Label class="text-xs">匹配模式</Label>
-      <Select :model-value="String(activity.mode?.expression.value ?? 0)" @update:model-value="(value) => commitMode(String(value))">
-        <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="0">MatchFirst（首个匹配）</SelectItem>
-          <SelectItem value="1">MatchAny（任一匹配）</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <ExpressionEditor v-if="modeExpr" :expression="modeExpr" :designer="designer" label="匹配模式" :literal-default="0">
+      <template #default="{ value, commit }">
+        <Select :model-value="String(value ?? 0)" @update:model-value="(v) => commit(Number(String(v)))">
+          <SelectTrigger class="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">MatchFirst（首个匹配）</SelectItem>
+            <SelectItem value="1">MatchAny（任一匹配）</SelectItem>
+          </SelectContent>
+        </Select>
+      </template>
+    </ExpressionEditor>
+
     <div class="space-y-1">
       <Label class="text-xs">分支（Case）</Label>
       <div v-for="(row, index) in rows" :key="index" class="flex items-center gap-1.5">

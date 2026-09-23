@@ -1,6 +1,7 @@
 import { computed, ref, shallowRef } from "vue"
 import {
   getApiV1CommonsActivityDescriptors,
+  getApiV1CommonsExpressionDescriptors,
   getApiV1WorkflowDefinitionsById,
   getApiV1WorkflowDefinitionsVersionList,
   postApiV1WorkflowDefinitionsPublishById,
@@ -24,7 +25,7 @@ import {
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
-import type { InputDescriptor, VariableDefinition } from "@/api/generated"
+import type { ExpressionDescriptor, InputDefinition, InputDescriptor, VariableDefinition } from "@/api/generated"
 import { ensureDrillTarget, isChainContainer } from "@/core/designer/drill"
 import { resolveRevealPath } from "@/core/designer/reveal"
 import { projectOrderedChain, projectFlowchart, projectCanvas, canDrillInto, type CanvasProjection } from "@/core/designer/projection"
@@ -98,6 +99,10 @@ export function useWorkflowDesigner() {
   const iconByType = shallowRef<Map<string, string>>(new Map())
   /** Options-level workflow variables. */
   const variables = shallowRef<VariableDefinition[]>([])
+  /** Options-level workflow inputs; drive the WorkflowInput expression picker. */
+  const inputs = shallowRef<InputDefinition[]>([])
+  /** Backend-registered expression types; drive the ExpressionEditor type list. */
+  const expressionDescriptors = shallowRef<ExpressionDescriptor[]>([])
   /** Canvas validation problems; the problem list panel is their only outlet. */
   const problems = ref<ValidationProblem[]>([])
   /** True while a ValidateCanvas request is in flight. */
@@ -190,6 +195,7 @@ export function useWorkflowDesigner() {
       rowId.value = definitionRowId
       savedOptions.value = (data.options ?? {}) as Record<string, unknown>
       variables.value = ((data.options as { variables?: VariableDefinition[] } | null)?.variables ?? []) as VariableDefinition[]
+      inputs.value = ((data.options as { inputs?: InputDefinition[] } | null)?.inputs ?? []) as InputDefinition[]
       definitionName.value = data.name || data.definitionId || "未命名"
       definitionId.value = data.definitionId ?? ""
       description.value = data.description ?? ""
@@ -207,6 +213,7 @@ export function useWorkflowDesigner() {
       commandStack.clear()
       refreshUndoFlags()
       void loadPalette()
+      void loadExpressionDescriptors()
       void loadVersions()
       // Validate once on open (non-blocking) so a loaded draft's existing
       // problems surface immediately. No-op in readonly mode.
@@ -321,6 +328,17 @@ export function useWorkflowDesigner() {
       iconByType.value = icons
     } catch {
       paletteGroups.value = []
+    }
+  }
+
+  /** Fetches the backend-registered expression types once (global, not per-definition). */
+  async function loadExpressionDescriptors(): Promise<void> {
+    if (expressionDescriptors.value.length > 0) return
+    try {
+      const { data } = await getApiV1CommonsExpressionDescriptors({})
+      expressionDescriptors.value = (data ?? []) as ExpressionDescriptor[]
+    } catch {
+      expressionDescriptors.value = []
     }
   }
 
@@ -615,10 +633,13 @@ export function useWorkflowDesigner() {
     lastSavedAt,
     canUndo,
     canRedo,
+    revision,
     paletteGroups,
     descriptorByType,
     connectionTargets,
     variables,
+    inputs,
+    expressionDescriptors,
     setVariables,
     addNode,
     selectedEdgeId,
