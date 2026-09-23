@@ -140,8 +140,8 @@ function updateOutcome(index: number, value: string): void {
 const typeOptions = computed(() => props.designer.variableTypes.value)
 
 // --- Storage driver selector options ---
-/** Sentinel Select value meaning "no explicit driver" (backend default). */
-const DEFAULT_STORAGE_DRIVER = "__default__"
+/** Effective driver when a definition has none set explicitly: the backend default. */
+const DEFAULT_STORAGE_DRIVER = "WorkflowInstance"
 const storageDriverOptions = computed(() => props.designer.storageDrivers.value)
 
 // --- Default expression editing (ADR 0009) ---
@@ -340,16 +340,16 @@ const definitionTypeLabel = computed(() => {
               <Select
                 :model-value="variable.storageDriverType ?? DEFAULT_STORAGE_DRIVER"
                 :disabled="isReadonly"
-                @update:model-value="(v) => updateVariable(index, { storageDriverType: v === DEFAULT_STORAGE_DRIVER ? null : String(v) })"
+                @update:model-value="(v) => updateVariable(index, { storageDriverType: String(v) })"
               >
                 <SelectTrigger size="sm" class="h-6 w-full text-[11px]">
                   <SelectValue class="block! min-w-0 truncate" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">（默认）</SelectItem>
                   <SelectItem v-for="d in storageDriverOptions" :key="d.type" :value="d.type!" class="text-[11px]">
                     {{ d.displayName ?? d.type }}
                   </SelectItem>
+                  <SelectItem v-if="storageDriverOptions.length === 0" :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">WorkflowInstance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -466,16 +466,16 @@ const definitionTypeLabel = computed(() => {
               <Select
                 :model-value="input.storageDriverType ?? DEFAULT_STORAGE_DRIVER"
                 :disabled="isReadonly"
-                @update:model-value="(v) => updateInput(index, { storageDriverType: v === DEFAULT_STORAGE_DRIVER ? null : String(v) })"
+                @update:model-value="(v) => updateInput(index, { storageDriverType: String(v) })"
               >
                 <SelectTrigger size="sm" class="h-6 w-full text-[11px]">
                   <SelectValue class="block! min-w-0 truncate" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">（默认）</SelectItem>
                   <SelectItem v-for="d in storageDriverOptions" :key="d.type" :value="d.type!" class="text-[11px]">
                     {{ d.displayName ?? d.type }}
                   </SelectItem>
+                  <SelectItem v-if="storageDriverOptions.length === 0" :value="DEFAULT_STORAGE_DRIVER" class="text-[11px]">WorkflowInstance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
