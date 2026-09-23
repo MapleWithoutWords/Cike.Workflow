@@ -42,7 +42,7 @@ public class CikeWorkflowExpressionJavascriptModule : CikeModule
         var expressionDescriptorRegistry = context.Services.GetSingletonInstance<IExpressionDescriptorRegistry>();
         expressionDescriptorRegistry.Add(new ExpressionDescriptor
         {
-            Type = "JavaScript",
+            Type = "Javascript",
             DisplayName = "JavaScript 表达式",
             Icon = "code",
             HandlerFactory = ActivatorUtilities.GetServiceOrCreateInstance<JavaScriptExpressionHandler>

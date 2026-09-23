@@ -218,7 +218,7 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
         {
             Name = "Broken",
             Type = "String",
-            DefaultValue = TestExpressions.Of("JavaScript", "throw new Error('boom')")
+            DefaultValue = TestExpressions.Of("Javascript", "throw new Error('boom')")
         });
 
         var result = await realRunner.RunAsync(workflow);
@@ -236,7 +236,7 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
         {
             Name = "Broken",
             Type = "String",
-            DefaultValue = TestExpressions.Of("JavaScript", "throw new Error('boom')")
+            DefaultValue = TestExpressions.Of("Javascript", "throw new Error('boom')")
         });
 
         var result = await realRunner.RunAsync(workflow);
@@ -255,7 +255,7 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
         {
             Name = "Token",
             Type = "String",
-            DefaultValue = TestExpressions.Of("JavaScript", "Math.random().toString()")
+            DefaultValue = TestExpressions.Of("Javascript", "Math.random().toString()")
         });
 
         var firstRun = await realRunner.RunAsync(workflow);
@@ -271,7 +271,7 @@ public class WorkflowArgumentDefaultIntegrationTest : BaseIntegrationTest
         {
             Name = "Token",
             Type = "String",
-            DefaultValue = TestExpressions.Of("JavaScript", "Math.random().toString()")
+            DefaultValue = TestExpressions.Of("Javascript", "Math.random().toString()")
         });
 
         var secondRun = await realRunner.RunAsync(resumedWorkflow, firstRun.WorkflowState);
