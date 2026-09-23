@@ -22,6 +22,7 @@ public class CikeWorkflowExpressionLiquidModule : CikeModule
         {
             Type = "Liquid",
             DisplayName = "Liquid 表达式",
+            Icon = "droplet",
             HandlerFactory = serviceProvider => ActivatorUtilities.GetServiceOrCreateInstance<LiquidExpressionHandler>(serviceProvider)
         });
         await base.ConfigureServicesAsync(context);

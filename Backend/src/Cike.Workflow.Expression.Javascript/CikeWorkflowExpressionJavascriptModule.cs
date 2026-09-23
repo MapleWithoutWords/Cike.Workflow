@@ -42,6 +42,7 @@ public class CikeWorkflowExpressionJavascriptModule : CikeModule
         {
             Type = "JavaScript",
             DisplayName = "JavaScript 表达式",
+            Icon = "code",
             HandlerFactory = ActivatorUtilities.GetServiceOrCreateInstance<JavaScriptExpressionHandler>
         });
 

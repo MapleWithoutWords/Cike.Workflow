@@ -19,6 +19,7 @@ public class CikeWorkflowExpressionModule : CikeModule
         {
             Type = "Literal",
             DisplayName = "Literal",
+            Icon = "type",
             HandlerFactory = serviceProvider => ActivatorUtilities.GetServiceOrCreateInstance<LiteralExpressionHandler>(serviceProvider)
         });
 
