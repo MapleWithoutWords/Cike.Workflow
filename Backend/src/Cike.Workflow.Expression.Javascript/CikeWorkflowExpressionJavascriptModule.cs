@@ -17,7 +17,9 @@ public class CikeWorkflowExpressionJavascriptModule : CikeModule
             {
                 foreach (var moduleName in javascriptLibraries)
                 {
-                    var resourceName = $"Elsa.Expressions.JavaScript.Libraries.ClientLib.dist.{moduleName}.js";
+                    // Embedded resource names carry the RootNamespace prefix (csproj: EmbeddedResource ClientLib/dist/*.js);
+                    // derive from the module namespace so the name survives assembly/namespace renames.
+                    var resourceName = $"{typeof(CikeWorkflowExpressionJavascriptModule).Namespace}.ClientLib.dist.{moduleName}.js";
                     using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)!;
                     using var reader = new StreamReader(stream);
                     var script = reader.ReadToEnd();
