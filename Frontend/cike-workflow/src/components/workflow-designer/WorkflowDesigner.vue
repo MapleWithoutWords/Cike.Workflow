@@ -5,15 +5,13 @@ import { ArrowLeft, History, Pencil, Redo2, RotateCcw, Trash2, Undo2, Upload, Va
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
-import { useDockState } from "@/composables/useDockState"
-import type { DesignerCommand } from "@/core/designer/commands"
 import type { WorkflowDefinitionFolderItemDto } from "@/api/generated"
 import DefinitionFormDialog from "@/components/DefinitionFormDialog.vue"
+import ThemeToggle from "@/components/layout/ThemeToggle.vue"
 import DesignerBreadcrumb from "./DesignerBreadcrumb.vue"
 import DesignerCanvas from "./DesignerCanvas.vue"
 import ActivityPalette from "./ActivityPalette.vue"
 import PropertyPanel from "./PropertyPanel.vue"
-import RemoveNodeDialog from "./RemoveNodeDialog.vue"
 import VariablesDialog from "./VariablesDialog.vue"
 import PublishDialog from "./PublishDialog.vue"
 import ProblemListPanel from "./ProblemListPanel.vue"
@@ -30,17 +28,18 @@ const variablesOpen = ref(false)
 const publishOpen = ref(false)
 const historyOpen = ref(false)
 const editOpen = ref(false)
-/** Shared dock state layer: pin/auto-hide semantics live in useDockState (ADR 0006). */
-const dock = useDockState()
+/** Problem list dock open state; auto-expands when validation finds problems. */
+const problemPanelOpen = ref(false)
 
-// Feed the dock's relevance inputs; the dock owns every expand/collapse rule.
+// Keep the dock in sync with validation results without fighting the user:
+// reveal newly-appearing problems (0→N) and auto-collapse once clean (→0), but
+// leave N→M transitions alone so a manual collapse sticks while editing.
 watch(
   () => props.designer.problems.value.length,
-  (count) => dock.notifyProblemCount(count),
-)
-watch(
-  () => props.designer.selectedActivityId.value,
-  (selectedId) => dock.notifySelectionChanged(selectedId),
+  (count, prev) => {
+    if (prev === 0 && count > 0) problemPanelOpen.value = true
+    else if (count === 0) problemPanelOpen.value = false
+  },
 )
 
 /** Publish is gated by validation: check first, then either reveal problems or
@@ -48,14 +47,14 @@ watch(
 async function onPublishClick(): Promise<void> {
   const found = await props.designer.validate()
   if (found.length > 0) {
-    dock.revealProblems()
+    problemPanelOpen.value = true
     const first = found.find((problem) => problem.nodeId || problem.activityId)
     if (first) props.designer.revealActivity(first)
     return
   }
   if (props.designer.validationError.value) {
     // Could not verify the canvas — surface the transport error, do not publish.
-    dock.revealProblems()
+    problemPanelOpen.value = true
     return
   }
   publishOpen.value = true
@@ -87,21 +86,10 @@ const entryKey = computed(() => {
   return stack.map((entry) => entry.activity.id).join("/")
 })
 
-const removeDialogOpen = ref(false)
-const pendingRemoveCommand = ref<DesignerCommand | null>(null)
-
+// Delete is immediate — no confirm dialog. Edits are drafts and undo (Ctrl+Z)
+// reverses a removal, so a confirmation step would only add friction.
 function requestRemove(activityId: string): void {
-  const command = props.designer.buildRemoveCommand(activityId)
-  if (!command) return
-  pendingRemoveCommand.value = command
-  removeDialogOpen.value = true
-}
-
-function confirmRemove(): void {
-  const command = pendingRemoveCommand.value
-  pendingRemoveCommand.value = null
-  if (!command) return
-  props.designer.executeCommand(command)
+  props.designer.removeNode(activityId)
 }
 
 function drillById(activityId: string): void {
@@ -183,6 +171,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
           <Variable :size="16" />
         </Button>
         <div class="mx-1 h-5 w-px bg-border" />
+        <ThemeToggle />
         <Button variant="ghost" size="icon" title="历史版本" @click="historyOpen = true">
           <History :size="16" />
         </Button>
@@ -199,52 +188,49 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
     </header>
     <div class="flex min-h-0 flex-1">
       <ActivityPalette v-if="!designer.readonly.value" :groups="designer.paletteGroups.value" @add="(typeName: string) => addAtCenter(typeName)" />
-      <div class="relative min-w-0 flex-1">
-        <DesignerCanvas
-          ref="canvasRef"
-          :projection="designer.projection.value"
-          :interactive="!designer.readonly.value"
-          :selected-id="designer.selectedActivityId.value"
-          :entry-key="entryKey"
-          :entry-activity="designer.currentEntry.value?.activity ?? null"
-          @node-click="(id: string) => { designer.selectedActivityId.value = id || null; designer.selectedEdgeId.value = null }"
-          @node-dblclick="(id: string) => drillById(id)"
-          @node-moved="(payload) => designer.moveNode(payload)"
-          @viewport-changed="(state) => designer.saveViewport(state)"
-          @drop-activity="(payload) => designer.addNode(payload.typeName, { x: payload.x, y: payload.y })"
-          @edge-click="(edgeId: string) => { designer.selectedActivityId.value = null; designer.selectedEdgeId.value = edgeId }"
-          @connect-request="onConnectRequest"
+      <div class="flex min-w-0 flex-1 flex-col">
+        <div class="relative min-h-0 flex-1">
+          <DesignerCanvas
+            ref="canvasRef"
+            :projection="designer.projection.value"
+            :interactive="!designer.readonly.value"
+            :selected-id="designer.selectedActivityId.value"
+            :entry-key="entryKey"
+            :entry-activity="designer.currentEntry.value?.activity ?? null"
+            @node-click="(id: string) => { designer.selectedActivityId.value = id || null; designer.selectedEdgeId.value = null }"
+            @node-dblclick="(id: string) => drillById(id)"
+            @node-moved="(payload) => designer.moveNode(payload)"
+            @viewport-changed="(state) => designer.saveViewport(state)"
+            @drop-activity="(payload) => designer.addNode(payload.typeName, { x: payload.x, y: payload.y })"
+            @edge-click="(edgeId: string) => { designer.selectedActivityId.value = null; designer.selectedEdgeId.value = edgeId }"
+            @connect-request="onConnectRequest"
+          />
+          <div
+            v-if="designer.loadError.value || designer.saveError.value"
+            class="absolute inset-x-0 top-0 border-b bg-destructive/10 px-4 py-2 text-xs text-destructive"
+          >
+            {{ designer.loadError.value || designer.saveError.value }}
+          </div>
+          <div
+            v-if="designer.lastSavedAt.value"
+            class="absolute bottom-2 right-2 rounded bg-background/90 border px-2 py-1 text-xs text-muted-foreground"
+          >
+            已保存 {{ designer.lastSavedAt.value.toLocaleTimeString() }}
+          </div>
+        </div>
+        <!-- 底部 dock 只占画布列（VS Code/IntelliJ 惯例）：侧栏保持全高，仅画布为它让高度。 -->
+        <ProblemListPanel
+          v-if="!designer.readonly.value"
+          :problems="designer.problems.value"
+          :validating="designer.validating.value"
+          :validation-error="designer.validationError.value"
+          :open="problemPanelOpen"
+          @update:open="(open: boolean) => (problemPanelOpen = open)"
+          @reveal="(problem) => designer.revealActivity(problem)"
         />
-        <div
-          v-if="designer.loadError.value || designer.saveError.value"
-          class="absolute inset-x-0 top-0 border-b bg-destructive/10 px-4 py-2 text-xs text-destructive"
-        >
-          {{ designer.loadError.value || designer.saveError.value }}
-        </div>
-        <div
-          v-if="designer.lastSavedAt.value"
-          class="absolute bottom-2 right-2 rounded bg-background/90 border px-2 py-1 text-xs text-muted-foreground"
-        >
-          已保存 {{ designer.lastSavedAt.value.toLocaleTimeString() }}
-        </div>
       </div>
       <PropertyPanel :activity="designer.selectedActivity.value" :designer="designer" />
     </div>
-
-    <ProblemListPanel
-      v-if="!designer.readonly.value"
-      :problems="designer.problems.value"
-      :validating="designer.validating.value"
-      :validation-error="designer.validationError.value"
-      @reveal="(problem) => designer.revealActivity(problem)"
-    />
-
-    <RemoveNodeDialog
-      :open="removeDialogOpen"
-      :pending-command="pendingRemoveCommand"
-      @update:open="(open: boolean) => (removeDialogOpen = open)"
-      @confirm="confirmRemove"
-    />
 
     <VariablesDialog :designer="designer" :open="variablesOpen" @update:open="(open: boolean) => (variablesOpen = open)" />
 

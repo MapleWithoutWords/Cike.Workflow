@@ -3,6 +3,7 @@ using Cike.Contracts.EntityDtos;
 using Cike.EventBus.Local;
 using Cike.Workflow.Application.Contracts.WorkflowInstances;
 using Cike.Workflow.Application.WorkflowInstances.Queries;
+using Cike.Workflow.Core.Contexts.Models;
 using Cike.Workflow.Domain.Filters;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -37,5 +38,14 @@ public class WorkflowInstanceService : MinimalApiServiceBase
         var query = new GetWorkflowInstanceQuery(id);
         await localEventBus.PublishAsync(query, cancellationToken);
         return TypedResults.Ok(query.Result);
+    }
+
+    public async Task<Results<Ok<List<WorkflowExecutionLogEntry>>, BadRequest>> GetLogsAsync(
+        [FromServices] ILocalEventBus localEventBus,
+        long id,
+        long? activityInstanceId,
+        CancellationToken cancellationToken = default)
+    {
+        return TypedResults.Ok(new List<WorkflowExecutionLogEntry>());
     }
 }

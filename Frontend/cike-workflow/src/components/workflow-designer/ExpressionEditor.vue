@@ -40,17 +40,47 @@ const currentValue = computed(() => {
   return props.expression.value
 })
 
+// Fallback display names for the five known types, used when the backend
+// descriptor list has not loaded or omits a type the model already references.
+const KNOWN_TYPE_NAMES: Record<string, string> = {
+  Literal: "字面量",
+  JavaScript: "JavaScript 表达式",
+  Liquid: "Liquid 表达式",
+  Variable: "变量",
+  // The backend registers the workflow-input expression under Type "Input"
+  // (DisplayName "输入参数"); "WorkflowInput" is kept as a legacy alias.
+  Input: "输入参数",
+  WorkflowInput: "输入参数",
+}
+
 // Backend-registered types; a Literal-only fallback covers the pre-fetch moment.
 const typeOptions = computed(() => {
   const list = props.designer.expressionDescriptors.value
-  if (list.length === 0) return [{ type: LITERAL_TYPE, displayName: "字面量" }]
-  return list
-    .filter((d): d is { type: string; displayName?: string } => !!d.type)
-    .map((d) => ({ type: d.type as string, displayName: d.displayName ?? d.type }))
+  const options =
+    list.length === 0
+      ? [{ type: LITERAL_TYPE, displayName: KNOWN_TYPE_NAMES[LITERAL_TYPE] }]
+      : list
+          .filter((d): d is { type: string; displayName?: string } => !!d.type)
+          .map((d) => ({
+            type: d.type as string,
+            displayName: d.displayName ?? KNOWN_TYPE_NAMES[d.type as string] ?? d.type,
+          }))
+  // Always keep the current type visible/selectable even if the backend list
+  // does not include it (e.g. a saved Variable input), otherwise the trigger's
+  // SelectValue finds no match and renders blank.
+  const current = currentType.value
+  if (current && !options.some((o) => o.type === current)) {
+    options.push({ type: current, displayName: KNOWN_TYPE_NAMES[current] ?? current })
+  }
+  return options
 })
 
 const isMonacoType = computed(() => currentType.value === "JavaScript" || currentType.value === "Liquid")
-const isNameType = computed(() => currentType.value === "Variable" || currentType.value === "WorkflowInput")
+// Name-referencing types resolve to a dropdown of definition names. The backend
+// registers the workflow-input type as "Input"; "WorkflowInput" is a legacy alias.
+const isNameType = computed(() =>
+  currentType.value === "Variable" || currentType.value === "Input" || currentType.value === "WorkflowInput",
+)
 
 function languageFor(type: string): string {
   if (type === "JavaScript") return "javascript"
@@ -109,11 +139,11 @@ function onTypeChange(type: string): void {
           :disabled="isReadonly"
           @update:model-value="(t) => onTypeChange(String(t))"
         >
-          <SelectTrigger class="h-6 w-32 text-xs">
-            <SelectValue />
+          <SelectTrigger size="sm" class="w-40 text-xs">
+            <SelectValue class="block! min-w-0 truncate" placeholder="类型" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type">
+            <SelectItem v-for="opt in typeOptions" :key="opt.type" :value="opt.type" class="text-xs">
               {{ opt.displayName }}
             </SelectItem>
           </SelectContent>
@@ -140,11 +170,11 @@ function onTypeChange(type: string): void {
       :disabled="isReadonly"
       @update:model-value="(n) => commitValue(String(n))"
     >
-      <SelectTrigger class="h-8 text-xs">
-        <SelectValue :placeholder="nameOptions.length ? '选择…' : '（暂无可选项）'" />
+      <SelectTrigger size="sm" class="w-full text-xs">
+        <SelectValue class="block! min-w-0 truncate" :placeholder="nameOptions.length ? '选择…' : '（暂无可选项）'" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem v-for="name in nameOptions" :key="name" :value="name">{{ name }}</SelectItem>
+        <SelectItem v-for="name in nameOptions" :key="name" :value="name" class="text-xs">{{ name }}</SelectItem>
       </SelectContent>
     </Select>
 

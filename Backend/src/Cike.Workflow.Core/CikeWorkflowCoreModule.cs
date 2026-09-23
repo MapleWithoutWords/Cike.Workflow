@@ -2,6 +2,7 @@ using Cike.Core.Hashers;
 using Cike.EventBus.Local.LocalEventMiddlewares;
 using Cike.Workflow.Core.ActivityDescriptors;
 using Cike.Workflow.Core.ActivityDescriptors.Internals;
+using Cike.Workflow.Core.Expressions;
 using Cike.Workflow.Core.Runners.Internals.Middlewares;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -34,6 +35,21 @@ public class CikeWorkflowCoreModule : CikeModule
 
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ExceptionRunActivityInstanceMiddleware), ServiceLifetime.Transient));
         context.Services.Add(new ServiceDescriptor(typeof(ILocalEventMiddleware<RunActivityInstanceCommand>), typeof(ActivityInstanceExecutionLogMiddleware), ServiceLifetime.Transient));
+
+        var expressionDescriptorRegistry = context.Services.GetSingletonInstance<IExpressionDescriptorRegistry>();
+        expressionDescriptorRegistry.AddRange([new ExpressionDescriptor
+        {
+            Type = "Variable",
+            DisplayName = "变量",
+            Icon = "variable",
+            HandlerFactory = serviceProvider => ActivatorUtilities.GetServiceOrCreateInstance<VariableExpressionHandler>(serviceProvider)
+        },new ExpressionDescriptor
+        {
+            Type = "Input",
+            DisplayName = "输入参数",
+            Icon = "log-in",
+            HandlerFactory = serviceProvider => ActivatorUtilities.GetServiceOrCreateInstance<WorkflowInputExpressionHandler>(serviceProvider)
+        }]);
 
         // Cike.Core 自身无模块类、约定扫描不覆盖，IHasher 需手动注册（framework-core.md 反模式节；实测 1.0.60023 同样行为）
         context.Services.AddSingleton<IHasher, Hasher>();

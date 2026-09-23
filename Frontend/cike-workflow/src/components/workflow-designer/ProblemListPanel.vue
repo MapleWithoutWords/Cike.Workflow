@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, ListChecks, LoaderCircle } from "@lucide/vue"
+import { usePanelResize } from "@/composables/usePanelResize"
 import type { ValidationProblem } from "@/composables/useWorkflowDesigner"
-import { useDockState } from "@/composables/useDockState"
-import DockPinButton from "./DockPinButton.vue"
 
 /**
  * Canvas-bottom "problem list" dock — the single outlet for canvas validation
@@ -15,17 +14,26 @@ const props = defineProps<{
   problems: ValidationProblem[]
   validating: boolean
   validationError: string | null
+  open: boolean
 }>()
 
 const emit = defineEmits<{
+  "update:open": [open: boolean]
   reveal: [problem: ValidationProblem]
 }>()
 
-const dock = useDockState()
-/** Open/pin state lives in the shared dock layer (ADR 0006), not in props. */
-const open = dock.open.problems
-
 const count = computed(() => props.problems.length)
+
+/** 展开态体部高度：顶缘拖拽调整、双击复位，跨会话持久化。 */
+const { size: panelHeight, onPointerDown: onResizeStart, onDoubleClick: onResizeReset } = usePanelResize({
+  axis: "height",
+  invert: true,
+  defaultSize: 200,
+  min: 120,
+  max: 480,
+  maxViewportRatio: 0.5,
+  storageKey: "cike.dock.size.problems",
+})
 
 /** A problem is locatable when it carries a NodeId chain or an activity id. */
 function isLocatable(problem: ValidationProblem): boolean {
@@ -38,26 +46,31 @@ function onRowClick(problem: ValidationProblem): void {
 </script>
 
 <template>
-  <div class="flex shrink-0 flex-col border-t bg-background">
-    <div class="flex h-8 shrink-0 items-center">
-      <button
-        type="button"
-        class="flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs hover:bg-muted/50"
-        :aria-expanded="open"
-        @click="dock.toggleOpen('problems')"
-      >
-        <LoaderCircle v-if="validating" :size="14" class="shrink-0 animate-spin text-muted-foreground" />
-        <ListChecks v-else :size="14" class="shrink-0 text-muted-foreground" />
-        <span v-if="count > 0" class="font-medium text-destructive">{{ count }} 个问题</span>
-        <span v-else-if="validationError" class="font-medium text-warning">校验失败</span>
-        <span v-else class="font-medium text-muted-foreground">校验通过</span>
-        <span class="ml-auto shrink-0 text-muted-foreground">{{ open ? "收起" : "展开" }}</span>
-        <component :is="open ? ChevronDown : ChevronUp" :size="14" class="shrink-0 text-muted-foreground" />
-      </button>
-      <DockPinButton panel="problems" class="mr-2 shrink-0 p-0.5" />
-    </div>
+  <div class="relative flex shrink-0 flex-col border-t bg-background">
+    <div
+      v-if="open"
+      class="absolute inset-x-0 top-0 h-1 cursor-row-resize touch-none hover:bg-primary/30"
+      title="拖拽调整高度，双击复位"
+      @pointerdown="onResizeStart"
+      @dblclick="onResizeReset"
+    />
+    <button
+      type="button"
+      class="flex h-8 w-full items-center gap-2 px-3 text-xs hover:bg-muted/50"
+      :aria-expanded="open"
+      @click="emit('update:open', !open)"
+    >
+      <LoaderCircle v-if="validating" :size="14" class="shrink-0 animate-spin text-muted-foreground" />
+      <ListChecks v-else :size="14" class="shrink-0 text-muted-foreground" />
+      <span class="shrink-0 font-medium text-foreground">问题清单</span>
+      <span v-if="count > 0" class="font-medium text-destructive">{{ count }} 个问题</span>
+      <span v-else-if="validationError" class="font-medium text-warning">校验失败</span>
+      <span v-else class="font-medium text-muted-foreground">校验通过</span>
+      <span class="ml-auto shrink-0 text-muted-foreground">{{ open ? "收起" : "展开" }}</span>
+      <component :is="open ? ChevronDown : ChevronUp" :size="14" class="shrink-0 text-muted-foreground" />
+    </button>
 
-    <div v-if="open" class="max-h-56 overflow-y-auto border-t">
+    <div v-if="open" class="overflow-y-auto border-t" :style="{ height: `${panelHeight}px` }">
       <p v-if="validationError" class="px-3 py-2 text-xs text-warning">
         无法完成校验（{{ validationError }}）。这不是"画布没问题"，请检查后端连接后重试。
       </p>

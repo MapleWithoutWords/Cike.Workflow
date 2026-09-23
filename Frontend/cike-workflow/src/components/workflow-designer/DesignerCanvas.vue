@@ -222,7 +222,7 @@ defineExpose({ viewportCenter, removeCellById })
 </script>
 
 <template>
-  <div ref="containerRef" class="canvas-surface h-full w-full" @dragover.prevent @drop="onDrop" />
+  <div ref="containerRef" class="canvas-surface h-full w-full bg-muted/20" @dragover.prevent @drop="onDrop" />
   <component :is="TeleportContainer" v-if="TeleportContainer" />
 </template>
 
@@ -232,11 +232,13 @@ defineExpose({ viewportCenter, removeCellById })
 .canvas-surface {
   background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
   background-size: 20px 20px;
-  color: var(--border);
+}
+.canvas-surface :deep(.x6-edge) {
+  color: var(--muted-foreground);
 }
 .canvas-surface :deep(.x6-port-body circle) {
-  stroke: var(--border);
-  fill: var(--background);
+  stroke: var(--muted-foreground);
+  fill: var(--card);
 }
 /* Entry port: its single-element markup renders the circle itself as
    .x6-port-body (no inner circle), so target it via the group's port class.

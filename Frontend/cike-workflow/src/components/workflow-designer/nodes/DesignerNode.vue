@@ -17,13 +17,13 @@ const statusUi = computed(() => (data.value.status != null ? ACTIVITY_STATUS_UI[
 
 <template>
   <div
-    class="flex h-full w-full items-center gap-2 rounded-md border bg-background px-3 shadow-sm transition-shadow"
+    class="flex h-full w-full items-center gap-2 rounded-md border bg-card px-3 text-card-foreground shadow-sm transition-shadow"
     :class="[
       data.isGeneric ? 'border-dashed' : '',
       data.selected
-        ? 'border-primary ring-2 ring-primary'
+        ? 'border-primary ring-2 ring-primary/40'
         : data.hasError
-          ? 'border-destructive ring-1 ring-destructive'
+          ? 'border-destructive ring-1 ring-destructive/35'
           : '',
     ]"
   >

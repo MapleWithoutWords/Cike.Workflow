@@ -162,6 +162,10 @@ export function useWorkflowDesigner() {
   })
 
   const selectedActivity = computed<IActivity | null>(() => {
+    // Depend on revision so a delete/undo re-runs this: makeRemoveNodeCommand
+    // splices the activities array in place (same reference), so a computed that
+    // only reads currentChildren would keep the stale cached node.
+    void revision.value
     if (!selectedActivityId.value) return null
     return currentChildren.value.find((child) => child.id === selectedActivityId.value) ?? null
   })
