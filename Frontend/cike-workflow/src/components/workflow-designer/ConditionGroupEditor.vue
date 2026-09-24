@@ -1,8 +1,26 @@
 <script setup lang="ts">
 import { computed } from "vue"
+import { SelectTrigger as SelectTriggerPrimitive } from "reka-ui"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowUpDown, Plus, Trash2 } from "@lucide/vue"
+import { Select, SelectContent, SelectItem } from "@/components/ui/select"
+import {
+  AlignLeft,
+  AlignRight,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  CircleDashed,
+  CircleDot,
+  Equal,
+  EqualNot,
+  Plus,
+  Search,
+  SearchX,
+  Trash2,
+  type LucideIcon,
+} from "@lucide/vue"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import {
   OPERATORS_BY_DATATYPE,
@@ -45,6 +63,24 @@ const OPERATOR_LABELS: Record<ConditionOperator, string> = {
 
 function isUnary(op: ConditionOperator): boolean {
   return op === "empty" || op === "notEmpty"
+}
+
+// Icon per operator so the trigger is a compact 32px button (frees row width);
+// the dropdown still spells each operator out as icon + label. Strict vs
+// "or equal" reads as single vs double chevron.
+const OPERATOR_ICONS: Record<ConditionOperator, LucideIcon> = {
+  "=": Equal,
+  "!=": EqualNot,
+  ">": ChevronRight,
+  ">=": ChevronsRight,
+  "<": ChevronLeft,
+  "<=": ChevronsLeft,
+  contains: Search,
+  notContains: SearchX,
+  startsWith: AlignLeft,
+  endsWith: AlignRight,
+  empty: CircleDashed,
+  notEmpty: CircleDot,
 }
 
 /** The comparison's effective dataType: right literal → left literal → string (ADR 0010). */
@@ -145,12 +181,18 @@ function toggleJunction(): void {
                 :disabled="readonly"
                 @update:model-value="(op) => onOperatorChange(index, cmp, op as ConditionOperator)"
               >
-                <SelectTrigger size="sm" class="h-8 w-24 shrink-0 text-xs">
-                  <SelectValue class="block! min-w-0 truncate" />
-                </SelectTrigger>
+                <SelectTriggerPrimitive
+                  :title="OPERATOR_LABELS[cmp.operator]"
+                  class="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-input bg-transparent outline-none transition-colors focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
+                >
+                  <component :is="OPERATOR_ICONS[cmp.operator]" />
+                </SelectTriggerPrimitive>
                 <SelectContent>
                   <SelectItem v-for="op in operatorsFor(cmp)" :key="op" :value="op" class="text-xs">
-                    {{ OPERATOR_LABELS[op] }}
+                    <span class="flex items-center gap-2">
+                      <component :is="OPERATOR_ICONS[op]" class="size-4 shrink-0 text-muted-foreground" />
+                      {{ OPERATOR_LABELS[op] }}
+                    </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
