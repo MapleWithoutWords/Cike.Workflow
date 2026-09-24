@@ -206,3 +206,23 @@ export function makeRemoveNodeCommand(parent: NodeContainer, childId: string): (
     },
   };
 }
+
+/**
+ * Composite command: applies several edits as ONE undoable step. Used to write
+ * the condition editing-truth (customProperties) and its compiled expression
+ * together, so a single Ctrl+Z reverts both (no half-state).
+ */
+export function makeBatchCommand(label: string, commands: DesignerCommand[]): DesignerCommand {
+  return {
+    label,
+    apply: () => {
+      for (const command of commands) command.apply();
+    },
+    undo: () => {
+      for (let i = commands.length - 1; i >= 0; i--) commands[i].undo();
+    },
+    redo: () => {
+      for (const command of commands) (command.redo ?? command.apply).call(command);
+    },
+  };
+}

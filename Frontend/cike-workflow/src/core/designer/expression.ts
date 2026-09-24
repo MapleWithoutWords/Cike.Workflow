@@ -64,3 +64,25 @@ export function makeSwitchExpressionTypeCommand(
     redo: apply,
   };
 }
+
+/**
+ * Single-undo command that overwrites an expression's { type, value } in place
+ * (identity stable). Used by the condition forms to write a freshly compiled
+ * expression into If.condition / Switch.cases[i].value.
+ */
+export function makeSetExpressionCommand(
+  expression: ExpressionLike,
+  to: ExpressionLike,
+): DesignerCommand {
+  const fromType = expression.type;
+  const fromValue = expression.value;
+  const apply = (): void => {
+    expression.type = to.type;
+    expression.value = to.value;
+  };
+  const revert = (): void => {
+    expression.type = fromType;
+    expression.value = fromValue;
+  };
+  return { label: "设置表达式", apply, undo: revert, redo: apply };
+}
