@@ -72,6 +72,14 @@ describe("compileGroup", () => {
     }
     expect(compileGroup(group)).toContain(`new Date("2026-01-01T00:00:00Z").getTime()`)
   })
+
+  it("degrades an empty Javascript operand to undefined so output stays valid JS", () => {
+    const group: ConditionGroup = {
+      conditionType: "and",
+      conditions: [cmp(js(""), "=", lit("", "string"))],
+    }
+    expect(compileGroup(group)).toBe(`(undefined === "")`)
+  })
 })
 
 describe("compileCondition", () => {

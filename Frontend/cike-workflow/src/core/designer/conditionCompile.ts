@@ -63,7 +63,12 @@ export const OPERATORS_BY_DATATYPE: Record<ConditionDataType, ConditionOperator[
 }
 
 function compileOperand(operand: ConditionOperand): string {
-  if (operand.type === "Javascript") return String(operand.value ?? "")
+  if (operand.type === "Javascript") {
+    const code = String(operand.value ?? "");
+    // An unfinished (empty) script operand would otherwise emit nothing and
+    // produce syntactically invalid JS like `( === "")`; degrade to undefined.
+    return code.trim() === "" ? "undefined" : code;
+  }
   switch (operand.dataType) {
     case "number":
       return String(operand.value)

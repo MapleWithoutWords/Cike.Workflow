@@ -112,7 +112,7 @@ const conditions = computed(() => props.group.conditions ?? [])
         :disabled="readonly"
         @update:model-value="(t) => patch({ conditionType: t as 'and' | 'or' })"
       >
-        <SelectTrigger size="sm" class="h-7 w-12 text-xs">
+        <SelectTrigger size="sm" class="h-7 w-16 text-xs">
           <SelectValue class="block! min-w-0 truncate" />
         </SelectTrigger>
         <SelectContent>
