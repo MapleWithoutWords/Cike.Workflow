@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, watch } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import type { IActivity } from "@/core/abstracts/Activity"
 import { compileCondition, type ConditionSpec } from "@/core/designer/conditionCompile"
 import { emptySpec, readCaseConditions, type CaseCondition, type CustomExpressionContainer } from "@/core/designer/conditionModel"
 import { makeBatchCommand, makeEditPropertyCommand } from "@/core/designer/commands"
-import type { ExpressionLike } from "@/core/designer/expression"
+import { makeSetExpressionCommand, type ExpressionLike } from "@/core/designer/expression"
 import ExpressionEditor from "../ExpressionEditor.vue"
 import ConditionEditor from "../ConditionEditor.vue"
 
@@ -32,32 +32,45 @@ const caseConditions = computed<CaseCondition[]>(() => {
   return readCaseConditions(act.value)
 })
 
+function containerOf(activity: SwitchActivity): CustomExpressionContainer | null {
+  return (activity.customProperties as Record<string, unknown>)["customExpression"] as CustomExpressionContainer | null
+}
+
+function writeContainer(next: CustomExpressionContainer): void {
+  const activity = act.value
+  const customProperties = activity.customProperties as Record<string, unknown>
+  const fromContainer = customProperties["customExpression"] ?? null
+  props.designer.executeCommand(makeEditPropertyCommand(customProperties, "customExpression", fromContainer, next))
+}
+
 /**
- * One edit = one undoable command writing BOTH the editing truth
- * (customProperties.customExpression.caseConditions) and the compiled wire cases
- * (activity.cases, whose labels project to out-ports). The compiled value is
- * derived from each case's spec — editing a label no longer degrades a
- * Javascript/Liquid/custom case to a Literal string (ADR 0010).
+ * Structural edits (add/remove case, rename label) must also reshape the wire cases
+ * array, whose labels project to out-ports. Value edits inside a case (operand /
+ * escape-hatch, owned by ExpressionEditor) only touch the container; the derived
+ * sync below keeps wire values fresh.
  */
 function commit(nextCases: CaseCondition[]): void {
   const activity = act.value
   const customProperties = activity.customProperties as Record<string, unknown>
   const fromContainer = customProperties["customExpression"] ?? null
-  const nextContainer: CustomExpressionContainer = {
-    ...(fromContainer as CustomExpressionContainer | null),
-    caseConditions: nextCases,
-  }
   const wireCases = nextCases.map((entry) => ({ label: entry.label, value: compileCondition(entry) }))
   props.designer.executeCommand(
     makeBatchCommand("修改分支", [
-      makeEditPropertyCommand(customProperties, "customExpression", fromContainer, nextContainer),
       makeEditPropertyCommand(activity as unknown as Record<string, unknown>, "cases", activity.cases ?? null, wireCases),
+      makeEditPropertyCommand(customProperties, "customExpression", fromContainer, {
+        ...(containerOf(activity) ?? {}),
+        caseConditions: nextCases,
+      }),
     ]),
   )
 }
 
+/** Spec-only edit (discriminator switch / group rebuild): container write, values re-derived. */
 function updateSpec(index: number, spec: ConditionSpec): void {
-  commit(caseConditions.value.map((entry, i) => (i === index ? { ...entry, ...spec } : entry)))
+  writeContainer({
+    ...(containerOf(act.value) ?? {}),
+    caseConditions: caseConditions.value.map((entry, i) => (i === index ? { ...entry, ...spec } : entry)),
+  })
 }
 
 function updateLabel(index: number, label: string): void {
@@ -71,6 +84,29 @@ function addCase(): void {
 function removeCase(index: number): void {
   commit(caseConditions.value.filter((_, i) => i !== index))
 }
+
+/**
+ * Derived sync (ADR 0010): each wire case value is a pure function of its spec; on
+ * every revision push compiled values into activity.cases[i].value without undo
+ * entries (apply, not execute). Container-gated so legacy seeds never overwrite.
+ */
+watch(
+  () => props.designer.revision.value,
+  () => {
+    const activity = act.value
+    const container = containerOf(activity)
+    if (!container?.caseConditions) return
+    container.caseConditions.forEach((entry, index) => {
+      const wire = activity.cases?.[index]
+      if (!wire?.value) return
+      const compiled = compileCondition(entry)
+      if (wire.value.type !== compiled.type || wire.value.value !== compiled.value) {
+        makeSetExpressionCommand(wire.value, compiled).apply()
+      }
+    })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -112,6 +148,7 @@ function removeCase(index: number): void {
         </div>
         <ConditionEditor
           :spec="entry"
+          :designer="designer"
           :readonly="designer.readonly.value"
           @change="(spec) => updateSpec(index, spec)"
         />

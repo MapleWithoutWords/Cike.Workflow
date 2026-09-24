@@ -7,8 +7,12 @@
 
 export type ConditionDataType = "string" | "number" | "boolean" | "datetime"
 
-/** builder 操作数类型。Liquid 不可作为操作数（Jint 内无 Liquid 渲染器），仅作整条件逃生舱。 */
-export type ConditionOperandType = "Literal" | "Javascript"
+/**
+ * builder 操作数类型（ADR 0010）。操作数槽复用 ExpressionEditor、白名单 Literal/Variable/Input；
+ * Javascript 仅为存量数据保留（原样内联），Liquid 不可作操作数（Jint 无渲染器）仅作整条件逃生舱。
+ * WorkflowInput 是 Input 的旧别名，同路编译。
+ */
+export type ConditionOperandType = "Literal" | "Variable" | "Input" | "WorkflowInput" | "Javascript"
 
 export type ConditionOperator =
   | "="
@@ -62,6 +66,18 @@ export const OPERATORS_BY_DATATYPE: Record<ConditionDataType, ConditionOperator[
   boolean: ["=", "!="],
 }
 
+/** 各 dataType 的字面量零值（切到 Literal / 换 dataType 时重置 value 用）。 */
+export function defaultLiteralValue(dataType: ConditionDataType): unknown {
+  switch (dataType) {
+    case "number":
+      return 0
+    case "boolean":
+      return false
+    default:
+      return ""
+  }
+}
+
 function compileOperand(operand: ConditionOperand): string {
   if (operand.type === "Javascript") {
     const code = String(operand.value ?? "");
@@ -69,6 +85,10 @@ function compileOperand(operand: ConditionOperand): string {
     // produce syntactically invalid JS like `( === "")`; degrade to undefined.
     return code.trim() === "" ? "undefined" : code;
   }
+  // Name-referencing operands compile to the two Jint accessors the backend registers.
+  if (operand.type === "Variable") return `getVariable(${JSON.stringify(String(operand.value ?? ""))})`
+  if (operand.type === "Input" || operand.type === "WorkflowInput")
+    return `getInput(${JSON.stringify(String(operand.value ?? ""))})`
   switch (operand.dataType) {
     case "number":
       return String(operand.value)

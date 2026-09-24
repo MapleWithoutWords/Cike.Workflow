@@ -16,17 +16,23 @@ ifCondition / caseConditions[i] = {
     | true | false                          // type = Literal
     | "<code>"                              // type = Javascript / Liquid
 }
-Operand = { type: "Literal" | "Javascript", value: any, dataType?: "string"|"number"|"boolean"|"datetime" }
+Operand = { type: "Literal" | "Variable" | "Input" | "WorkflowInput" | "Javascript"(仅存量), value: any, dataType?: "string"|"number"|"boolean"|"datetime" }
 ```
+
+**所有表达式槽位一律复用 ExpressionEditor，靠 `allowedTypes` 白名单收敛**（不另造控件）：操作数槽白名单 = `Literal / Variable / Input`；整条件逃生舱白名单 = `Literal / Javascript / Liquid`。`Javascript` 操作数仅为存量数据保留（编译原样内联、ExpressionEditor 对当前类型保持可见），新编辑选不到；`Liquid` 永不可作操作数。`WorkflowInput` 是 `Input` 的旧别名，同路编译。
 
 Switch 的 `caseConditions[i].label` 投影为出端口；`mode`（首个优先/匹配所有）仍留在 Switch 活动上，不进本容器。If 用 `ifCondition`、Switch 用 `caseConditions[]`，两字段分开、不合并。
 
 ## 编译契约（前端纯函数）
 
-- **操作数**：`Literal` 按 `dataType` 出 JS 字面量（string 加引号转义、number 原样、boolean `true/false`、datetime→`new Date('ISO').getTime()`）；`Javascript` 原样内联。
+- **操作数**：`Literal` 按 `dataType` 出 JS 字面量（string 加引号转义、number 原样、boolean `true/false`、datetime→`new Date('ISO').getTime()`）；`Variable`→`getVariable('名字')`、`Input`/`WorkflowInput`→`getInput('名字')`（后端 Jint 注册的两个访问器）；存量 `Javascript` 原样内联（空脚本降级为 `undefined`，保证产物语法合法）。
 - **运算符**：`=→===`、`!=→!==`、`> >= < <=` 原样；字符串另有 `contains/notContains/startsWith/endsWith`（编译为 `String(l).includes(r)` 等）与一元的 `empty/notEmpty`。
 - **组**：`conditions[]` 用 `conditionType` 的 `&&`/`||` 连接，再与 `"(" + compile(combineCondition) + ")"` 用同一操作符接合；嵌套子组整体加括号保证优先级；某侧为空退化为恒等（空组 = `true`）。
-- **运算符/控件按 dataType 分集**：number、datetime = `= != > >= < <=`；string 另加 `contains notContains startsWith endsWith empty notEmpty`；boolean = `= !=`。Literal 控件按 dataType 渲染（文本/数字/开关/日期时间）。
+- **运算符/控件按 dataType 分集**：number、datetime = `= != > >= < <=`；string 另加 `contains notContains startsWith endsWith empty notEmpty`；boolean = `= !=`。Literal 控件按 dataType 渲染（文本/数字/开关/日期时间）。dataType 仅挂在 Literal 操作数上；比较的有效 dataType 取"右侧字面量→左侧字面量→string"的回退链，两侧皆为 Variable/Input 时按 string 集。
+
+## 布局契约（组内，递归同形）
+
+每个条件组渲染为固定两段：**表头行** = `[且/或钮] [+ 添加规则] [+ 组合条件]`，三者永远同一水平行（空组与有比较行的组一致）；**主体** = 表头下一排比较行与至多一个内缩虚线子组，整体缩进在一条自且钮中心向下的竖线（rail）右侧。且/或钮为窄 ghost 样式（弱虚边框、宽自适应、文字+箭头），每一层深度样式一致；子组（combineCondition）递归套用同一形状。该契约是 `conditions + combineCondition` 交互布局的直接序列化，不随组内容增减而改变表头位置。
 
 ## Considered Options
 
@@ -34,10 +40,12 @@ Switch 的 `caseConditions[i].label` 投影为出端口；`mode`（首个优先/
 - 通用 n-ary 条件 AST（children 混排叶子与子组）：被否。表达力虽全，但模型与界面之间隔一层翻译；本产品的交互就是"扁平行 + 一个内缩子组 + 接合操作符"，`conditions + combineCondition` 正是该交互的直接序列化，渲染/编辑零翻译，且已被生产系统（Octopus 指标告警条件配置）验证。
 - 受控 activeType + 漂移检测决定显示 builder 还是代码：被否。判别子 `type` 已存于数据，一次字段读取即可，无需状态机。
 - builder 操作数支持 Liquid：被否。编译产物是 Javascript、由 Jint 执行，Jint 内无 Liquid 渲染器，Liquid 操作数无法内联；Liquid 仅保留为整条件逃生舱。
+- 操作数与逃生舱自制编辑控件（字面量/脚本二选、裸 Monaco）：被否。与设计器统一表达式编辑体验割裂（图标切换器、变量/输入名字下拉、切类型 value 契约全部要重造）；ExpressionEditor 已具备 `allowedTypes` 白名单能力，复用即得一致体验与 ADR 0004/0005 语义。
+- 编译产物随每条编辑命令一起进撤销栈（复合命令）：被否（改为派生同步）。编译是 spec 的纯函数，没有独立撤销意义；进栈会使每次编辑/撤销变成两步。改为表单监听 revision、容器存在时把编译产物直接同步进真条件字段（不进栈）；容器不存在（老数据未编辑）时不同步，避免空 builder 的 `true` 覆盖存量条件。
 
 ## Consequences
 
 - `customProperties` 承载编辑真源并随定义进版本；老数据无 `customExpression` 时从现有 condition 反推种子（Javascript→Javascript、Liquid→Liquid、Literal 布尔→Literal）。
-- 显示哪种编辑器由 `type` 一次读取决定：`custom`→builder，其余→ExpressionEditor（allowedTypes 限 Javascript/Liquid/Literal，Literal 渲染真/假）。
-- 编译单向：改树即重编译覆盖表达式；不反向解析 JS 回树。
+- 显示哪种编辑器由 `type` 一次读取决定：`custom`→builder；其余→把 spec 本身当 expression 交给 ExpressionEditor（allowedTypes 限 Literal/Javascript/Liquid 逃生舱三型，Literal 插槽渲染真/假开关），顶部判别子另提供回到 `custom`（默认值）的入口。
+- 编译单向且**派生**：操作数/逃生舱编辑由 ExpressionEditor 自有命令写入容器；表单在 revision 变化时把 `compileCondition(spec)` 同步进真条件字段（If.condition / Switch.cases[i].value），不反向解析 JS 回树。
 - 新增纯逻辑缝 `core/designer/conditionCompile`（树→JS），vitest 覆盖；ConditionEditor UI 另计。

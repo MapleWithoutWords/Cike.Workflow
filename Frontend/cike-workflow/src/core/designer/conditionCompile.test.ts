@@ -15,6 +15,14 @@ function lit(value: unknown, dataType: ConditionOperand["dataType"]): ConditionO
   return { type: "Literal", value, dataType }
 }
 
+function variable(name: string): ConditionOperand {
+  return { type: "Variable", value: name }
+}
+
+function input(name: string): ConditionOperand {
+  return { type: "Input", value: name }
+}
+
 function cmp(left: ConditionOperand, operator: ConditionComparison["operator"], right: ConditionOperand): ConditionComparison {
   return { left, operator, right }
 }
@@ -79,6 +87,25 @@ describe("compileGroup", () => {
       conditions: [cmp(js(""), "=", lit("", "string"))],
     }
     expect(compileGroup(group)).toBe(`(undefined === "")`)
+  })
+
+  it("compiles Variable operands to the getVariable accessor", () => {
+    const group: ConditionGroup = {
+      conditionType: "and",
+      conditions: [cmp(variable("age"), ">", lit(18, "number"))],
+    }
+    expect(compileGroup(group)).toBe(`(getVariable("age") > 18)`)
+  })
+
+  it("compiles Input and legacy WorkflowInput operands to the getInput accessor", () => {
+    const group: ConditionGroup = {
+      conditionType: "and",
+      conditions: [
+        cmp(input("score"), ">=", lit(90, "number")),
+        cmp({ type: "WorkflowInput", value: "legacy" }, "=", lit("x", "string")),
+      ],
+    }
+    expect(compileGroup(group)).toBe(`(getInput("score") >= 90) && (getInput("legacy") === "x")`)
   })
 })
 

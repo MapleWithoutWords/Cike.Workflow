@@ -1,23 +1,32 @@
 <script setup lang="ts">
-import { ref, watch } from "vue"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import { compileGroup, type ConditionGroup, type ConditionSpec } from "@/core/designer/conditionCompile"
 import { emptyGroup } from "@/core/designer/conditionModel"
 import ConditionGroupEditor from "./ConditionGroupEditor.vue"
-import MonacoEditor from "./MonacoEditor.vue"
+import ExpressionEditor from "./ExpressionEditor.vue"
 
 /**
  * Top-level editor for one condition (If's condition / one Switch case).
  * The stored discriminator `type` decides the editor in a single read (ADR 0010):
  *   custom    → the visual builder (ConditionGroupEditor)
- *   Literal   → a true/false switch        (escape hatch)
- *   Javascript/Liquid → Monaco             (escape hatch)
- * Controlled: emits a new ConditionSpec; the owning form writes it to
- * customProperties + the compiled expression as one undoable command.
+ *   otherwise → the spec itself is handed to the unified ExpressionEditor as an
+ *               escape hatch, whitelisted to Literal / Javascript / Liquid, with
+ *               the Literal slot rendering a true/false switch.
+ * The top select is the custom gate (default custom); ExpressionEditor's icon
+ * switcher moves among the three escape-hatch types. Structural edits (entering /
+ * leaving custom) emit a controlled change; in-place value/type edits are owned by
+ * ExpressionEditor. The compiled wire expression is a derived projection synced by
+ * the owning form on revision (ADR 0010), not written here.
  */
-const props = defineProps<{ spec: ConditionSpec; readonly?: boolean; label?: string }>()
+const props = defineProps<{
+  spec: ConditionSpec
+  designer: WorkflowDesignerState
+  readonly?: boolean
+  label?: string
+}>()
 const emit = defineEmits<{ change: [ConditionSpec] }>()
 
 const TYPE_LABELS: Record<ConditionSpec["type"], string> = {
@@ -27,9 +36,7 @@ const TYPE_LABELS: Record<ConditionSpec["type"], string> = {
   Liquid: "Liquid",
 }
 
-function languageFor(type: ConditionSpec["type"]): string {
-  return type === "Liquid" ? "liquid" : "javascript"
-}
+const ESCAPE_TYPES = ["Literal", "Javascript", "Liquid"]
 
 function onTypeChange(target: ConditionSpec["type"]): void {
   if (target === props.spec.type) return
@@ -50,26 +57,6 @@ function onTypeChange(target: ConditionSpec["type"]): void {
 
 function onGroupChange(group: ConditionGroup): void {
   emit("change", { type: "custom", value: group })
-}
-
-function onLiteralChange(value: boolean): void {
-  emit("change", { type: "Literal", value })
-}
-
-// Monaco draft: commit on blur so one edit session = one undo step.
-const draft = ref("")
-watch(
-  () => [props.spec.type, props.spec.value],
-  () => {
-    draft.value = typeof props.spec.value === "string" ? props.spec.value : ""
-  },
-  { immediate: true },
-)
-
-function commitDraft(): void {
-  if (props.spec.type !== "Javascript" && props.spec.type !== "Liquid") return
-  if (draft.value === props.spec.value) return
-  emit("change", { type: props.spec.type, value: draft.value })
 }
 </script>
 
@@ -97,22 +84,25 @@ function commitDraft(): void {
     <ConditionGroupEditor
       v-if="spec.type === 'custom'"
       :group="(spec.value as ConditionGroup) ?? emptyGroup()"
+      :designer="designer"
       :readonly="readonly"
       @change="onGroupChange"
     />
 
-    <div v-else-if="spec.type === 'Literal'" class="flex h-8 items-center gap-2">
-      <Switch :model-value="spec.value === true" :disabled="readonly" @update:model-value="(v: boolean) => onLiteralChange(v)" />
-      <span class="text-xs text-muted-foreground">{{ spec.value === true ? "True" : "False" }}</span>
-    </div>
-
-    <MonacoEditor
+    <ExpressionEditor
       v-else
-      v-model="draft"
-      :language="languageFor(spec.type)"
+      :expression="spec"
+      :designer="designer"
+      :allowed-types="ESCAPE_TYPES"
+      :literal-default="false"
       :readonly="readonly"
-      height="96px"
-      @blur="commitDraft"
-    />
+    >
+      <template #default="{ value, commit, readonly: ro }">
+        <div class="flex h-8 items-center gap-2">
+          <Switch :model-value="value === true" :disabled="ro" @update:model-value="(v: boolean) => commit(v)" />
+          <span class="text-xs text-muted-foreground">{{ value === true ? "True" : "False" }}</span>
+        </div>
+      </template>
+    </ExpressionEditor>
   </div>
 </template>
