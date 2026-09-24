@@ -32,7 +32,7 @@ Switch 的 `caseConditions[i].label` 投影为出端口；`mode`（首个优先/
 
 ## 布局契约（组内，递归同形）
 
-每个条件组渲染为固定两段：**表头行** = `[且/或钮] [+ 添加规则] [+ 组合条件]`，三者永远同一水平行（空组与有比较行的组一致）；**主体** = 表头下一排比较行与至多一个内缩虚线子组，整体缩进在一条自且钮中心向下的竖线（rail）右侧。且/或钮为窄 ghost 样式（弱虚边框、宽自适应、文字+箭头），每一层深度样式一致；子组（combineCondition）递归套用同一形状。该契约是 `conditions + combineCondition` 交互布局的直接序列化，不随组内容增减而改变表头位置。
+每个条件组渲染为左右两栏加底部动作行：**左 rail 栏** = 居中的且/或接合钮（单字 + 上下箭头图标，点击在 and/or 间切换，非下拉），上下各接一段竖线（rail）；**右内容栏** = 一排比较行与至多一个内缩虚线子组，缩进在 rail 右侧；**底部动作行** = `[+ 添加规则] [+ 组合条件]`，左边缘与且/或钮左对齐（同一 x），不放在顶部。接合钮为弱虚边框 ghost 样式，每一层深度一致；子组（combineCondition）递归套用同一形状。该契约是 `conditions + combineCondition` 交互布局的直接序列化（参照 Octopus 指标告警条件配置），不随组内容增减而改变接合钮/动作行位置。
 
 ## Considered Options
 
@@ -46,6 +46,6 @@ Switch 的 `caseConditions[i].label` 投影为出端口；`mode`（首个优先/
 ## Consequences
 
 - `customProperties` 承载编辑真源并随定义进版本；老数据无 `customExpression` 时从现有 condition 反推种子（Javascript→Javascript、Liquid→Liquid、Literal 布尔→Literal）。
-- 显示哪种编辑器由 `type` 一次读取决定：`custom`→builder；其余→把 spec 本身当 expression 交给 ExpressionEditor（allowedTypes 限 Literal/Javascript/Liquid 逃生舱三型，Literal 插槽渲染真/假开关），顶部判别子另提供回到 `custom`（默认值）的入口。
+- 显示哪种编辑器由 `type` 一次读取决定：`custom`→builder；其余→把 spec 本身当 expression 交给 ExpressionEditor（allowedTypes 限 Literal/Javascript/Liquid 逃生舱三型，Literal 插槽渲染真/假开关）。**顶层判别子切换器是一个 ExpressionEditor 同款仅图标按钮，置于条件区行尾（右侧）**，弹层列 可视化/字面量/JavaScript/Liquid 四型（custom 用树形图标，其余复用 ExpressionEditor 解析的 type/code/droplet 图标）；逃生舱模式下以 `hideTypeSwitcher` 隐藏 ExpressionEditor 自带切换器，保证顶层类型只由这一个切换器拥有（默认 custom）。
 - 编译单向且**派生**：操作数/逃生舱编辑由 ExpressionEditor 自有命令写入容器；表单在 revision 变化时把 `compileCondition(spec)` 同步进真条件字段（If.condition / Switch.cases[i].value），不反向解析 JS 回树。
 - 新增纯逻辑缝 `core/designer/conditionCompile`（树→JS），vitest 覆盖；ConditionEditor UI 另计。

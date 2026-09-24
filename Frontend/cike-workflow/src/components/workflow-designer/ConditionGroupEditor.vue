@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2 } from "@lucide/vue"
+import { ArrowUpDown, Plus, Trash2 } from "@lucide/vue"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import {
   OPERATORS_BY_DATATYPE,
@@ -16,11 +16,12 @@ import { emptyGroup } from "@/core/designer/conditionModel"
 import ConditionOperandEditor from "./ConditionOperandEditor.vue"
 
 /**
- * One condition group (recursive). Layout contract (ADR 0010): a fixed header row
- * [junction 且/或][+ 添加规则][+ 组合条件] always on one line, then a body whose
- * comparison rows and the indented dashed subgroup sit to the right of a vertical
- * rail descending from the junction's centre. The junction is a narrow ghost select,
- * identical at every depth. Controlled: emits a new group; owns no command logic.
+ * One condition group (recursive). Layout contract (ADR 0010, image-2 reference):
+ * a left rail column holds the junction as a single-char + swap-icon toggle
+ * button (且/或), vertically centred with a vertical rail above and below it;
+ * the comparison rows and the indented dashed subgroup sit to the rail's right;
+ * the [添加规则][组合条件] buttons sit at the bottom aligned to the junction's
+ * left edge. Controlled: emits a new group; owns no command logic.
  */
 defineOptions({ name: "ConditionGroupEditor" })
 
@@ -103,44 +104,31 @@ function removeCombine(): void {
 }
 
 const conditions = computed(() => props.group.conditions ?? [])
-const hasBody = computed(() => conditions.value.length > 0 || !!props.group.combineCondition)
+
+function toggleJunction(): void {
+  patch({ conditionType: props.group.conditionType === "and" ? "or" : "and" })
+}
 </script>
 
 <template>
-  <div class="space-y-1.5">
-    <!-- Header row: junction + actions, always on one line (ADR 0010 layout contract). -->
-    <div class="flex items-center gap-1.5">
-      <Select
-        :model-value="group.conditionType"
-        :disabled="readonly"
-        @update:model-value="(t) => patch({ conditionType: t as 'and' | 'or' })"
-      >
-        <SelectTrigger size="sm" class="h-7 w-16 border-dashed bg-transparent text-xs shadow-none">
-          <SelectValue class="block! min-w-0 truncate" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="and" class="text-xs">且</SelectItem>
-          <SelectItem value="or" class="text-xs">或</SelectItem>
-        </SelectContent>
-      </Select>
-      <Button variant="outline" size="sm" class="h-7 text-xs" :disabled="readonly" @click="addRule">
-        <Plus :size="12" class="mr-1" />添加规则
-      </Button>
-      <Button
-        v-if="!group.combineCondition"
-        variant="outline"
-        size="sm"
-        class="h-7 text-xs"
-        :disabled="readonly"
-        @click="addCombine"
-      >
-        <Plus :size="12" class="mr-1" />组合条件
-      </Button>
-    </div>
+  <div class="space-y-1">
+    <div class="flex gap-2">
+      <!-- Left rail column: centred junction toggle + vertical rail above/below. -->
+      <div class="flex shrink-0 flex-col items-center">
+        <div class="bg-border w-px flex-1" />
+        <button
+          type="button"
+          :disabled="readonly"
+          :title="group.conditionType === 'and' ? '且（点击切换为或）' : '或（点击切换为且）'"
+          class="text-muted-foreground hover:bg-accent hover:text-accent-foreground inline-flex h-7 shrink-0 items-center gap-0.5 rounded-md border border-dashed bg-transparent px-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
+          @click="toggleJunction"
+        >
+          {{ group.conditionType === "and" ? "且" : "或" }}
+          <ArrowUpDown :size="12" class="shrink-0" />
+        </button>
+        <div class="bg-border w-px flex-1" />
+      </div>
 
-    <!-- Body: vertical rail under the junction's centre + indented content. -->
-    <div v-if="hasBody" class="flex gap-2">
-      <div class="bg-border ml-[27px] w-px shrink-0 self-stretch" />
       <div class="min-w-0 flex-1 space-y-1.5">
         <!-- Flat comparison rows (conditions[]). -->
         <div v-for="(cmp, index) in conditions" :key="index" class="flex items-start gap-1">
@@ -203,6 +191,23 @@ const hasBody = computed(() => conditions.value.length > 0 || !!props.group.comb
           />
         </div>
       </div>
+    </div>
+
+    <!-- Action row aligned to the junction's left edge (image-2). -->
+    <div class="flex items-center gap-1">
+      <Button variant="outline" size="sm" class="h-7 text-xs" :disabled="readonly" @click="addRule">
+        <Plus :size="12" class="mr-1" />添加规则
+      </Button>
+      <Button
+        v-if="!group.combineCondition"
+        variant="outline"
+        size="sm"
+        class="h-7 text-xs"
+        :disabled="readonly"
+        @click="addCombine"
+      >
+        <Plus :size="12" class="mr-1" />组合条件
+      </Button>
     </div>
   </div>
 </template>

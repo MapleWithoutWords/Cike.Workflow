@@ -28,6 +28,9 @@ const props = defineProps<{
   /** Whitelist of selectable types; the current type always stays visible
    *  even when excluded, so a stored value never becomes unselectable. */
   allowedTypes?: string[]
+  /** Suppress the built-in icon type switcher, for callers that own the
+   *  top-level type choice themselves (e.g. ConditionEditor's escape hatch). */
+  hideTypeSwitcher?: boolean
 }>()
 
 const isReadonly = computed(() => props.readonly ?? props.designer.readonly.value)
@@ -195,6 +198,7 @@ function onTypeChange(type: string): void {
 
       <!-- Type switcher: icon-only trigger opening a single-select picker (ADR 0007). -->
       <Select
+        v-if="!hideTypeSwitcher"
         :model-value="currentType"
         :disabled="isReadonly"
         @update:model-value="(t) => onTypeChange(String(t))"
