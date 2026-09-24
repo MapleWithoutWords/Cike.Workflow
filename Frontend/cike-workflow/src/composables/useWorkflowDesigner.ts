@@ -24,6 +24,7 @@ import {
   makeDisconnectCommand,
   makeMoveNodeCommand,
   makeRemoveNodeCommand,
+  makeResizeNodeCommand,
   type DesignerCommand,
 } from "@/core/designer/commands"
 import { buildPaletteGroups, type PaletteGroup } from "@/core/designer/palette"
@@ -308,6 +309,12 @@ export function useWorkflowDesigner() {
     const activity = currentChildren.value.find((child) => child.id === payload.id)
     if (!activity) return
     executeCommand(makeMoveNodeCommand(activity as IActivity, payload.from, { x: payload.x, y: payload.y }))
+  }
+
+  function resizeNode(payload: { id: string; width: number; height: number; from: { width: number; height: number } | null }): void {
+    const activity = currentChildren.value.find((child) => child.id === payload.id)
+    if (!activity) return
+    executeCommand(makeResizeNodeCommand(activity as IActivity, payload.from, { width: payload.width, height: payload.height }))
   }
 
   /** Builds the delete command; the UI confirms before executing it. */
@@ -831,6 +838,7 @@ export function useWorkflowDesigner() {
     undo,
     redo,
     moveNode,
+    resizeNode,
     saveViewport,
     getViewport,
     save,

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import type { ExpressionLike } from "@/core/designer/expression"
 import { coerceLiteralValue } from "@/core/designer/form"
+import CodeLiteralEditor from "./CodeLiteralEditor.vue"
 import ExpressionEditor from "../ExpressionEditor.vue"
 
 const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
@@ -13,10 +13,6 @@ const activity = computed(() => props.activity as unknown as Record<string, { ex
 
 function expr(key: string): ExpressionLike {
   return activity.value[key].expression
-}
-
-function scriptText(value: unknown): string {
-  return value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value)
 }
 
 function outcomesText(value: unknown): string {
@@ -31,11 +27,12 @@ function parseOutcomes(raw: string): string[] {
 <template>
   <div class="space-y-2">
     <ExpressionEditor :expression="expr('script')" :designer="designer" label="脚本" literal-default="">
-      <template #default="{ value, commit }">
-        <Textarea
-          class="min-h-28 font-mono text-xs"
-          :model-value="scriptText(value)"
-          @change="(e: Event) => { const to = coerceLiteralValue(value, (e.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
+      <template #default="{ value, commit, readonly }">
+        <CodeLiteralEditor
+          language="javascript"
+          :value="value"
+          :readonly="readonly"
+          @blur="(raw) => { const to = coerceLiteralValue(value, raw); if (to !== undefined) commit(to) }"
         />
       </template>
     </ExpressionEditor>

@@ -387,6 +387,21 @@ const definitionTypeLabel = computed(() => {
               :disabled="isReadonly"
               @change="(e: Event) => commitInputRename(index, (e.target as HTMLInputElement).value)"
             />
+            <Select
+              :model-value="input.type ?? 'String'"
+              :disabled="isReadonly"
+              @update:model-value="(v) => updateInput(index, { type: String(v) })"
+            >
+              <SelectTrigger size="sm" class="h-6 w-24 shrink-0 text-[11px]">
+                <SelectValue class="block! min-w-0 truncate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in typeOptions" :key="t.typeName" :value="t.typeName!" class="text-[11px]">
+                  {{ t.displayName ?? t.typeName }}
+                </SelectItem>
+                <SelectItem v-if="typeOptions.length === 0" value="String" class="text-[11px]">String</SelectItem>
+              </SelectContent>
+            </Select>
             <Button v-if="!isReadonly" variant="ghost" size="icon" class="h-5 w-5 shrink-0" title="删除" @click="removeInput(index)">
               <Trash2 :size="11" />
             </Button>
@@ -399,21 +414,6 @@ const definitionTypeLabel = computed(() => {
               :disabled="isReadonly"
               @change="(e: Event) => updateInput(index, { displayName: (e.target as HTMLInputElement).value || undefined })"
             />
-            <Select
-              :model-value="input.type ?? 'String'"
-              :disabled="isReadonly"
-              @update:model-value="(v) => updateInput(index, { type: String(v) })"
-            >
-              <SelectTrigger size="sm" class="h-6 w-24 text-[11px]">
-                <SelectValue class="block! min-w-0 truncate" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="t in typeOptions" :key="t.typeName" :value="t.typeName!" class="text-[11px]">
-                  {{ t.displayName ?? t.typeName }}
-                </SelectItem>
-                <SelectItem v-if="typeOptions.length === 0" value="String" class="text-[11px]">String</SelectItem>
-              </SelectContent>
-            </Select>
             <label class="flex items-center gap-1 text-[11px] text-muted-foreground">
               []
               <Switch
@@ -513,6 +513,21 @@ const definitionTypeLabel = computed(() => {
               :disabled="isReadonly"
               @change="(e: Event) => updateOutput(index, { name: (e.target as HTMLInputElement).value })"
             />
+            <Select
+              :model-value="output.type ?? 'String'"
+              :disabled="isReadonly"
+              @update:model-value="(v) => updateOutput(index, { type: String(v) })"
+            >
+              <SelectTrigger size="sm" class="h-6 w-24 shrink-0 text-[11px]">
+                <SelectValue class="block! min-w-0 truncate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in typeOptions" :key="t.typeName" :value="t.typeName!" class="text-[11px]">
+                  {{ t.displayName ?? t.typeName }}
+                </SelectItem>
+                <SelectItem v-if="typeOptions.length === 0" value="String" class="text-[11px]">String</SelectItem>
+              </SelectContent>
+            </Select>
             <Button v-if="!isReadonly" variant="ghost" size="icon" class="h-5 w-5 shrink-0" title="删除" @click="removeOutput(index)">
               <Trash2 :size="11" />
             </Button>
@@ -525,21 +540,6 @@ const definitionTypeLabel = computed(() => {
               :disabled="isReadonly"
               @change="(e: Event) => updateOutput(index, { displayName: (e.target as HTMLInputElement).value || undefined })"
             />
-            <Select
-              :model-value="output.type ?? 'String'"
-              :disabled="isReadonly"
-              @update:model-value="(v) => updateOutput(index, { type: String(v) })"
-            >
-              <SelectTrigger size="sm" class="h-6 w-24 text-[11px]">
-                <SelectValue class="block! min-w-0 truncate" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="t in typeOptions" :key="t.typeName" :value="t.typeName!" class="text-[11px]">
-                  {{ t.displayName ?? t.typeName }}
-                </SelectItem>
-                <SelectItem v-if="typeOptions.length === 0" value="String" class="text-[11px]">String</SelectItem>
-              </SelectContent>
-            </Select>
             <label class="flex items-center gap-1 text-[11px] text-muted-foreground">
               []
               <Switch

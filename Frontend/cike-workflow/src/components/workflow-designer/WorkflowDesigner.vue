@@ -195,6 +195,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown))
             @node-click="(id: string) => { designer.selectedActivityId.value = id || null; designer.selectedEdgeId.value = null }"
             @node-dblclick="(id: string) => drillById(id)"
             @node-moved="(payload) => designer.moveNode(payload)"
+            @node-resized="(payload) => designer.resizeNode(payload)"
             @viewport-changed="(state) => designer.saveViewport(state)"
             @drop-activity="(payload) => designer.addNode(payload.typeName, { x: payload.x, y: payload.y })"
             @edge-click="(edgeId: string) => { designer.selectedActivityId.value = null; designer.selectedEdgeId.value = edgeId }"

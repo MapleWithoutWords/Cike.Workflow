@@ -12,13 +12,18 @@ export interface DesignerNodeMeta {
   y: number;
 }
 
+export interface DesignerNodeSize {
+  width: number;
+  height: number;
+}
+
 export interface DesignerCanvasMeta {
   zoom: number;
   panX: number;
   panY: number;
 }
 
-export interface DesignerMeta extends Partial<DesignerNodeMeta> {
+export interface DesignerMeta extends Partial<DesignerNodeMeta>, Partial<DesignerNodeSize> {
   canvas?: DesignerCanvasMeta;
 }
 
@@ -61,4 +66,26 @@ export function getCanvasState(activity: IActivity): DesignerCanvasMeta | null {
 
 export function setCanvasState(activity: IActivity, state: DesignerCanvasMeta): void {
   patchDesignerMeta(activity, { canvas: state });
+}
+
+export function getNodeSize(activity: IActivity): DesignerNodeSize | null {
+  const meta = getDesignerMeta(activity);
+  return typeof meta.width === "number" && typeof meta.height === "number"
+    ? { width: meta.width, height: meta.height }
+    : null;
+}
+
+export function setNodeSize(activity: IActivity, size: DesignerNodeSize): void {
+  patchDesignerMeta(activity, { width: size.width, height: size.height });
+}
+
+/** Drops the node size while preserving other designer metadata. */
+export function clearNodeSize(activity: IActivity): void {
+  const meta = activity.metadata?.["designer"];
+  if (!meta || typeof meta !== "object") return;
+  const rest: DesignerMeta = { ...(meta as DesignerMeta) };
+  delete rest.width;
+  delete rest.height;
+  if (Object.keys(rest).length === 0) delete activity.metadata!["designer"];
+  else activity.metadata!["designer"] = rest;
 }

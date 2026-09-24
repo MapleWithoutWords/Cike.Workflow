@@ -15,7 +15,7 @@ public class TestAuthHandler(
     UrlEncoder encoder) : AuthenticationHandler<TestAuthOptions>(options, logger, encoder)
 {
     public const string SchemeName = "TestScheme";
-    public const string TestUserId = "00000000-0000-0000-0000-000000000001";
+    public const string TestUserId = "0";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {

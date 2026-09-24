@@ -62,7 +62,8 @@ public class WorkflowDefinitionQueryHandler(ICacheService<FolderCacheModel> fold
     [LocalEventHandler]
     public async Task GetAsync(GetWorkflowDefinitionQuery query, CancellationToken cancellationToken)
     {
-        using var _ = workflowDefinitionRepository.BeginAsNoTracking();
+        // 不加 BeginAsNoTracking：影子属性 SerializedOptions 只在跟踪条目上可读，
+        // 仓储读路径（OnLoadAsync）需要它还原 Options（与 WorkflowInstanceQueryHandler 同源纪律）
         var entity = await workflowDefinitionRepository.GetAsync(query.Id, cancellationToken);
         query.Result = entity.Adapt<WorkflowDefinitionDetailDto>();
         query.Result.Root = activitySerializer.Deserialize<IActivity>(entity!.OriginalStringData);

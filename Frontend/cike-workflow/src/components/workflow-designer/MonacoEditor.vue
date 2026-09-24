@@ -4,7 +4,8 @@ import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
 /**
  * Thin Monaco wrapper. Monaco is heavy (~500KB) so it is imported lazily on
  * first mount and never lands in the initial bundle (ADR 0004: JavaScript /
- * Liquid expressions use Monaco; Literal stays on plain form controls).
+ * Liquid expressions use Monaco; code-like Literal slots, e.g. RunJavaScript's
+ * script, embed it too while plain-value Literals stay on form controls).
  */
 const props = withDefaults(
   defineProps<{
@@ -34,21 +35,24 @@ function currentTheme(): string {
 
 async function setup(): Promise<void> {
   if (!container.value || disposed) return
-  const [monaco, editorWorker, tsWorker] = await Promise.all([
+  const [monaco, editorWorker, tsWorker, jsonWorker] = await Promise.all([
     import("monaco-editor"),
     import("monaco-editor/editor/editor.worker?worker"),
     import("monaco-editor/languages/features/typescript/ts.worker?worker"),
+    import("monaco-editor/languages/features/json/json.worker?worker"),
   ])
   if (disposed || !container.value) return
   // Monaco requests workers by language label; the JavaScript/TypeScript language
-  // service needs ts.worker (diagnostics + completions), everything else uses the
-  // base editor worker. Routing by label avoids unhandled rejections from the JS
-  // language features hitting a worker that does not implement them.
+  // service needs ts.worker (diagnostics + completions), JSON needs json.worker
+  // (schema validation + diagnostics), everything else uses the base editor
+  // worker. Routing by label avoids unhandled rejections from language features
+  // hitting a worker that does not implement them.
   ;(self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
-    getWorker: (_workerId: string, label: string) =>
-      label === "typescript" || label === "javascript"
-        ? new tsWorker.default()
-        : new editorWorker.default(),
+    getWorker: (_workerId: string, label: string) => {
+      if (label === "typescript" || label === "javascript") return new tsWorker.default()
+      if (label === "json") return new jsonWorker.default()
+      return new editorWorker.default()
+    },
   }
   const editor = monaco.editor.create(container.value, {
     value: props.modelValue ?? "",

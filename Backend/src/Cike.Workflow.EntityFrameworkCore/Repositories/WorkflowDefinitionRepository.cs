@@ -128,12 +128,20 @@ public class WorkflowDefinitionRepository(CikeWorkflowDbContext context, IPayloa
         return ValueTask.CompletedTask;
     }
 
-    protected override ValueTask OnLoadAsync(WorkflowDefinition? entity, CancellationToken cancellationToken)
+    protected override async ValueTask OnLoadAsync(WorkflowDefinition? entity, CancellationToken cancellationToken)
     {
         if (entity == null)
-            return ValueTask.CompletedTask;
+            return;
 
         var json = (string?)DbContext.Entry(entity).Property("SerializedOptions").CurrentValue;
+
+        // no-tracking 查询不携带影子属性值（值只存在于跟踪条目）：回落到按 Id 投影直读影子列，
+        // 避免 no-tracking 读路径把 Options 静默降级为空对象
+        if (string.IsNullOrWhiteSpace(json))
+            json = await DbContext.Set<WorkflowDefinition>()
+                .Where(x => x.Id == entity.Id)
+                .Select(x => EF.Property<string>(x, "SerializedOptions"))
+                .FirstOrDefaultAsync(cancellationToken);
 
         try
         {
@@ -145,6 +153,6 @@ public class WorkflowDefinitionRepository(CikeWorkflowDbContext context, IPayloa
             logger.LogError(exp, "Could not deserialize workflow definition state: {DefinitionId}. Reverting to default state", entity.DefinitionId);
         }
 
-        return ValueTask.CompletedTask;
+        return;
     }
 }

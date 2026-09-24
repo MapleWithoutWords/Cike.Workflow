@@ -2,11 +2,11 @@
 import { computed } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import type { IActivity } from "@/core/abstracts/Activity"
 import { resolveInputFields, type ResolvedInputField } from "@/core/designer/form"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
+import CodeLiteralEditor from "./CodeLiteralEditor.vue"
 import ExpressionEditor from "../ExpressionEditor.vue"
 
 const props = defineProps<{
@@ -60,24 +60,25 @@ function coerceJson(raw: string): unknown {
         :description="field.description"
         :literal-default="literalDefaultFor(field)"
       >
-        <template #default="{ value, commit }">
-          <Switch
-            v-if="typeof value === 'boolean'"
-            :model-value="value === true"
-            @update:model-value="(checked: boolean) => commit(checked)"
-          />
+        <template #default="{ value, commit, readonly }">
+          <div v-if="typeof value === 'boolean'" class="flex h-8 items-center">
+            <Switch
+              :model-value="value === true"
+              :disabled="readonly"
+              @update:model-value="(checked: boolean) => commit(checked)"
+            />
+          </div>
           <UiInput
             v-else-if="typeof value === 'number'"
             type="number"
             :model-value="asText(value)"
             @change="(event: Event) => commit(coerceNumber((event.target as HTMLInputElement).value))"
           />
-          <Textarea
+          <CodeLiteralEditor
             v-else-if="value != null && typeof value === 'object'"
-            class="font-mono text-xs"
-            rows="4"
-            :model-value="asText(value)"
-            @change="(event: Event) => { const to = coerceJson((event.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
+            :value="value"
+            :readonly="readonly"
+            @blur="(raw) => { const to = coerceJson(raw); if (to !== undefined) commit(to) }"
           />
           <UiInput
             v-else

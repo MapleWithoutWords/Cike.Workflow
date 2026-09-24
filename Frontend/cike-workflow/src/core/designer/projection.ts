@@ -3,7 +3,7 @@ import type { ActivityConnection } from "../models/ActivityConnection";
 import { Flowchart } from "../activities/Flowchart";
 import { activityShortName, resolveActivityClass } from "./registry";
 import { computeAutoLayout, type Point } from "./layout";
-import { getNodePosition } from "./metadata";
+import { getNodePosition, getNodeSize } from "./metadata";
 
 /**
  * Pure projection from the domain model (a Flowchart level) to canvas cell
@@ -39,6 +39,8 @@ export interface ProjectedNode {
   id: string;
   x: number;
   y: number;
+  width: number;
+  height: number;
   data: DesignerNodeData;
 }
 
@@ -57,6 +59,20 @@ export interface CanvasProjection {
 }
 
 const EMPTY_PROJECTION: CanvasProjection = { nodes: [], edges: [] };
+
+/** Default node dimensions (mirrors register.ts constants). */
+const DEFAULT_NODE_WIDTH = 180;
+const DEFAULT_NODE_HEIGHT = 44;
+/** Vertical space each port occupies on the node edge. */
+const PORT_SPACING = 22;
+/** Top+bottom padding inside the port area. */
+const NODE_PADDING = 12;
+
+/** Compute the minimum height needed to display ports without squeezing. */
+function computeMinHeight(inPortCount: number, outPortCount: number): number {
+  const maxPorts = Math.max(inPortCount, outPortCount);
+  return Math.max(DEFAULT_NODE_HEIGHT, maxPorts * PORT_SPACING + NODE_PADDING);
+}
 
 export function getOutPortsOf(activity: IActivity): string[] {
   // Only fall back to a default outcome for non-instances (e.g. plain wire
@@ -104,17 +120,23 @@ export function projectCanvas(source: CanvasSource): CanvasProjection {
 
   const nodes: ProjectedNode[] = activities.map((activity) => {
     const position = savedPositions.get(activity.id) ?? layout.get(activity.id) ?? { x: 80, y: 80 };
+    const inPorts = getInPortsOf(activity);
+    const outPorts = getOutPortsOf(activity);
+    const minHeight = computeMinHeight(inPorts.length, outPorts.length);
+    const savedSize = getNodeSize(activity);
     return {
       id: activity.id,
       x: position.x,
       y: position.y,
+      width: savedSize ? Math.max(savedSize.width, DEFAULT_NODE_WIDTH) : DEFAULT_NODE_WIDTH,
+      height: savedSize ? Math.max(savedSize.height, minHeight) : minHeight,
       data: {
         activityId: activity.id,
         type: activity.type,
         typeShort: activityShortName(activity.type),
         name: activity.name ?? activityShortName(activity.type),
-        inPorts: getInPortsOf(activity),
-        outPorts: getOutPortsOf(activity),
+        inPorts,
+        outPorts,
         isGeneric: resolveActivityClass(activity.type) === null,
         canDrill: canDrillInto(activity),
       },
@@ -138,21 +160,29 @@ export function projectCanvas(source: CanvasSource): CanvasProjection {
  */
 export function projectOrderedChain(children: IActivity[]): CanvasProjection {
   if (children.length === 0) return EMPTY_PROJECTION;
-  const nodes: ProjectedNode[] = children.map((activity, index) => ({
-    id: activity.id,
-    x: 200,
-    y: 80 + index * 140,
-    data: {
-      activityId: activity.id,
-      type: activity.type,
-      typeShort: activityShortName(activity.type),
-      name: activity.name ?? activityShortName(activity.type),
-      inPorts: getInPortsOf(activity),
-      outPorts: getOutPortsOf(activity),
-      isGeneric: resolveActivityClass(activity.type) === null,
-      canDrill: canDrillInto(activity),
-    },
-  }));
+  const nodes: ProjectedNode[] = children.map((activity, index) => {
+    const inPorts = getInPortsOf(activity);
+    const outPorts = getOutPortsOf(activity);
+    const minHeight = computeMinHeight(inPorts.length, outPorts.length);
+    const savedSize = getNodeSize(activity);
+    return {
+      id: activity.id,
+      x: 200,
+      y: 80 + index * 140,
+      width: savedSize ? Math.max(savedSize.width, DEFAULT_NODE_WIDTH) : DEFAULT_NODE_WIDTH,
+      height: savedSize ? Math.max(savedSize.height, minHeight) : minHeight,
+      data: {
+        activityId: activity.id,
+        type: activity.type,
+        typeShort: activityShortName(activity.type),
+        name: activity.name ?? activityShortName(activity.type),
+        inPorts,
+        outPorts,
+        isGeneric: resolveActivityClass(activity.type) === null,
+        canDrill: canDrillInto(activity),
+      },
+    };
+  });
   const edges: ProjectedEdge[] = [];
   for (let i = 0; i < children.length - 1; i += 1) {
     edges.push({

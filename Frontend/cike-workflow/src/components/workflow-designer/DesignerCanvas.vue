@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue"
-import { Graph, Snapline } from "@antv/x6"
+import { Graph, Snapline, Transform, type Node as X6Node } from "@antv/x6"
 import type { CanvasProjection } from "@/core/designer/projection"
 import { getCanvasState, type DesignerCanvasMeta } from "@/core/designer/metadata"
 import { CIKE_NODE_SHAPE, registerDesignerShapes, TeleportContainer } from "./nodes/register"
@@ -18,6 +18,7 @@ const emit = defineEmits<{
   nodeClick: [activityId: string]
   nodeDblclick: [activityId: string]
   nodeMoved: [payload: { id: string; x: number; y: number; from: { x: number; y: number } | null }]
+  nodeResized: [payload: { id: string; width: number; height: number; from: { width: number; height: number } | null }]
   viewportChanged: [state: DesignerCanvasMeta]
   dropActivity: [payload: { typeName: string; x: number; y: number }]
   edgeClick: [edgeId: string]
@@ -29,6 +30,8 @@ let graph: Graph | null = null
 let selectedEdgeId: string | null = null
 /** Positions captured on node:mousedown for move-command undo. */
 const dragOrigins = new Map<string, { x: number; y: number } | null>()
+/** Sizes captured on node:resize:start for resize-command undo. */
+const resizeOrigins = new Map<string, { width: number; height: number } | null>()
 
 function onDrop(event: DragEvent): void {
   const typeName = event.dataTransfer?.getData("cike-activity-type")
@@ -92,7 +95,10 @@ onMounted(() => {
         }),
     },
   })
-  if (props.interactive) graph.use(new Snapline())
+  if (props.interactive) {
+    graph.use(new Snapline())
+    graph.use(new Transform({ resizing: { enabled: true, minWidth: 120, minHeight: 32 } }))
+  }
   graph.on("node:click", ({ node }) => emit("nodeClick", String(node.id)))
   graph.on("blank:click", () => {
     clearEdgeSelection()
@@ -125,6 +131,16 @@ onMounted(() => {
   graph.on("node:moved", ({ node }) => {
     const { x, y } = node.getPosition()
     emit("nodeMoved", { id: String(node.id), x, y, from: dragOrigins.get(String(node.id)) ?? null })
+  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graph.on("node:resize:start", (args: any) => {
+    const node = args.node as X6Node
+    const { width, height } = node.getSize()
+    resizeOrigins.set(String(node.id), { width, height })
+  })
+  graph.on("node:resized", ({ node }) => {
+    const { width, height } = node.getSize()
+    emit("nodeResized", { id: String(node.id), width, height, from: resizeOrigins.get(String(node.id)) ?? null })
   })
   graph.on("scale", ({ sx }) => {
     const translation = graph!.translate()
@@ -179,6 +195,8 @@ function renderProjection(): void {
       id: node.id,
       x: node.x,
       y: node.y,
+      width: node.width,
+      height: node.height,
       data: { ...node.data, selected: node.id === props.selectedId },
       ports: {
         items: [

@@ -1,6 +1,6 @@
 import type { IActivity } from "../abstracts/Activity";
 import type { ActivityConnection } from "../models/ActivityConnection";
-import { clearNodePosition, setNodePosition, type DesignerNodeMeta } from "./metadata";
+import { clearNodePosition, setNodePosition, clearNodeSize, setNodeSize, type DesignerNodeMeta, type DesignerNodeSize } from "./metadata";
 
 /**
  * Model-layer command stack (spec decision: undo/redo lives in the model, not
@@ -77,6 +77,22 @@ export function makeMoveNodeCommand(
       else clearNodePosition(activity);
     },
     redo: () => setNodePosition(activity, to),
+  };
+}
+
+export function makeResizeNodeCommand(
+  activity: IActivity,
+  from: DesignerNodeSize | null,
+  to: DesignerNodeSize,
+): DesignerCommand {
+  return {
+    label: "调整节点大小",
+    apply: () => setNodeSize(activity, to),
+    undo: () => {
+      if (from) setNodeSize(activity, from);
+      else clearNodeSize(activity);
+    },
+    redo: () => setNodeSize(activity, to),
   };
 }
 

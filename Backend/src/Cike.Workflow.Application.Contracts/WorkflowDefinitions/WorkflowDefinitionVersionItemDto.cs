@@ -12,7 +12,7 @@ public class WorkflowDefinitionVersionItemDto : AuditedEntityDto<long>
 
     public string PublishedNote { get; set; } = string.Empty;
 
-    public Guid PublishedBy { get; set; } = Guid.Empty;
+    public long PublishedBy { get; set; } = 0;
 
     public DateTime PublishedAt { get; set; } = default;
 }

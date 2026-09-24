@@ -41,8 +41,10 @@ function toNumber(raw: string): unknown {
       </template>
     </ExpressionEditor>
     <ExpressionEditor :expression="expr('outerBoundInclusive')" :designer="designer" label="含右边界" :literal-default="false">
-      <template #default="{ value, commit }">
-        <Switch :model-value="value === true" @update:model-value="(v: boolean) => commit(v)" />
+      <template #default="{ value, commit, readonly }">
+        <div class="flex h-8 items-center">
+          <Switch :model-value="value === true" :disabled="readonly" @update:model-value="(v: boolean) => commit(v)" />
+        </div>
       </template>
     </ExpressionEditor>
   </div>

@@ -79,15 +79,6 @@ function commitMergeMode(mode: string): void {
     </div>
 
     <div class="space-y-1">
-      <Label class="text-xs">名称</Label>
-      <UiInput
-        :model-value="activity.name ?? ''"
-        :placeholder="activityShortName(activity.type)"
-        @change="(event: Event) => commitName((event.target as HTMLInputElement).value)"
-      />
-    </div>
-
-    <div class="space-y-1">
       <Label class="text-xs">标识（Code）</Label>
       <UiInput
         :model-value="activity.code ?? ''"
@@ -95,6 +86,15 @@ function commitMergeMode(mode: string): void {
         @change="(event: Event) => commitCode((event.target as HTMLInputElement).value)"
       />
       <div class="text-[10px] text-muted-foreground">节点的稳定标识，用于流程引用</div>
+    </div>
+
+    <div class="space-y-1">
+      <Label class="text-xs">名称</Label>
+      <UiInput
+        :model-value="activity.name ?? ''"
+        :placeholder="activityShortName(activity.type)"
+        @change="(event: Event) => commitName((event.target as HTMLInputElement).value)"
+      />
     </div>
 
     <div v-if="inboundCount >= 2" class="space-y-1">

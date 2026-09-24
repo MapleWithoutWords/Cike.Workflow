@@ -56,7 +56,7 @@ public class WorkflowDefinitionCacheModel : FullAuditedEntityDto<long>, IMultiTe
 
     public string PublishedNote { get; set; } = string.Empty;
 
-    public Guid PublishedBy { get; set; } = Guid.Empty;
+    public long PublishedBy { get; set; }
 
     public DateTime PublishedAt { get; set; } = default;
 }

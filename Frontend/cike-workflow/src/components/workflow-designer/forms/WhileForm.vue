@@ -14,9 +14,9 @@ const condition = computed<ExpressionLike>(
 
 <template>
   <ExpressionEditor :expression="condition" :designer="designer" label="循环条件" :literal-default="false">
-    <template #default="{ value, commit }">
-      <div class="flex items-center gap-2">
-        <Switch :model-value="value === true" @update:model-value="(v: boolean) => commit(v)" />
+    <template #default="{ value, commit, readonly }">
+      <div class="flex h-8 items-center gap-2">
+        <Switch :model-value="value === true" :disabled="readonly" @update:model-value="(v: boolean) => commit(v)" />
         <span class="text-xs text-muted-foreground">{{ value === true ? "True" : "False" }}</span>
       </div>
     </template>

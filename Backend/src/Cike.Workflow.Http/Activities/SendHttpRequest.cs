@@ -84,7 +84,7 @@ namespace Cike.Workflow.Http.Activities
             DefaultValue = new[] { 202 },
             Category = "Advanced"
         )]
-        public Input<List<int>> SuspendOnStatusCodes { get; set; } = new([202]);
+        public Input<List<int>> WaitForCompletionOnStatusCodes { get; set; } = new([202]);
 
         [Input(
             Description = "响应错误状态码范围，匹配开头即抛出异常，多个用逗号分隔。",
@@ -137,7 +137,7 @@ namespace Cike.Workflow.Http.Activities
                 throw new HttpRequestException($"HTTP 请求失败，状态码：{statusCode}", null, response.StatusCode);
 
             var waitForCompletion = WaitForCompletion.GetOrDefault(context);
-            var suspendOnStatusCodes = SuspendOnStatusCodes.GetOrDefault(context) ?? [202];
+            var suspendOnStatusCodes = WaitForCompletionOnStatusCodes.GetOrDefault(context) ?? [202];
 
             if (waitForCompletion && suspendOnStatusCodes.ToList().Contains(statusCode))
                 SuspendAndWait(context);

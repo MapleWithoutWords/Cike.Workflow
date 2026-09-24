@@ -1,5 +1,6 @@
 using Cike.Workflow.Common.Versions;
 using Cike.Workflow.Core.Activities.FlowchartActivity;
+using Cike.Workflow.Core.Activities.FlowchartActivity.Models;
 using Cike.Workflow.Core.Serialization;
 using Cike.Workflow.Core.Validation;
 
@@ -36,7 +37,9 @@ public class WorkflowDefinitionCommandHandler(
         await ValidateDuplicateAsync(dto.WorkspaceId, dto.Name, dto.DefinitionId, null, cancellationToken);
 
         var entity = dto.Adapt<WorkflowDefinition>();
-        entity.OriginalStringData = activitySerializer.Serialize(new Flowchart());
+        entity.OriginalStringData = activitySerializer.Serialize(new Flowchart()
+        {
+        });
 
         await workflowDefinitionRepository.InsertAsync(entity, cancellationToken: cancellationToken);
         command.Id = entity.Id;
@@ -109,7 +112,7 @@ public class WorkflowDefinitionCommandHandler(
         {
             row.IsPublished = true;
             row.PublishedNote = note;
-            row.PublishedBy = currentUser.GetGuidId();
+            row.PublishedBy = long.TryParse(currentUser.Id, out var userid) ? userid : 0;
             row.PublishedAt = DateTime.Now;
         }, cancellationToken);
         command.PublishedId = row.Id;

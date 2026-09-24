@@ -4,6 +4,10 @@ import DesignerNode from "./DesignerNode.vue"
 export const CIKE_NODE_SHAPE = "cike-node"
 export const NODE_WIDTH = 180
 export const NODE_HEIGHT = 44
+/** Vertical space each port occupies on the node edge. */
+export const PORT_SPACING = 22
+/** Top+bottom padding inside the port area. */
+export const NODE_PADDING = 12
 
 /**
  * x6-vue-shape v3 renders Vue node content through a teleport container that

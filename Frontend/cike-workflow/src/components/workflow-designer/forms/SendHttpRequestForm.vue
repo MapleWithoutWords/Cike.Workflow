@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { Input as UiInput } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkflowDesignerState } from "@/composables/useWorkflowDesigner"
 import type { ExpressionLike } from "@/core/designer/expression"
 import { coerceLiteralValue } from "@/core/designer/form"
+import CodeLiteralEditor from "./CodeLiteralEditor.vue"
 import ExpressionEditor from "../ExpressionEditor.vue"
+import HeadersKeyValueEditor from "./HeadersKeyValueEditor.vue"
+import StatusCodeMultiSelect from "./StatusCodeMultiSelect.vue"
 
+/**
+ * Single-column, grouped layout (n8n-style side panel): the ~300px dock leaves
+ * ~90px per cell in a two-column grid once each row's 32px type-icon trigger
+ * is deducted, which truncated the 45-code default error list beyond reading.
+ */
 const props = defineProps<{ activity: unknown; designer: WorkflowDesignerState }>()
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
-const JSON_FIELDS = ["content", "requestHeaders", "responseErrorCodes", "suspendOnStatusCodes"]
 
 const activity = computed(() => props.activity as unknown as Record<string, { expression: ExpressionLike }>)
 
@@ -24,78 +30,50 @@ function text(value: unknown): string {
   return value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value)
 }
 
-/** Same coercion the form used before: comma-splitting for numeric/string code
- *  arrays, otherwise shape-preserving literal coercion. */
-function coerce(key: string, from: unknown, raw: string): unknown {
-  if (JSON_FIELDS.includes(key) && Array.isArray(from) && !raw.startsWith("[") && raw !== "") {
-    return raw
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-      .map((entry) => (from.length > 0 && typeof from[0] === "number" ? Number(entry) : entry))
-  }
-  return coerceLiteralValue(from, raw)
+function codes(value: unknown): number[] {
+  return Array.isArray(value) ? value.filter((entry): entry is number => typeof entry === "number") : []
+}
+
+function commitText(value: unknown, raw: string, commit: (to: unknown) => void): void {
+  const to = coerceLiteralValue(value, raw)
+  if (to !== undefined) commit(to)
 }
 </script>
 
 <template>
-  <div class="space-y-2">
-    <div class="flex items-start gap-2">
-      <div class="w-36 shrink-0">
-        <ExpressionEditor :expression="expr('method')" :designer="designer" label="方法" literal-default="GET">
-          <template #default="{ value, commit }">
-            <Select :model-value="text(value)" @update:model-value="(v) => commit(String(v))">
-              <SelectTrigger size="sm" class="w-full text-xs">
-                <SelectValue class="block! min-w-0 truncate" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="method in METHODS" :key="method" :value="method">{{ method }}</SelectItem>
-              </SelectContent>
-            </Select>
-          </template>
-        </ExpressionEditor>
-      </div>
-      <div class="min-w-0 flex-1">
-        <ExpressionEditor :expression="expr('url')" :designer="designer" label="URL" literal-default="">
-          <template #default="{ value, commit }">
-            <UiInput
-              :model-value="text(value)"
-              placeholder="https://"
-              @change="(e: Event) => { const to = coerce('url', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
-            />
-          </template>
-        </ExpressionEditor>
-      </div>
-    </div>
+  <div class="space-y-3">
+    <div class="space-y-2">
+      <div class="text-xs font-medium text-muted-foreground">请求</div>
 
-    <ExpressionEditor :expression="expr('content')" :designer="designer" label="内容（JSON）" :literal-default="{}">
-      <template #default="{ value, commit }">
-        <Textarea
-          class="font-mono text-xs"
-          rows="4"
-          :model-value="text(value)"
-          @change="(e: Event) => { const to = coerce('content', value, (e.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
-        />
-      </template>
-    </ExpressionEditor>
+      <ExpressionEditor :expression="expr('method')" :designer="designer" label="方法" literal-default="GET">
+        <template #default="{ value, commit }">
+          <Select :model-value="text(value)" @update:model-value="(v) => commit(String(v))">
+            <SelectTrigger size="sm" class="w-full text-xs">
+              <SelectValue class="block! min-w-0 truncate" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="method in METHODS" :key="method" :value="method">{{ method }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </template>
+      </ExpressionEditor>
 
-    <ExpressionEditor :expression="expr('requestHeaders')" :designer="designer" label="请求头（JSON）" :literal-default="{}">
-      <template #default="{ value, commit }">
-        <Textarea
-          class="font-mono text-xs"
-          rows="3"
-          :model-value="text(value)"
-          @change="(e: Event) => { const to = coerce('requestHeaders', value, (e.target as HTMLTextAreaElement).value); if (to !== undefined) commit(to) }"
-        />
-      </template>
-    </ExpressionEditor>
+      <ExpressionEditor :expression="expr('url')" :designer="designer" label="URL" literal-default="">
+        <template #default="{ value, commit }">
+          <UiInput
+            :model-value="text(value)"
+            placeholder="https://"
+            @change="(e: Event) => commitText(value, (e.target as HTMLInputElement).value, commit)"
+          />
+        </template>
+      </ExpressionEditor>
 
-    <div class="grid grid-cols-2 gap-2">
       <ExpressionEditor :expression="expr('authorization')" :designer="designer" label="认证" literal-default="">
         <template #default="{ value, commit }">
           <UiInput
             :model-value="text(value)"
-            @change="(e: Event) => { const to = coerce('authorization', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
+            placeholder="Bearer …"
+            @change="(e: Event) => commitText(value, (e.target as HTMLInputElement).value, commit)"
           />
         </template>
       </ExpressionEditor>
@@ -104,44 +82,59 @@ function coerce(key: string, from: unknown, raw: string): unknown {
         <template #default="{ value, commit }">
           <UiInput
             :model-value="text(value)"
-            @change="(e: Event) => { const to = coerce('contentType', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
+            placeholder="application/json"
+            @change="(e: Event) => commitText(value, (e.target as HTMLInputElement).value, commit)"
           />
         </template>
       </ExpressionEditor>
+
+      <ExpressionEditor :expression="expr('content')" :designer="designer" label="内容（JSON）" :literal-default="{}">
+        <template #default="{ value, commit, readonly }">
+          <CodeLiteralEditor
+            :value="value"
+            :readonly="readonly"
+            @blur="(raw) => commitText(value, raw, commit)"
+          />
+        </template>
+      </ExpressionEditor>
+
+      <ExpressionEditor :expression="expr('requestHeaders')" :designer="designer" label="请求头" :literal-default="{ headers: {} }">
+        <template #default="{ value, commit, readonly }">
+          <HeadersKeyValueEditor :value="value" :readonly="readonly" @commit="(next) => commit(next)" />
+        </template>
+      </ExpressionEditor>
+    </div>
+
+    <div class="space-y-2">
+      <div class="text-xs font-medium text-muted-foreground">响应与完成</div>
 
       <ExpressionEditor :expression="expr('timeoutInterval')" :designer="designer" label="超时（秒）" :literal-default="0">
         <template #default="{ value, commit }">
           <UiInput
             type="number"
             :model-value="text(value)"
-            @change="(e: Event) => { const to = coerce('timeoutInterval', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
+            @change="(e: Event) => commitText(value, (e.target as HTMLInputElement).value, commit)"
           />
         </template>
       </ExpressionEditor>
 
       <ExpressionEditor :expression="expr('responseErrorCodes')" :designer="designer" label="错误状态码" :literal-default="[]">
-        <template #default="{ value, commit }">
-          <UiInput
-            :model-value="text(value)"
-            placeholder="400, 401, 500"
-            @change="(e: Event) => { const to = coerce('responseErrorCodes', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
-          />
+        <template #default="{ value, commit, readonly }">
+          <StatusCodeMultiSelect :model-value="codes(value)" :readonly="readonly" @commit="(next) => commit(next)" />
         </template>
       </ExpressionEditor>
 
       <ExpressionEditor :expression="expr('suspendOnStatusCodes')" :designer="designer" label="挂起状态码" :literal-default="[]">
-        <template #default="{ value, commit }">
-          <UiInput
-            :model-value="text(value)"
-            placeholder="202"
-            @change="(e: Event) => { const to = coerce('suspendOnStatusCodes', value, (e.target as HTMLInputElement).value); if (to !== undefined) commit(to) }"
-          />
+        <template #default="{ value, commit, readonly }">
+          <StatusCodeMultiSelect :model-value="codes(value)" :readonly="readonly" @commit="(next) => commit(next)" />
         </template>
       </ExpressionEditor>
 
       <ExpressionEditor :expression="expr('waitForCompletion')" :designer="designer" label="等待完成" :literal-default="false">
-        <template #default="{ value, commit }">
-          <Switch :model-value="value === true" @update:model-value="(v: boolean) => commit(v)" />
+        <template #default="{ value, commit, readonly }">
+          <div class="flex h-8 items-center">
+            <Switch :model-value="value === true" :disabled="readonly" @update:model-value="(v: boolean) => commit(v)" />
+          </div>
         </template>
       </ExpressionEditor>
     </div>
